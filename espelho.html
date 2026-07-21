@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#D98C1F">
+<title>Meu Assessor — espelho da sua semana</title>
+<style>
+  :root{--bg:#FBF8F1;--card:#fff;--ink:#2B2A26;--muted:#8C887C;--line:#EDE7D9;--honey:#D98C1F;--honey-soft:#FBEFD8;--olive:#6B7A3F;--green:#3B7A57;--r:14px;
+    --foco:#7C5CBF;--reuniao:#3B82C4;--treino:#5B9A4E;--pessoal:#C98A2B;--refeicao:#D98C1F;--vazio:#E9E3D6}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--ink);line-height:1.5;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:480px;margin:0 auto;min-height:100vh;padding:20px 16px 36px}
+  .top{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);margin-bottom:16px}
+  .top b{color:var(--honey);font-weight:700}
+  .top a{margin-left:auto;color:var(--muted);text-decoration:none;font-size:13px}
+  .banner{background:var(--honey-soft);border:1px solid #F0DDB6;color:#8a5a12;font-size:12.5px;border-radius:12px;padding:10px 12px;margin-bottom:18px}
+  h1{font-size:23px;font-weight:700;line-height:1.2;margin-bottom:6px}
+  .sub{font-size:14px;color:var(--muted);margin-bottom:20px}
+  .sect-t{font-size:13px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin:26px 0 12px}
+  /* semana */
+  .week{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;margin-bottom:6px}
+  .day{text-align:center}.day .dn{font-size:11px;color:var(--muted);margin-bottom:5px;font-weight:600}
+  .col{height:230px;border-radius:8px;overflow:hidden;border:1px solid var(--line);display:flex;flex-direction:column;background:repeating-linear-gradient(var(--vazio),var(--vazio) 1px,#F3EEE2 1px,#F3EEE2 2px)}
+  .seg{width:100%;position:relative}
+  .legend{display:flex;flex-wrap:wrap;gap:10px 14px;margin:4px 0 8px}
+  .lg{display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--muted)}
+  .lg i{width:11px;height:11px;border-radius:3px;display:inline-block}
+  /* diagnostico */
+  .diag{background:var(--card);border:1.5px solid var(--line);border-radius:var(--r);padding:14px 16px;margin-bottom:10px;display:flex;gap:12px;align-items:flex-start}
+  .diag .ic{font-size:20px;line-height:1.2}
+  .diag .tt{font-size:14.5px;font-weight:600;margin-bottom:2px}
+  .diag .ds{font-size:13px;color:var(--muted)}
+  .diag .bar{height:6px;background:#EFEAdd;border-radius:99px;overflow:hidden;margin-top:8px}
+  .diag .bar>i{display:block;height:100%;border-radius:99px}
+  /* sugestoes */
+  .sug{background:var(--card);border:1.5px solid var(--line);border-left-width:5px;border-radius:12px;padding:14px 16px;margin-bottom:11px}
+  .sug .tt{font-size:14.5px;font-weight:600;margin-bottom:3px}
+  .sug .ds{font-size:12.5px;color:var(--muted);margin-bottom:11px}
+  .sug .act{display:flex;align-items:center;gap:10px}
+  .btn{font-size:14px;font-weight:600;padding:9px 15px;border-radius:11px;border:1.5px solid var(--honey);background:var(--honey);color:#fff;cursor:pointer;transition:.15s}
+  .btn:active{transform:scale(.97)}
+  .btn.ghost{background:var(--card);color:var(--muted);border-color:var(--line)}
+  .btn.done{background:#E7F2E3;border-color:#BfDcC0;color:var(--green);cursor:default}
+  .prev{font-size:11.5px;color:var(--muted)}
+  .foot{margin-top:26px;background:var(--card);border:1.5px solid var(--line);border-radius:12px;padding:14px 16px;font-size:12.5px;color:var(--muted)}
+  .foot b{color:var(--ink)}
+  .cta{display:block;text-align:center;text-decoration:none;background:var(--ink);color:#fff;font-weight:600;font-size:15px;padding:13px;border-radius:12px;margin-top:16px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top"><b>🐝 Meu Assessor</b><span>· espelho</span><a href="index.html">↩ início</a></div>
+
+  <div class="banner">🔎 <b>Dados de exemplo.</b> Quando você conectar seu Google (só leitura), isto vira <b>sua agenda de verdade</b>. Nada é criado nem apagado sem o seu toque.</div>
+
+  <h1>Sua semana, como ela realmente está 🪞</h1>
+  <p class="sub">Não vim julgar sua agenda — vim te mostrar o que já existe e onde dá pra respirar melhor.</p>
+
+  <div class="sect-t">Sua semana real</div>
+  <div class="legend" id="legend"></div>
+  <div class="week" id="week"></div>
+  <div class="legend"><span class="lg"><i style="background:var(--vazio)"></i> espaço livre</span></div>
+
+  <div class="sect-t">O que eu vi</div>
+  <div id="diag"></div>
+
+  <div class="sect-t">Posso te ajudar com — é só 1 toque</div>
+  <div id="sug"></div>
+
+  <div class="foot">🔒 O assessor <b>lê primeiro, entende, e só depois sugere</b>. Quando aplicar, ele cria numa <b>cor/calendário "Assessor" separado</b> — sua agenda real fica intocada, e desfazer é 1 toque.</div>
+
+  <a class="cta" href="#" onclick="alert('Na versão conectada, aqui você autoriza o acesso de leitura ao seu Google Agenda.');return false;">Conectar meu Google Agenda (só leitura)</a>
+</div>
+
+<script>
+const CAT={
+  foco:{lbl:'Foco',c:'var(--foco)'}, reuniao:{lbl:'Reunião',c:'var(--reuniao)'},
+  treino:{lbl:'Treino',c:'var(--treino)'}, pessoal:{lbl:'Pessoal',c:'var(--pessoal)'},
+  refeicao:{lbl:'Refeição',c:'var(--refeicao)'}
+};
+// agenda de EXEMPLO (o que "já existe" na conta) — dia: [ [cat,'HH:MM',dur_min], ... ]
+const WK={
+  Seg:[['reuniao','09:00',60],['reuniao','11:00',90],['refeicao','12:30',60],['reuniao','15:00',60],['pessoal','19:00',90]],
+  Ter:[['refeicao','12:30',60],['reuniao','16:00',60]],                          // manhã livre
+  Qua:[['reuniao','09:00',30],['reuniao','10:00',120],['refeicao','12:30',60],['reuniao','14:00',90],['reuniao','16:30',60]], // lotado
+  Qui:[['refeicao','12:30',60],['reuniao','17:00',60]],                          // manhã livre
+  Sex:[['reuniao','10:00',60],['refeicao','12:30',60]],                          // leve
+  Sáb:[['pessoal','11:00',120],['pessoal','16:00',150]],
+  Dom:[['pessoal','12:00',120]]
+};
+const DIAS=['Seg','Ter','Qua','Qui','Sex','Sáb','Dom'];
+const DAY_START=6*60, DAY_END=23*60, SPAN=DAY_END-DAY_START; // 06:00–23:00
+const toMin=s=>{const[h,m]=s.split(':').map(Number);return h*60+m;};
+
+// legenda
+document.getElementById('legend').innerHTML=Object.values(CAT).map(x=>`<span class="lg"><i style="background:${x.c}"></i> ${x.lbl}</span>`).join('');
+
+// render semana (posiciona blocos por horário sobre um fundo "vazio")
+const wk=document.getElementById('week');
+DIAS.forEach(d=>{
+  const evs=WK[d]||[];
+  let segs='';
+  evs.forEach(([cat,ini,dur])=>{
+    const top=(toMin(ini)-DAY_START)/SPAN*100, h=dur/SPAN*100;
+    segs+=`<div class="seg" style="height:${h.toFixed(1)}%;margin-top:${top>0&&!segs?top.toFixed(1)+'%':'0'};background:${CAT[cat].c}" title="${CAT[cat].lbl} ${ini}"></div>`;
+  });
+  // recomputa com posicionamento absoluto simples: usa flex + spacers
+  let html='', cursor=DAY_START;
+  evs.sort((a,b)=>toMin(a[1])-toMin(b[1])).forEach(([cat,ini,dur])=>{
+    const gap=toMin(ini)-cursor; if(gap>0) html+=`<div class="seg" style="height:${(gap/SPAN*100).toFixed(1)}%"></div>`;
+    html+=`<div class="seg" style="height:${(dur/SPAN*100).toFixed(1)}%;background:${CAT[cat].c}" title="${CAT[cat].lbl} ${ini}"></div>`;
+    cursor=toMin(ini)+dur;
+  });
+  wk.insertAdjacentHTML('beforeend',`<div class="day"><div class="dn">${d}</div><div class="col">${html}</div></div>`);
+});
+
+// diagnóstico (espelho gentil)
+const focoH=0; // exemplo: nenhum bloco de foco protegido
+const diag=[
+  {ic:'🧠',tt:'Foco protegido: 0h esta semana',ds:'Seu tempo de trabalho profundo está todo espremido entre reuniões.',bar:{v:5,c:'var(--foco)'}},
+  {ic:'🌤️',tt:'2 manhãs livres — ter e qui',ds:'Espaço de sobra pra proteger foco antes do dia esquentar.'},
+  {ic:'🏋️',tt:'Nenhum treino agendado',ds:'Não aparece movimento na semana — dá pra reservar sem apertar nada.'},
+  {ic:'⚖️',tt:'Quarta lotada, sexta leve',ds:'5 reuniões na quarta vs. 1 na sexta — dá pra equilibrar.'}
+];
+document.getElementById('diag').innerHTML=diag.map(x=>`
+  <div class="diag"><div class="ic">${x.ic}</div><div style="flex:1">
+    <div class="tt">${x.tt}</div><div class="ds">${x.ds}</div>
+    ${x.bar?`<div class="bar"><i style="width:${x.bar.v}%;background:${x.bar.c}"></i></div>`:''}
+  </div></div>`).join('');
+
+// sugestões de 1 toque (prévia, não escreve de verdade)
+const sug=[
+  {c:'var(--foco)',tt:'Proteger 2h de foco nas manhãs livres',ds:'Cria "Deep Work" ter e qui, 09:00–11:00, no calendário Assessor.'},
+  {c:'var(--treino)',tt:'Reservar treino 3× por semana',ds:'Seg, qua e sex, 18:00–19:00 — nos horários que já estão livres.'},
+  {c:'var(--pessoal)',tt:'Planejamento semanal no domingo',ds:'Domingo 20:00–20:30 pra revisar a semana comigo.'}
+];
+document.getElementById('sug').innerHTML=sug.map((x,i)=>`
+  <div class="sug" style="border-left-color:${x.c}">
+    <div class="tt">${x.tt}</div><div class="ds">${x.ds}</div>
+    <div class="act">
+      <button class="btn" onclick="apply(${i})" id="b${i}">Aplicar</button>
+      <button class="btn ghost" onclick="this.closest('.sug').style.opacity=.4">Agora não</button>
+      <span class="prev">prévia</span>
+    </div>
+  </div>`).join('');
+function apply(i){const b=document.getElementById('b'+i);b.textContent='✓ Seria criado';b.className='btn done';
+  b.parentNode.querySelector('.prev').textContent='(conecte o Google pra valer)';}
+</script>
+</body>
+</html>
