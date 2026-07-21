@@ -46,6 +46,11 @@
   .mcards{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:16px}
   .mc{background:var(--card);border:1.5px solid var(--line);border-radius:var(--r);padding:12px;text-align:center}
   .mc .k{font-size:11px;color:var(--muted)}.mc .n{font-size:20px;font-weight:700;margin-top:2px}
+  .safe{background:#F2F6EF;border:1.5px solid #D6E3CC;border-radius:12px;padding:13px 15px;margin-bottom:14px;font-size:12.5px;color:#3f5233;line-height:1.55}
+  .safe b{color:#2f4226;font-weight:700}
+  .safe .h{display:flex;align-items:center;gap:7px;font-size:13.5px;font-weight:700;color:#2f4226;margin-bottom:6px}
+  .safe ul{margin:8px 0 0;padding-left:2px;list-style:none}
+  .safe li{display:flex;gap:7px;margin-bottom:4px}.safe li span{flex-shrink:0}
   .done{text-align:center;padding:18px 0 8px}.done .ic{width:60px;height:60px;border-radius:50%;background:var(--honey-soft);display:flex;align-items:center;justify-content:center;font-size:30px;margin:0 auto 12px}
   .nav{display:flex;gap:10px;margin-top:22px}
   .seg-t{font-size:13px;font-weight:600;color:var(--muted);margin:14px 0 8px}
@@ -94,6 +99,15 @@
       <div class="mc"><div class="k">Foco/semana</div><div class="n" id="mFoco">0h</div></div>
       <div class="mc"><div class="k">Treino/sem</div><div class="n" id="mTreino">0h</div></div>
       <div class="mc"><div class="k">Sono/noite</div><div class="n" id="mSono">0h</div></div>
+    </div>
+    <div class="safe">
+      <div class="h">🔒 Sua agenda atual está segura</div>
+      <b>Nada é apagado.</b> Seus eventos e anotações continuam exatamente onde estão.
+      <ul>
+        <li><span>📅</span><div>Crio esta rotina num calendário <b>"Assessor" separado</b> — você liga/desliga quando quiser.</div></li>
+        <li><span>⏮️</span><div>Antes de escrever, guardo um <b>ponto de restauração</b> da sua agenda.</div></li>
+        <li><span>↩️</span><div>Se você se arrepender, <b>voltar tudo como era é 1 toque</b>.</div></li>
+      </ul>
     </div>
     <div id="saveState"></div>
   </div>
@@ -188,6 +202,7 @@ function payload(){
   const rrule=byday=>[`RRULE:FREQ=WEEKLY;BYDAY=${byday}`];
   const map=(arr,byday)=>{let t=wake;return arr.map(b=>{const o={categoria:b.cat,titulo:b.label,inicio:hhmm(t),fim:hhmm(t+b.dur),duracao_min:b.dur,colorId:CATS[b.cat].colorId,recurrence:rrule(byday)};t+=b.dur;return o;});};
   return {tipo:'rotina',spreadsheetId:CFG.SPREADSHEET_ID,token:CFG.TOKEN,perfil,acordar:hhmm(wake),dormir:hhmm(sleep),
+    seguranca:{naoDestrutivo:true,calendarioAlvo:'Assessor',pontoDeRestauracao:true,tag:'meu-assessor:rotina'},
     diaUtil:map(util,'MO,TU,WE,TH,FR'),fimDeSemana:map(fds,'SA,SU')};
 }
 async function salvar(){
@@ -201,7 +216,7 @@ function show(){
   for(let i=1;i<=5;i++)$('s'+i).classList.toggle('on',i===step);
   $('prog').style.width=(step/5*100)+'%';$('stepN').textContent=step+' / 5';
   $('back').style.visibility=step===1?'hidden':'visible';
-  $('next').textContent=step===5?'Salvar na minha Agenda':'Continuar';
+  $('next').textContent=step===5?'Criar (sem apagar nada)':'Continuar';
   if(step===2)syncAnchors();if(step===3)renderDay('util');if(step===4)renderDay('fds');if(step===5)renderWeek();
 }
 function go(d){step=Math.min(5,Math.max(1,step+d));show()}
