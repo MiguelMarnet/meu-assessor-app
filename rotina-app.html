@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Meu Assessor — montar minha rotina</title>
+<style>
+  :root{--bg:#FBF8F1;--card:#fff;--ink:#2B2A26;--muted:#8C887C;--line:#EDE7D9;--honey:#D98C1F;--honey-soft:#FBEFD8;--olive:#6B7A3F;--green:#3B7A57;--r:14px}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--ink);line-height:1.5;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:480px;margin:0 auto;min-height:100vh;padding:18px 16px 28px}
+  .top{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);margin-bottom:12px}
+  .top b{color:var(--honey);font-weight:600}
+  .bar{height:7px;background:#EFEAdd;border-radius:99px;overflow:hidden;margin:0 0 20px}
+  .bar>i{display:block;height:100%;width:20%;background:var(--honey);border-radius:99px;transition:width .35s}
+  .step{display:none;animation:in .25s ease}.step.on{display:block}
+  @keyframes in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  h2{font-size:21px;font-weight:600;line-height:1.25;margin-bottom:6px}
+  .sub{font-size:14px;color:var(--muted);margin-bottom:18px}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .preset{cursor:pointer;text-align:left;background:var(--card);border:1.5px solid var(--line);border-radius:var(--r);padding:14px;transition:.15s}
+  .preset:active{transform:scale(.98)}.preset.sel{border-color:var(--honey);background:var(--honey-soft)}
+  .preset .em{font-size:22px}.preset h3{font-size:15px;font-weight:600;margin:6px 0 2px}.preset p{font-size:12px;color:var(--muted)}
+  .anchor{background:var(--card);border:1.5px solid var(--line);border-radius:var(--r);padding:16px;margin-bottom:12px}
+  .anchor .row{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+  .anchor .v{font-size:26px;font-weight:700;color:var(--olive)}
+  input[type=range]{-webkit-appearance:none;width:100%;height:6px;border-radius:99px;background:#EAE3d3}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;border-radius:50%;background:var(--honey);cursor:pointer;border:3px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.15)}
+  input[type=text]{font-size:14px;padding:8px 10px;border:1.5px solid var(--line);border-radius:10px;background:var(--card);color:var(--ink);width:100%}
+  input[type=text]:focus,select:focus{outline:none;border-color:var(--honey)}
+  select{font-size:13px;padding:6px 8px;border:1.5px solid var(--line);border-radius:10px;background:var(--card);color:var(--ink)}
+  .btn{font-size:15px;font-weight:600;padding:11px 16px;border-radius:12px;border:1.5px solid var(--line);background:var(--card);color:var(--ink);cursor:pointer}
+  .btn.primary{background:var(--honey);border-color:var(--honey);color:#fff;flex:1}.btn:active{transform:scale(.98)}
+  .blk{background:var(--card);border:1.5px solid var(--line);border-left-width:5px;border-radius:12px;padding:10px 12px;margin-bottom:9px}
+  .blk-head{display:flex;align-items:center;gap:6px;margin-bottom:8px;flex-wrap:wrap}
+  .blk-head .time{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+  .blk-head .sp{margin-left:auto;display:flex;gap:4px}
+  .iconbtn{width:30px;height:30px;border:1.5px solid var(--line);border-radius:8px;background:var(--card);cursor:pointer;font-size:14px;color:var(--muted);line-height:1}
+  .durrow{display:flex;align-items:center;gap:10px;margin-top:8px}
+  .durrow .dv{font-size:12px;font-weight:600;width:64px;text-align:right}
+  .addblk{width:100%;border-style:dashed;color:var(--muted);margin-top:4px}
+  .week{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;margin:6px 0 16px}
+  .day{text-align:center}.day .dn{font-size:11px;color:var(--muted);margin-bottom:4px}
+  .col{height:240px;border-radius:8px;overflow:hidden;border:1px solid var(--line);display:flex;flex-direction:column}
+  .seg{width:100%}
+  .mcards{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:16px}
+  .mc{background:var(--card);border:1.5px solid var(--line);border-radius:var(--r);padding:12px;text-align:center}
+  .mc .k{font-size:11px;color:var(--muted)}.mc .n{font-size:20px;font-weight:700;margin-top:2px}
+  .done{text-align:center;padding:18px 0 8px}.done .ic{width:60px;height:60px;border-radius:50%;background:var(--honey-soft);display:flex;align-items:center;justify-content:center;font-size:30px;margin:0 auto 12px}
+  .nav{display:flex;gap:10px;margin-top:22px}
+  .seg-t{font-size:13px;font-weight:600;color:var(--muted);margin:14px 0 8px}
+  .jsonbox{background:#2B2A26;color:#EDE7D9;border-radius:12px;padding:14px;font-family:ui-monospace,monospace;font-size:11px;white-space:pre-wrap;word-break:break-word;margin-top:12px;max-height:200px;overflow:auto}
+  .tl{height:26px;border-radius:8px;background:linear-gradient(90deg,#EFECE4 0 8%,#E7F2E3 8% 22%,#EDE7FA 22% 55%,#E3EEFA 55% 78%,#F0EDE6 78% 92%,#EFECE4 92% 100%);margin-top:8px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top"><b>Meu Assessor</b><span>· sua rotina em 1 minuto</span><span id="stepN" style="margin-left:auto"></span></div>
+  <div class="bar"><i id="prog"></i></div>
+
+  <div class="step on" id="s1">
+    <h2>Vamos montar sua semana 🗓️</h2>
+    <p class="sub">Sem grade em branco. Escolha um ritmo parecido com o seu — já monto a semana e você ajusta.</p>
+    <div class="grid" id="presets"></div>
+  </div>
+
+  <div class="step" id="s2">
+    <h2>Suas duas âncoras</h2>
+    <p class="sub">Só isto: a que horas você acorda e dorme. Eu distribuo o resto do dia sozinho.</p>
+    <div class="anchor"><div class="row"><span>☀️ Acordo às</span><span class="v" id="wakeV">06:00</span></div><input type="range" id="wake" min="240" max="600" step="15" value="360"></div>
+    <div class="anchor"><div class="row"><span>🌙 Durmo às</span><span class="v" id="sleepV">23:00</span></div><input type="range" id="sleep" min="1200" max="1500" step="15" value="1380"></div>
+    <p class="sub" style="text-align:center;margin:6px 0 0" id="awakeTxt"></p>
+    <div class="tl"></div>
+  </div>
+
+  <div class="step" id="s3">
+    <h2>Seu dia útil (seg–sex)</h2>
+    <p class="sub">Arraste a duração, troque a categoria, reordene. Mudar depois é 1 toque.</p>
+    <div id="listUtil"></div>
+    <button class="btn addblk" onclick="addBlk('util')">+ Adicionar bloco</button>
+  </div>
+
+  <div class="step" id="s4">
+    <h2>Fim de semana (sáb–dom)</h2>
+    <p class="sub">Mais leve. Ajuste como quiser.</p>
+    <div id="listFds"></div>
+    <button class="btn addblk" onclick="addBlk('fds')">+ Adicionar bloco</button>
+  </div>
+
+  <div class="step" id="s5">
+    <div class="done"><div class="ic">🎉</div><h2>Sua semana está pronta</h2><p class="sub" style="margin-bottom:0">Vira eventos recorrentes na sua Agenda. Mudar depois: no WhatsApp, aqui, ou no próprio Google Agenda.</p></div>
+    <div class="week" id="week"></div>
+    <div class="mcards">
+      <div class="mc"><div class="k">Foco/semana</div><div class="n" id="mFoco">0h</div></div>
+      <div class="mc"><div class="k">Treino/sem</div><div class="n" id="mTreino">0h</div></div>
+      <div class="mc"><div class="k">Sono/noite</div><div class="n" id="mSono">0h</div></div>
+    </div>
+    <div id="saveState"></div>
+  </div>
+
+  <div class="nav">
+    <button class="btn" id="back" onclick="go(-1)" style="visibility:hidden">Voltar</button>
+    <button class="btn primary" id="next" onclick="onNext()">Continuar</button>
+  </div>
+</div>
+
+<script>
+const Q=new URLSearchParams(location.search);
+const CFG={WEBHOOK_URL:Q.get('webhook')||"",SPREADSHEET_ID:Q.get('sid')||"",TOKEN:Q.get('token')||""};
+const CATS={
+  sono:{lbl:'Sono',em:'😴',color:'#9A968C',colorId:'8'},
+  ritual:{lbl:'Ritual / manhã',em:'☀️',color:'#5B9A4E',colorId:'10'},
+  treino:{lbl:'Treino / saúde',em:'🏋️',color:'#5B9A4E',colorId:'10'},
+  deep:{lbl:'Deep Work',em:'🧠',color:'#7C5CBF',colorId:'3'},
+  operacional:{lbl:'Operacional',em:'⚙️',color:'#3B82C4',colorId:'9'},
+  estudo:{lbl:'Estudo / faculdade',em:'🎓',color:'#7C5CBF',colorId:'3'},
+  refeicao:{lbl:'Refeição',em:'🍽️',color:'#C98A2B',colorId:'5'},
+  pessoal:{lbl:'Pessoal / família',em:'👨‍👩‍👧',color:'#5B9A4E',colorId:'10'},
+  relax:{lbl:'Relax / lazer',em:'🌙',color:'#8A877E',colorId:'2'}
+};
+const PRESETS={
+  founder:{nome:'Founder',em:'💼',wake:360,sleep:1380,util:[['ritual','Ritual',30],['treino','Treino',60],['refeicao','Café',30],['deep','Deep Work',120],['operacional','Operacional',120],['refeicao','Almoço',60],['operacional','Operacional',120],['estudo','Faculdade',120],['refeicao','Jantar',60],['pessoal','Pessoal',90]]},
+  estudante:{nome:'Estudante',em:'🎒',wake:420,sleep:1380,util:[['ritual','Ritual',30],['refeicao','Café',30],['estudo','Aula/Estudo',180],['refeicao','Almoço',60],['deep','Deep Work',120],['treino','Treino',60],['refeicao','Jantar',60],['relax','Lazer',120]]},
+  nine5:{nome:'9-5 + projeto',em:'🏢',wake:390,sleep:1380,util:[['ritual','Ritual',30],['deep','Projeto',60],['refeicao','Café',30],['operacional','Trabalho',240],['refeicao','Almoço',60],['operacional','Trabalho',180],['treino','Treino',60],['refeicao','Jantar',60],['deep','Projeto',60]]},
+  saude:{nome:'Foco em saúde',em:'🌱',wake:360,sleep:1350,util:[['ritual','Ritual',30],['treino','Treino',90],['refeicao','Café',45],['operacional','Trabalho',180],['refeicao','Almoço',60],['operacional','Trabalho',180],['treino','Treino leve',45],['refeicao','Jantar',60],['relax','Relax',90]]}
+};
+const FDS_DEFAULT=[['ritual','Manhã leve',60],['treino','Treino',60],['refeicao','Brunch',60],['relax','Lazer',180],['pessoal','Família',150],['refeicao','Jantar',60],['relax','Relax',120]];
+const DIAS=['Seg','Ter','Qua','Qui','Sex','Sáb','Dom'];
+
+let step=1,perfil='—',wake=360,sleep=1380;
+let util=[],fds=[];
+const $=id=>document.getElementById(id);
+const hhmm=m=>{m=((m%1440)+1440)%1440;return String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0');};
+const toBlocks=a=>a.map(x=>({cat:x[0],label:x[1],dur:x[2]}));
+
+function renderPresets(){
+  $('presets').innerHTML='';
+  for(const k in PRESETS){const p=PRESETS[k];
+    const b=document.createElement('button');b.className='preset'+(perfil===p.nome?' sel':'');
+    b.innerHTML=`<div class="em">${p.em}</div><h3>${p.nome}</h3><p>${p.util.length} blocos prontos</p>`;
+    b.onclick=()=>{perfil=p.nome;wake=p.wake;sleep=p.sleep;util=toBlocks(p.util);fds=toBlocks(FDS_DEFAULT);
+      $('wake').value=wake;$('sleep').value=sleep;syncAnchors();renderPresets()};
+    $('presets').appendChild(b);
+  }
+}
+function catOptions(sel){return Object.keys(CATS).map(k=>`<option value="${k}"${k===sel?' selected':''}>${CATS[k].em} ${CATS[k].lbl}</option>`).join('');}
+function renderDay(day){
+  const arr=day==='util'?util:fds, box=$(day==='util'?'listUtil':'listFds');
+  box.innerHTML=arr.map((b,i)=>`
+    <div class="blk" style="border-left-color:${CATS[b.cat].color}">
+      <div class="blk-head">
+        <select onchange="setCat('${day}',${i},this.value)">${catOptions(b.cat)}</select>
+        <span class="time" id="time-${day}-${i}"></span>
+        <span class="sp">
+          <button class="iconbtn" onclick="moveBlk('${day}',${i},-1)">↑</button>
+          <button class="iconbtn" onclick="moveBlk('${day}',${i},1)">↓</button>
+          <button class="iconbtn" onclick="delBlk('${day}',${i})">✕</button>
+        </span>
+      </div>
+      <input type="text" value="${b.label.replace(/"/g,'&quot;')}" oninput="setLabel('${day}',${i},this.value)">
+      <div class="durrow"><input type="range" min="15" max="300" step="15" value="${b.dur}" oninput="setDur('${day}',${i},this.value)"><span class="dv" id="dv-${day}-${i}">${b.dur} min</span></div>
+    </div>`).join('');
+  updateTimes(day);
+}
+function updateTimes(day){const arr=day==='util'?util:fds;let t=wake;arr.forEach((b,i)=>{const el=$('time-'+day+'-'+i);if(el)el.textContent=hhmm(t)+'–'+hhmm(t+b.dur);t+=b.dur;});}
+function setCat(d,i,v){(d==='util'?util:fds)[i].cat=v;renderDay(d)}
+function setLabel(d,i,v){(d==='util'?util:fds)[i].label=v}
+function setDur(d,i,v){(d==='util'?util:fds)[i].dur=+v;$('dv-'+d+'-'+i).textContent=v+' min';updateTimes(d)}
+function moveBlk(d,i,dir){const a=d==='util'?util:fds;const j=i+dir;if(j<0||j>=a.length)return;[a[i],a[j]]=[a[j],a[i]];renderDay(d)}
+function delBlk(d,i){(d==='util'?util:fds).splice(i,1);renderDay(d)}
+function addBlk(d){(d==='util'?util:fds).push({cat:'relax',label:'Novo bloco',dur:60});renderDay(d)}
+function syncAnchors(){$('wakeV').textContent=hhmm(wake);$('sleepV').textContent=hhmm(sleep);const aw=(sleep-wake);$('awakeTxt').textContent=`Você fica acordado ~${Math.round(aw/60)}h por dia.`;}
+
+function renderWeek(){
+  const box=$('week');box.innerHTML='';
+  for(let dnum=0;dnum<7;dnum++){
+    const arr=dnum<5?util:fds;const total=Math.max(1,arr.reduce((a,b)=>a+b.dur,0));
+    const segs=arr.map(b=>`<div class="seg" style="height:${(b.dur/total*100).toFixed(1)}%;background:${CATS[b.cat].color}" title="${b.label}"></div>`).join('');
+    box.insertAdjacentHTML('beforeend',`<div class="day"><div class="dn">${DIAS[dnum]}</div><div class="col">${segs}</div></div>`);
+  }
+  const focoMin=util.filter(b=>b.cat==='deep'||b.cat==='estudo').reduce((a,b)=>a+b.dur,0);
+  const trMin=util.filter(b=>b.cat==='treino').reduce((a,b)=>a+b.dur,0)*5 + fds.filter(b=>b.cat==='treino').reduce((a,b)=>a+b.dur,0)*2;
+  $('mFoco').textContent=Math.round(focoMin*5/60)+'h';
+  $('mTreino').textContent=Math.round(trMin/60)+'h';
+  $('mSono').textContent=Math.round((1440-(sleep-wake))/60)+'h';
+}
+function payload(){
+  const rrule=byday=>[`RRULE:FREQ=WEEKLY;BYDAY=${byday}`];
+  const map=(arr,byday)=>{let t=wake;return arr.map(b=>{const o={categoria:b.cat,titulo:b.label,inicio:hhmm(t),fim:hhmm(t+b.dur),duracao_min:b.dur,colorId:CATS[b.cat].colorId,recurrence:rrule(byday)};t+=b.dur;return o;});};
+  return {tipo:'rotina',spreadsheetId:CFG.SPREADSHEET_ID,token:CFG.TOKEN,perfil,acordar:hhmm(wake),dormir:hhmm(sleep),
+    diaUtil:map(util,'MO,TU,WE,TH,FR'),fimDeSemana:map(fds,'SA,SU')};
+}
+async function salvar(){
+  const data=payload();$('saveState').innerHTML='<p class="sub" style="text-align:center;margin-top:14px">Salvando na Agenda…</p>';
+  if(!CFG.WEBHOOK_URL){$('saveState').innerHTML='<p class="sub" style="text-align:center;margin-top:14px">Modo teste (sem webhook). Config que vira eventos recorrentes:</p><div class="jsonbox">'+JSON.stringify(data,null,2)+'</div>';return;}
+  try{const r=await fetch(CFG.WEBHOOK_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});if(!r.ok)throw 0;
+    $('saveState').innerHTML='<p class="sub" style="text-align:center;margin-top:14px;color:var(--green)">✅ Rotina na sua Agenda! Pode ajustar quando quiser.</p>';
+  }catch(e){$('saveState').innerHTML='<p class="sub" style="text-align:center;margin-top:14px">Não consegui salvar agora.</p><button class="btn primary" style="margin-top:10px;width:100%" onclick="salvar()">Tentar de novo</button>';}
+}
+function show(){
+  for(let i=1;i<=5;i++)$('s'+i).classList.toggle('on',i===step);
+  $('prog').style.width=(step/5*100)+'%';$('stepN').textContent=step+' / 5';
+  $('back').style.visibility=step===1?'hidden':'visible';
+  $('next').textContent=step===5?'Salvar na minha Agenda':'Continuar';
+  if(step===2)syncAnchors();if(step===3)renderDay('util');if(step===4)renderDay('fds');if(step===5)renderWeek();
+}
+function go(d){step=Math.min(5,Math.max(1,step+d));show()}
+function onNext(){if(step===5){salvar();return}go(1)}
+$('wake').oninput=()=>{wake=+$('wake').value;syncAnchors()};
+$('sleep').oninput=()=>{sleep=+$('sleep').value;syncAnchors()};
+util=toBlocks(PRESETS.founder.util);fds=toBlocks(FDS_DEFAULT);
+show();
+</script>
+</body>
+</html>

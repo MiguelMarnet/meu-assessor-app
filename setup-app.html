@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Meu Assessor — montar minha planilha</title>
+<style>
+  :root{
+    --bg:#FBF8F1; --card:#fff; --ink:#2B2A26; --muted:#8C887C; --line:#EDE7D9;
+    --honey:#D98C1F; --honey-soft:#FBEFD8; --olive:#6B7A3F; --green:#3B7A57;
+    --r:14px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--ink);line-height:1.5;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:460px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;padding:18px 18px 24px}
+  .top{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);margin-bottom:12px}
+  .top b{color:var(--honey);font-weight:600}
+  .bar{height:7px;background:#EFEAdd;border-radius:99px;overflow:hidden;margin:0 0 20px}
+  .bar>i{display:block;height:100%;width:16%;background:var(--honey);border-radius:99px;transition:width .35s ease}
+  .step{display:none;animation:in .25s ease}
+  .step.on{display:block}
+  @keyframes in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  h2{font-size:22px;font-weight:600;line-height:1.25;margin-bottom:6px}
+  .sub{font-size:14px;color:var(--muted);margin-bottom:20px}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .preset{cursor:pointer;text-align:left;background:var(--card);border:1.5px solid var(--line);border-radius:var(--r);padding:14px;transition:.15s}
+  .preset:active{transform:scale(.98)}
+  .preset.sel{border-color:var(--honey);background:var(--honey-soft)}
+  .preset .em{font-size:22px}
+  .preset h3{font-size:15px;font-weight:600;margin:6px 0 2px}
+  .preset p{font-size:12px;color:var(--muted)}
+  .chips{display:flex;flex-wrap:wrap;gap:9px}
+  .chip{cursor:pointer;background:var(--card);border:1.5px solid var(--line);border-radius:99px;padding:9px 14px;font-size:14px;color:var(--muted);transition:.12s;user-select:none}
+  .chip:active{transform:scale(.96)}
+  .chip.sel{background:var(--honey-soft);border-color:var(--honey);color:#9a5f10;font-weight:500}
+  .addrow{display:flex;gap:8px;margin-top:16px}
+  input[type=text]{flex:1;font-size:15px;padding:11px 13px;border:1.5px solid var(--line);border-radius:12px;background:var(--card);color:var(--ink)}
+  input[type=text]:focus{outline:none;border-color:var(--honey)}
+  input[type=range]{-webkit-appearance:none;width:100%;height:6px;border-radius:99px;background:#EAE3d3}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;border-radius:50%;background:var(--honey);cursor:pointer;border:3px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.15)}
+  .btn{font-size:15px;font-weight:600;padding:11px 16px;border-radius:12px;border:1.5px solid var(--line);background:var(--card);color:var(--ink);cursor:pointer}
+  .btn.primary{background:var(--honey);border-color:var(--honey);color:#fff;flex:1}
+  .btn:active{transform:scale(.98)}
+  .slrow{margin-bottom:16px}
+  .slrow .lab{display:flex;justify-content:space-between;font-size:14px;margin-bottom:6px}
+  .slrow .lab b{font-weight:600}
+  .total{display:flex;justify-content:space-between;align-items:baseline;margin-top:8px;padding-top:14px;border-top:1.5px dashed var(--line)}
+  .total .v{font-size:24px;font-weight:700;color:var(--olive)}
+  .group-t{font-size:13px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin:22px 0 10px}
+  .group-t:first-child{margin-top:0}
+  .mcards{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:18px}
+  .mc{background:var(--card);border:1.5px solid var(--line);border-radius:var(--r);padding:14px}
+  .mc .k{font-size:12px;color:var(--muted)}
+  .mc .n{font-size:22px;font-weight:700;margin-top:2px}
+  .pvrow{display:flex;align-items:center;gap:10px;margin-bottom:9px}
+  .pvrow .nm{font-size:13px;width:110px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--muted)}
+  .pvrow .track{flex:1;height:11px;background:#EFEAdd;border-radius:99px;overflow:hidden}
+  .pvrow .track>i{display:block;height:100%;background:var(--honey);border-radius:99px}
+  .pvrow .amt{font-size:12px;width:70px;text-align:right}
+  .nav{display:flex;gap:10px;margin-top:26px}
+  .saldo-box{background:var(--card);border:1.5px solid var(--line);border-radius:var(--r);padding:18px;text-align:center;margin-bottom:8px}
+  .saldo-box .v{font-size:32px;font-weight:700;color:var(--olive);margin-bottom:14px}
+  .done{text-align:center;padding:24px 0}
+  .done .ic{width:64px;height:64px;border-radius:50%;background:var(--honey-soft);display:flex;align-items:center;justify-content:center;font-size:32px;margin:0 auto 14px}
+  .jsonbox{background:#2B2A26;color:#EDE7D9;border-radius:12px;padding:14px;font-family:ui-monospace,monospace;font-size:12px;white-space:pre-wrap;word-break:break-word;margin-top:14px;max-height:200px;overflow:auto}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top"><b>Meu Assessor</b><span>· sua planilha em 1 minuto</span><span id="stepN" style="margin-left:auto"></span></div>
+  <div class="bar"><i id="prog"></i></div>
+
+  <!-- 1 saldo -->
+  <div class="step on" id="s1">
+    <h2>Oi! Vamos montar sua planilha 🍯</h2>
+    <p class="sub">Sem planilha em branco. A gente sugere, você ajusta. Começando: quanto você tem hoje?</p>
+    <div class="saldo-box">
+      <div class="v" id="saldoV">R$ 0</div>
+      <input type="range" id="saldo" min="0" max="20000" step="100" value="0">
+    </div>
+    <p class="sub" style="text-align:center;margin:0">Não sabe? Deixa em zero e ajusta depois. 😉</p>
+  </div>
+
+  <!-- 2 preset -->
+  <div class="step" id="s2">
+    <h2>Com o que você mais se parece?</h2>
+    <p class="sub">Escolha um perfil — já preencho suas categorias e você personaliza.</p>
+    <div class="grid" id="presets"></div>
+  </div>
+
+  <!-- 3 categorias -->
+  <div class="step" id="s3">
+    <h2>Seus gastos</h2>
+    <p class="sub">Toque pra incluir ou tirar. Some os seus embaixo.</p>
+    <div class="chips" id="chipsD"></div>
+    <div class="addrow"><input type="text" id="newD" placeholder="Pet, Academia, Assinaturas…"><button class="btn" onclick="addCustom('D')">+ Add</button></div>
+  </div>
+
+  <!-- 4 orçamento -->
+  <div class="step" id="s4">
+    <h2>Quanto por mês em cada um?</h2>
+    <p class="sub">Arrasta — não precisa digitar. Dá pra mudar sempre.</p>
+    <div id="sliders"></div>
+    <div class="total"><span>Orçamento total / mês</span><span class="v" id="totalV">R$ 0</span></div>
+  </div>
+
+  <!-- 5 renda + bancos -->
+  <div class="step" id="s5">
+    <h2>Entradas e bancos</h2>
+    <p class="sub">De onde entra dinheiro e onde você paga. Só tocar.</p>
+    <div class="group-t">De onde vem o dinheiro</div>
+    <div class="chips" id="chipsR"></div>
+    <div class="group-t">Bancos e carteiras</div>
+    <div class="chips" id="chipsB"></div>
+    <div class="addrow"><input type="text" id="newB" placeholder="Nubank, Itaú, Pix…"><button class="btn" onclick="addCustom('B')">+ Add</button></div>
+  </div>
+
+  <!-- 6 pronto -->
+  <div class="step" id="s6">
+    <div class="done">
+      <div class="ic">🎉</div>
+      <h2>Tudo pronto!</h2>
+      <p class="sub" style="margin-bottom:0">Seu painel já nasce assim. Daqui pra frente é só lançar no WhatsApp.</p>
+    </div>
+    <div class="mcards">
+      <div class="mc"><div class="k">Saldo inicial</div><div class="n" id="rSaldo">R$ 0</div></div>
+      <div class="mc"><div class="k">Orçamento/mês</div><div class="n" id="rTotal">R$ 0</div></div>
+      <div class="mc"><div class="k">Categorias</div><div class="n" id="rCats">0</div></div>
+      <div class="mc"><div class="k">Bancos</div><div class="n" id="rBanks">0</div></div>
+    </div>
+    <div id="preview"></div>
+    <div id="saveState"></div>
+  </div>
+
+  <div class="nav">
+    <button class="btn" id="back" onclick="go(-1)" style="visibility:hidden">Voltar</button>
+    <button class="btn primary" id="next" onclick="onNext()">Continuar</button>
+  </div>
+</div>
+
+<script>
+// Config por URL (costura multi-tenant): ?webhook=URL&sid=SPREADSHEET_ID&token=SEGREDO
+// Sem parâmetros, usa os defaults do piloto; sem webhook, roda em modo teste (mostra o JSON).
+const Q = new URLSearchParams(location.search);
+const CFG = {
+  WEBHOOK_URL: Q.get('webhook') || "",
+  SPREADSHEET_ID: Q.get('sid') || "",
+  TOKEN: Q.get('token') || ""
+};
+const brl = n => new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL',maximumFractionDigits:0}).format(Math.round(n));
+const $ = id => document.getElementById(id);
+
+const POOL_D = ['Alimentação','Saúde','Moradia','Transporte','Educação','Investimento','Pessoal','Viagens','Lazer','Presentes','Serviços de utilidade pública'];
+const POOL_R = ['Pagamento','Poupança','Bônus','Juros','Outros'];
+const POOL_B = ['Banco 1 (Débito)','Banco 1 (Crédito)','Banco 2 (Débito)','Banco 2 (Crédito)','Banco 3 (Débito)','Banco 3 (Crédito)','Outros'];
+const EM = {'Alimentação':'🍽️','Saúde':'❤️','Moradia':'🏠','Transporte':'🚗','Educação':'🎓','Investimento':'📈','Pessoal':'🧴','Viagens':'✈️','Lazer':'🎮','Presentes':'🎁','Serviços de utilidade pública':'💡','Marketing':'📣','Fornecedores':'📦','Impostos':'🧾'};
+const PRESETS = {
+  autonomo:{nome:'Autônomo',em:'💼',b:{'Alimentação':900,'Moradia':1200,'Transporte':300,'Saúde':200,'Investimento':500,'Pessoal':200}},
+  familia:{nome:'Família',em:'👨‍👩‍👧',b:{'Alimentação':1500,'Moradia':1800,'Transporte':500,'Saúde':400,'Educação':600,'Lazer':300,'Serviços de utilidade pública':400}},
+  estudante:{nome:'Estudante',em:'🎒',b:{'Alimentação':600,'Transporte':200,'Educação':300,'Lazer':200,'Pessoal':150}},
+  ecommerce:{nome:'Dono de e-commerce',em:'🛒',b:{'Alimentação':700,'Moradia':1200,'Investimento':500,'Marketing':1000,'Fornecedores':2000,'Impostos':800}}
+};
+
+let step=1, perfil='—', poolD=[...POOL_D];
+let selD=new Set(), selR=new Set(['Pagamento']), selB=new Set(['Banco 1 (Débito)','Banco 1 (Crédito)','Outros']);
+let budg={}, poolB=[...POOL_B];
+
+function renderPresets(){
+  $('presets').innerHTML='';
+  for(const k in PRESETS){const p=PRESETS[k];
+    const b=document.createElement('button');b.className='preset'+(perfil===p.nome?' sel':'');
+    b.innerHTML=`<div class="em">${p.em}</div><h3>${p.nome}</h3><p>${Object.keys(p.b).length} categorias prontas</p>`;
+    b.onclick=()=>{perfil=p.nome;budg=Object.assign({},p.b);selD=new Set(Object.keys(p.b));
+      Object.keys(p.b).forEach(c=>{if(!poolD.includes(c))poolD.push(c)});renderPresets()};
+    $('presets').appendChild(b);
+  }
+}
+function chip(text,on){return `<span class="chip${on?' sel':''}">${EM[text]?EM[text]+' ':''}${text}</span>`}
+function renderChips(){
+  $('chipsD').innerHTML=poolD.map(c=>chip(c,selD.has(c))).join('');
+  [...$('chipsD').children].forEach((el,i)=>{const c=poolD[i];el.onclick=()=>{selD.has(c)?selD.delete(c):(selD.add(c),budg[c]==null&&(budg[c]=200));renderChips()}};});
+}
+function renderRB(){
+  $('chipsR').innerHTML=POOL_R.map(c=>chip(c,selR.has(c))).join('');
+  [...$('chipsR').children].forEach((el,i)=>{const c=POOL_R[i];el.onclick=()=>{selR.has(c)?selR.delete(c):selR.add(c);renderRB()}});
+  $('chipsB').innerHTML=poolB.map(c=>chip(c,selB.has(c))).join('');
+  [...$('chipsB').children].forEach((el,i)=>{const c=poolB[i];el.onclick=()=>{if(selB.has(c))selB.delete(c);else if(selB.size<7)selB.add(c);renderRB()}});
+}
+function addCustom(kind){
+  if(kind==='D'){const v=$('newD').value.trim();if(!v)return;if(!poolD.includes(v))poolD.push(v);if(selD.size<14){selD.add(v);budg[v]=budg[v]||200}$('newD').value='';renderChips();}
+  else{const v=$('newB').value.trim();if(!v)return;if(!poolB.includes(v))poolB.push(v);if(selB.size<7)selB.add(v);$('newB').value='';renderRB();}
+}
+function renderSliders(){
+  const box=$('sliders');box.innerHTML='';const list=[...selD];
+  if(!list.length){box.innerHTML='<p class="sub">Volte e escolha ao menos uma categoria. 🙂</p>';$('totalV').textContent='R$ 0';return}
+  list.forEach(c=>{const id='sl-'+list.indexOf(c);
+    const row=document.createElement('div');row.className='slrow';
+    row.innerHTML=`<div class="lab"><span>${EM[c]?EM[c]+' ':''}${c}</span><b id="${id}v">${brl(budg[c]||0)}</b></div>`;
+    const s=document.createElement('input');s.type='range';s.min=0;s.max=6000;s.step=50;s.value=budg[c]||0;
+    s.oninput=()=>{budg[c]=+s.value;$(id+'v').textContent=brl(+s.value);totD()};
+    row.appendChild(s);box.appendChild(row);
+  });totD();
+}
+const sumD=()=>[...selD].reduce((a,c)=>a+(budg[c]||0),0);
+function totD(){$('totalV').textContent=brl(sumD())}
+function renderDone(){
+  $('rSaldo').textContent=brl(+$('saldo').value);
+  $('rTotal').textContent=brl(sumD());$('rCats').textContent=selD.size;$('rBanks').textContent=selB.size;
+  const top=[...selD].sort((a,b)=>(budg[b]||0)-(budg[a]||0)).slice(0,5);
+  const mx=Math.max(1,...top.map(c=>budg[c]||0));
+  $('preview').innerHTML=top.map(c=>`<div class="pvrow"><span class="nm">${EM[c]?EM[c]+' ':''}${c}</span><div class="track"><i style="width:${Math.round((budg[c]||0)/mx*100)}%"></i></div><span class="amt">${brl(budg[c]||0)}</span></div>`).join('');
+}
+function payload(){
+  return {
+    spreadsheetId:CFG.SPREADSHEET_ID, token:CFG.TOKEN, perfil, saldoInicial:+$('saldo').value,
+    despesas:[...selD].slice(0,14).map(c=>({categoria:c,planejado:budg[c]||0})),
+    rendas:[...selR].slice(0,6).map(c=>({categoria:c,planejado:c==='Pagamento'?0:0})),
+    formasPagamento:[...selB].slice(0,7)
+  };
+}
+async function salvar(){
+  const data=payload(); $('saveState').innerHTML='<p class="sub" style="text-align:center;margin-top:16px">Salvando…</p>';
+  if(!CFG.WEBHOOK_URL){
+    $('saveState').innerHTML='<p class="sub" style="text-align:center;margin-top:16px">Modo teste (sem webhook). Esta é a config que será gravada na sua planilha:</p><div class="jsonbox">'+JSON.stringify(data,null,2)+'</div>';
+    return;
+  }
+  try{
+    const r=await fetch(CFG.WEBHOOK_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
+    if(!r.ok)throw 0;
+    $('saveState').innerHTML='<p class="sub" style="text-align:center;margin-top:16px;color:var(--green)">✅ Pronto! Sua planilha está montada. Pode voltar pro WhatsApp e começar a lançar.</p>';
+  }catch(e){
+    $('saveState').innerHTML='<p class="sub" style="text-align:center;margin-top:16px">Não consegui salvar agora. Tenta de novo em instantes.</p><button class="btn primary" style="margin-top:12px;width:100%" onclick="salvar()">Tentar de novo</button>';
+  }
+}
+function show(){
+  for(let i=1;i<=6;i++)$('s'+i).classList.toggle('on',i===step);
+  $('prog').style.width=(step/6*100)+'%';$('stepN').textContent=step+' / 6';
+  $('back').style.visibility=step===1?'hidden':'visible';
+  $('next').textContent=step===6?'Salvar na minha planilha':'Continuar';
+  if(step===2)renderPresets();if(step===3)renderChips();if(step===4)renderSliders();if(step===5)renderRB();if(step===6)renderDone();
+}
+function go(d){step=Math.min(6,Math.max(1,step+d));show()}
+function onNext(){if(step===6){salvar();return}go(1)}
+$('saldo').oninput=()=>$('saldoV').textContent=brl(+$('saldo').value);
+show();
+</script>
+</body>
+</html>

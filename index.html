@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#D98C1F">
+<title>Meu Assessor</title>
+<style>
+  :root{--bg:#FBF8F1;--card:#fff;--ink:#2B2A26;--muted:#8C887C;--line:#EDE7D9;--honey:#D98C1F;--honey-soft:#FBEFD8;--olive:#6B7A3F;--r:16px}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--ink);line-height:1.5;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:480px;margin:0 auto;min-height:100vh;padding:34px 20px 40px;display:flex;flex-direction:column}
+  .brand{display:flex;align-items:center;gap:9px;font-size:15px;color:var(--muted);margin-bottom:26px}
+  .brand b{color:var(--honey);font-weight:700;font-size:17px}
+  h1{font-size:26px;font-weight:700;line-height:1.2;margin-bottom:8px}
+  .lead{font-size:15px;color:var(--muted);margin-bottom:26px}
+  .card{display:block;text-decoration:none;color:inherit;background:var(--card);border:1.5px solid var(--line);border-radius:var(--r);padding:18px;margin-bottom:14px;transition:.15s}
+  .card:active{transform:scale(.985)}
+  .card:hover{border-color:var(--honey)}
+  .card .em{font-size:30px;display:block;margin-bottom:8px}
+  .card h2{font-size:18px;font-weight:600;margin-bottom:4px}
+  .card p{font-size:13.5px;color:var(--muted)}
+  .card .go{margin-top:12px;display:inline-flex;align-items:center;gap:6px;font-size:14px;font-weight:600;color:var(--honey)}
+  .foot{margin-top:auto;padding-top:26px;font-size:12px;color:var(--muted);text-align:center}
+  .pill{display:inline-block;background:var(--honey-soft);color:#9a5f10;font-size:11px;font-weight:600;padding:3px 9px;border-radius:99px;margin-bottom:16px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="brand"><b>🐝 Meu Assessor</b></div>
+  <span class="pill">MVP · em validação</span>
+  <h1>Sua vida organizada em 1 minuto 👋</h1>
+  <p class="lead">Escolha por onde começar. Cada um monta tudo pra você com presets — é só ajustar.</p>
+
+  <a class="card" href="rotina-app.html">
+    <span class="em">🗓️</span>
+    <h2>Montar minha rotina</h2>
+    <p>Sua semana em blocos (foco, treino, sono…) que viram eventos recorrentes na Agenda.</p>
+    <span class="go">Começar →</span>
+  </a>
+
+  <a class="card" href="setup-app.html">
+    <span class="em">💰</span>
+    <h2>Montar minha planilha</h2>
+    <p>Onboarding financeiro anti-fadiga: categorias, metas e saldo inicial em poucos toques.</p>
+    <span class="go">Começar →</span>
+  </a>
+
+  <div class="foot">Feito pra rodar no celular · atualiza sozinho a cada melhoria</div>
+</div>
+</body>
+</html>
