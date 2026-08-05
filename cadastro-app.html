@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Meu Assessor — criar minha conta</title>
+<style>
+  :root{
+    --bg:#FBF8F1; --card:#fff; --ink:#2B2A26; --muted:#8C887C; --line:#EDE7D9;
+    --honey:#D98C1F; --honey-soft:#FBEFD8; --olive:#6B7A3F; --green:#3B7A57;
+    --r:14px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--ink);line-height:1.5;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:460px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;padding:18px 18px 24px}
+  .top{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);margin-bottom:12px}
+  .top b{color:var(--honey);font-weight:600}
+  .bar{height:7px;background:#EFEAdd;border-radius:99px;overflow:hidden;margin:0 0 20px}
+  .bar>i{display:block;height:100%;width:20%;background:var(--honey);border-radius:99px;transition:width .35s ease}
+  .step{display:none;animation:in .25s ease}
+  .step.on{display:block}
+  @keyframes in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  h2{font-size:22px;font-weight:600;line-height:1.25;margin-bottom:6px}
+  .sub{font-size:14px;color:var(--muted);margin-bottom:20px}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .preset{cursor:pointer;text-align:left;background:var(--card);border:1.5px solid var(--line);border-radius:var(--r);padding:14px;transition:.15s}
+  .preset:active{transform:scale(.98)}
+  .preset.sel{border-color:var(--honey);background:var(--honey-soft)}
+  .preset .em{font-size:22px}
+  .preset h3{font-size:15px;font-weight:600;margin:6px 0 2px}
+  .preset p{font-size:12px;color:var(--muted)}
+  .chips{display:flex;flex-wrap:wrap;gap:9px}
+  .chip{cursor:pointer;background:var(--card);border:1.5px solid var(--line);border-radius:99px;padding:9px 14px;font-size:14px;color:var(--muted);transition:.12s;user-select:none}
+  .chip:active{transform:scale(.96)}
+  .chip.sel{background:var(--honey-soft);border-color:var(--honey);color:#9a5f10;font-weight:500}
+  .addrow{display:flex;gap:8px;margin-top:16px}
+  input[type=text],input[type=tel]{flex:1;font-size:15px;padding:11px 13px;border:1.5px solid var(--line);border-radius:12px;background:var(--card);color:var(--ink);width:100%}
+  input[type=text]:focus,input[type=tel]:focus{outline:none;border-color:var(--honey)}
+  .field{margin-bottom:16px}
+  .field label{display:block;font-size:13px;color:var(--muted);margin-bottom:6px}
+  .btn{font-size:15px;font-weight:600;padding:11px 16px;border-radius:12px;border:1.5px solid var(--line);background:var(--card);color:var(--ink);cursor:pointer}
+  .btn.primary{background:var(--honey);border-color:var(--honey);color:#fff;flex:1}
+  .btn.google{background:#fff;border:1.5px solid var(--line);color:var(--ink);width:100%;margin-top:10px}
+  .btn:active{transform:scale(.98)}
+  .group-t{font-size:13px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin:22px 0 10px}
+  .group-t:first-child{margin-top:0}
+  .nav{display:flex;gap:10px;margin-top:26px}
+  .done{text-align:center;padding:24px 0}
+  .done .ic{width:64px;height:64px;border-radius:50%;background:var(--honey-soft);display:flex;align-items:center;justify-content:center;font-size:32px;margin:0 auto 14px}
+  .skip{display:block;text-align:center;font-size:13px;color:var(--muted);margin-top:12px;cursor:pointer;text-decoration:underline}
+  .jsonbox{background:#2B2A26;color:#EDE7D9;border-radius:12px;padding:14px;font-family:ui-monospace,monospace;font-size:12px;white-space:pre-wrap;word-break:break-word;margin-top:14px;max-height:200px;overflow:auto}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top"><b>Meu Assessor</b><span>· crie sua conta em 1 minuto</span><span id="stepN" style="margin-left:auto"></span></div>
+  <div class="bar"><i id="prog"></i></div>
+
+  <!-- 1 nome + whatsapp -->
+  <div class="step on" id="s1">
+    <h2>Oi! Vamos te cadastrar 🍯</h2>
+    <p class="sub">Só o essencial pra começar — o resto você ajusta pelo WhatsApp mesmo, conversando.</p>
+    <div class="field"><label>Seu nome</label><input type="text" id="nome" placeholder="Como quer ser chamado(a)"></div>
+    <div class="field"><label>Seu WhatsApp (com DDD)</label><input type="tel" id="whats" placeholder="61 9XXXX-XXXX"></div>
+  </div>
+
+  <!-- 2 preset -->
+  <div class="step" id="s2">
+    <h2>Com o que você mais se parece?</h2>
+    <p class="sub">Escolha um perfil — já preencho suas categorias, você personaliza depois quando quiser.</p>
+    <div class="grid" id="presets"></div>
+  </div>
+
+  <!-- 3 categorias e formas de pagamento -->
+  <div class="step" id="s3">
+    <h2>Confirma suas categorias</h2>
+    <p class="sub">Toque pra incluir ou tirar. Dá pra mudar isso a qualquer momento.</p>
+    <div class="chips" id="chipsCat"></div>
+    <div class="addrow"><input type="text" id="newCat" placeholder="Pet, Assinaturas…"><button class="btn" onclick="addCustom()">+ Add</button></div>
+    <div class="group-t">Formas de pagamento</div>
+    <div class="chips" id="chipsPag"></div>
+  </div>
+
+  <!-- 4 pronto -->
+  <div class="step" id="s4">
+    <div class="done">
+      <div class="ic">🎉</div>
+      <h2>Quase lá!</h2>
+      <p class="sub" style="margin-bottom:0">Confirma seus dados e cria sua conta.</p>
+    </div>
+    <div id="resumo" class="sub"></div>
+    <button class="btn google" onclick="alert('Em breve! Por enquanto seu Assessor já funciona 100% sem o Google — finanças, tarefas e agenda ficam guardados com segurança no nosso banco.')">🔗 Conectar Google Agenda (opcional, em breve)</button>
+    <div id="saveState"></div>
+  </div>
+
+  <div class="nav">
+    <button class="btn" id="back" onclick="go(-1)" style="visibility:hidden">Voltar</button>
+    <button class="btn primary" id="next" onclick="onNext()">Continuar</button>
+  </div>
+</div>
+
+<script>
+// Config por URL (costura multi-tenant): ?webhook=URL&token=SEGREDO
+const Q = new URLSearchParams(location.search);
+const CFG = {
+  WEBHOOK_URL: Q.get('webhook') || "",
+  TOKEN: Q.get('token') || ""
+};
+const $ = id => document.getElementById(id);
+
+const EM = {'Alimentação':'🍽️','Saúde':'❤️','Moradia':'🏠','Transporte':'🚗','Educação':'🎓','Investimento':'📈','Pessoal':'🧴','Viagens':'✈️','Lazer':'🎮','Presentes':'🎁','Serviços de utilidade pública':'💡','Marketing':'📣','Fornecedores':'📦','Impostos':'🧾','Assinaturas':'📱'};
+const PRESETS = {
+  autonomo:{nome:'Autônomo',em:'💼',cats:['Alimentação','Moradia','Transporte','Saúde','Investimento','Pessoal']},
+  familia:{nome:'Família',em:'👨‍👩‍👧',cats:['Alimentação','Moradia','Transporte','Saúde','Educação','Lazer','Serviços de utilidade pública']},
+  freela:{nome:'Freelancer',em:'🎨',cats:['Alimentação','Transporte','Educação','Lazer','Pessoal','Assinaturas']},
+  empresa:{nome:'Dono de empresa',em:'🏢',cats:['Alimentação','Moradia','Investimento','Marketing','Fornecedores','Impostos']}
+};
+const POOL_PAG = ['Pix / Debito / Boleto','Cartão de crédito','Nubank','Banco do Brasil','C6 Bank','Outros'];
+
+let step=1, perfil='—', poolCat=[];
+let selCat=new Set(), selPag=new Set(['Pix / Debito / Boleto']);
+
+function renderPresets(){
+  $('presets').innerHTML='';
+  for(const k in PRESETS){const p=PRESETS[k];
+    const b=document.createElement('button');b.className='preset'+(perfil===p.nome?' sel':'');
+    b.innerHTML=`<div class="em">${p.em}</div><h3>${p.nome}</h3><p>${p.cats.length} categorias prontas</p>`;
+    b.onclick=()=>{perfil=p.nome;selCat=new Set(p.cats);poolCat=[...new Set([...poolCat,...p.cats])];renderPresets()};
+    $('presets').appendChild(b);
+  }
+}
+function chip(text,on){return `<span class="chip${on?' sel':''}">${EM[text]?EM[text]+' ':''}${text}</span>`}
+function renderChips(){
+  $('chipsCat').innerHTML=poolCat.map(c=>chip(c,selCat.has(c))).join('');
+  [...$('chipsCat').children].forEach((el,i)=>{const c=poolCat[i];el.onclick=()=>{selCat.has(c)?selCat.delete(c):selCat.add(c);renderChips()};});
+  $('chipsPag').innerHTML=POOL_PAG.map(c=>chip(c,selPag.has(c))).join('');
+  [...$('chipsPag').children].forEach((el,i)=>{const c=POOL_PAG[i];el.onclick=()=>{selPag.has(c)?selPag.delete(c):selPag.add(c);renderChips()};});
+}
+function addCustom(){
+  const v=$('newCat').value.trim();if(!v)return;
+  if(!poolCat.includes(v))poolCat.push(v);
+  selCat.add(v);$('newCat').value='';renderChips();
+}
+function renderResumo(){
+  $('resumo').innerHTML = `<b>${$('nome').value.trim()}</b> · ${$('whats').value.trim()}<br>Perfil: ${perfil} · ${selCat.size} categorias · ${selPag.size} formas de pagamento`;
+}
+function payload(){
+  return {
+    token: CFG.TOKEN,
+    nome: $('nome').value.trim(),
+    whatsapp: $('whats').value.trim(),
+    categorias: [...selCat],
+    formasPagamento: [...selPag],
+    centroCusto: ['Pessoal']
+  };
+}
+function validaStep1(){
+  if(!$('nome').value.trim()){alert('Como podemos te chamar?');return false}
+  const digits = $('whats').value.replace(/\D/g,'');
+  if(digits.length < 10){alert('Confere o número do WhatsApp com DDD.');return false}
+  return true;
+}
+async function salvar(){
+  const data=payload(); $('saveState').innerHTML='<p class="sub" style="text-align:center;margin-top:16px">Criando sua conta…</p>';
+  if(!CFG.WEBHOOK_URL){
+    $('saveState').innerHTML='<p class="sub" style="text-align:center;margin-top:16px">Modo teste (sem webhook). Isto será enviado:</p><div class="jsonbox">'+JSON.stringify(data,null,2)+'</div>';
+    return;
+  }
+  try{
+    const r=await fetch(CFG.WEBHOOK_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
+    if(!r.ok)throw 0;
+    $('saveState').innerHTML='<p class="sub" style="text-align:center;margin-top:16px;color:var(--green)">✅ Conta criada! Pode mandar mensagem no WhatsApp agora — o Assessor já reconhece você.</p>';
+  }catch(e){
+    $('saveState').innerHTML='<p class="sub" style="text-align:center;margin-top:16px">Não consegui salvar agora. Tenta de novo em instantes.</p><button class="btn primary" style="margin-top:12px;width:100%" onclick="salvar()">Tentar de novo</button>';
+  }
+}
+function show(){
+  for(let i=1;i<=4;i++)$('s'+i).classList.toggle('on',i===step);
+  $('prog').style.width=(step/4*100)+'%';$('stepN').textContent=step+' / 4';
+  $('back').style.visibility=step===1?'hidden':'visible';
+  $('next').textContent=step===4?'Criar minha conta':'Continuar';
+  if(step===2)renderPresets();if(step===3)renderChips();if(step===4)renderResumo();
+}
+function go(d){step=Math.min(4,Math.max(1,step+d));show()}
+function onNext(){
+  if(step===1 && !validaStep1())return;
+  if(step===4){salvar();return}
+  go(1);
+}
+show();
+</script>
+</body>
+</html>

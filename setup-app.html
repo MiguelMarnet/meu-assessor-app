@@ -178,7 +178,7 @@ function renderPresets(){
 function chip(text,on){return `<span class="chip${on?' sel':''}">${EM[text]?EM[text]+' ':''}${text}</span>`}
 function renderChips(){
   $('chipsD').innerHTML=poolD.map(c=>chip(c,selD.has(c))).join('');
-  [...$('chipsD').children].forEach((el,i)=>{const c=poolD[i];el.onclick=()=>{selD.has(c)?selD.delete(c):(selD.add(c),budg[c]==null&&(budg[c]=200));renderChips()}};});
+  [...$('chipsD').children].forEach((el,i)=>{const c=poolD[i];el.onclick=()=>{selD.has(c)?selD.delete(c):(selD.add(c),budg[c]==null&&(budg[c]=200));renderChips()};});
 }
 function renderRB(){
   $('chipsR').innerHTML=POOL_R.map(c=>chip(c,selR.has(c))).join('');
