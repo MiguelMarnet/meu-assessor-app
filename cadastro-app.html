@@ -115,13 +115,24 @@
 </div>
 
 <script>
-// Config por URL (costura multi-tenant): ?webhook=URL&token=SEGREDO
+// Config: ?webhook=URL&token=SEGREDO tem prioridade (útil pra teste local).
+// Sem isso, busca config.json do mesmo lugar onde a página está hospedada —
+// assim o link que a pessoa recebe nunca muda, mesmo quando o túnel do n8n
+// muda de endereço (só atualizamos o config.json, não o link compartilhado).
 const Q = new URLSearchParams(location.search);
 const CFG = {
   WEBHOOK_URL: Q.get('webhook') || "",
   TOKEN: Q.get('token') || ""
 };
 const $ = id => document.getElementById(id);
+async function carregarConfig(){
+  if (CFG.WEBHOOK_URL) return;
+  try{
+    const r = await fetch('config.json', {cache:'no-store'});
+    const c = await r.json();
+    CFG.WEBHOOK_URL = c.cadastroWebhook || "";
+  }catch(e){ /* segue sem webhook -> modo teste */ }
+}
 
 const EM = {'Alimentação':'🍽️','Saúde':'❤️','Moradia':'🏠','Transporte':'🚗','Educação':'🎓','Investimento':'📈','Pessoal':'🧴','Viagens':'✈️','Lazer':'🎮','Presentes':'🎁','Serviços de utilidade pública':'💡','Marketing':'📣','Fornecedores':'📦','Impostos':'🧾','Assinaturas':'📱'};
 const PRESETS = {
@@ -202,6 +213,7 @@ function onNext(){
   if(step===4){salvar();return}
   go(1);
 }
+carregarConfig();
 show();
 </script>
 </body>
