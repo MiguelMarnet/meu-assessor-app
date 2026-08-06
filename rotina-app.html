@@ -4,15 +4,23 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Meu Assessor — montar minha rotina</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
+<meta name="theme-color" content="#ece8df" media="(prefers-color-scheme: light)" />
+<meta name="theme-color" content="#16130d" media="(prefers-color-scheme: dark)" />
 <style>
-  :root{--bg:#FBF8F1;--card:#fff;--ink:#2B2A26;--muted:#8C887C;--line:#EDE7D9;--honey:#D98C1F;--honey-soft:#FBEFD8;--olive:#6B7A3F;--green:#3B7A57;--r:14px}
+  :root{--bg:#ece8df;--card:#fbf9f4;--ink:#16130d;--muted:#6f6a5c;--line:rgba(22,19,13,0.14);--honey:#b8860b;--honey-soft:rgba(184,134,11,0.12);--olive:#16130d;--green:#3f7a4d;--sans:"Inter",-apple-system,system-ui,sans-serif;--mono:"Space Mono",ui-monospace,monospace;--r:10px}
+  @media (prefers-color-scheme: dark){:root{--bg:#0a0908;--card:#14110d;--ink:#f4f1e9;--muted:#8d887a;--line:rgba(244,241,233,0.15);--honey:#d4a437;--honey-soft:rgba(212,164,55,0.14);--olive:#f4f1e9}}
+  :root[data-theme="dark"]{--bg:#0a0908;--card:#14110d;--ink:#f4f1e9;--muted:#8d887a;--line:rgba(244,241,233,0.15);--honey:#d4a437;--honey-soft:rgba(212,164,55,0.14);--olive:#f4f1e9}
+  :root[data-theme="light"]{--bg:#ece8df;--card:#fbf9f4;--ink:#16130d;--muted:#6f6a5c;--line:rgba(22,19,13,0.14);--honey:#b8860b;--honey-soft:rgba(184,134,11,0.12);--olive:#16130d}
   *{box-sizing:border-box;margin:0;padding:0}
-  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--ink);line-height:1.5;-webkit-font-smoothing:antialiased}
+  body{font-family:var(--sans);background:var(--bg);color:var(--ink);line-height:1.5;-webkit-font-smoothing:antialiased;transition:background .4s ease,color .4s ease}
   .wrap{max-width:480px;margin:0 auto;min-height:100vh;padding:18px 16px 28px}
-  .top{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);margin-bottom:12px}
-  .top b{color:var(--honey);font-weight:600}
-  .bar{height:7px;background:#EFEAdd;border-radius:99px;overflow:hidden;margin:0 0 20px}
-  .bar>i{display:block;height:100%;width:20%;background:var(--honey);border-radius:99px;transition:width .35s}
+  .top{display:flex;align-items:baseline;gap:8px;font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:14px}
+  .top b{color:var(--ink);font-weight:700;letter-spacing:.2em}
+  .bar{height:2px;background:var(--line);overflow:hidden;margin:0 0 20px}
+  .bar>i{display:block;height:100%;width:20%;background:var(--honey);transition:width .35s}
   .step{display:none;animation:in .25s ease}.step.on{display:block}
   @keyframes in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
   h2{font-size:21px;font-weight:600;line-height:1.25;margin-bottom:6px}
@@ -29,8 +37,8 @@
   input[type=text]{font-size:14px;padding:8px 10px;border:1.5px solid var(--line);border-radius:10px;background:var(--card);color:var(--ink);width:100%}
   input[type=text]:focus,select:focus{outline:none;border-color:var(--honey)}
   select{font-size:13px;padding:6px 8px;border:1.5px solid var(--line);border-radius:10px;background:var(--card);color:var(--ink)}
-  .btn{font-size:15px;font-weight:600;padding:11px 16px;border-radius:12px;border:1.5px solid var(--line);background:var(--card);color:var(--ink);cursor:pointer}
-  .btn.primary{background:var(--honey);border-color:var(--honey);color:#fff;flex:1}.btn:active{transform:scale(.98)}
+  .btn{font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:400;padding:12px 16px;border-radius:8px;border:1px solid var(--line);background:none;color:var(--ink);cursor:pointer;transition:.2s}
+  .btn.primary{background:var(--ink);border-color:var(--ink);color:var(--bg);flex:1}.btn:active{transform:scale(.98)}
   .blk{background:var(--card);border:1.5px solid var(--line);border-left-width:5px;border-radius:12px;padding:10px 12px;margin-bottom:9px}
   .blk-head{display:flex;align-items:center;gap:6px;margin-bottom:8px;flex-wrap:wrap}
   .blk-head .time{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
@@ -46,12 +54,12 @@
   .mcards{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:16px}
   .mc{background:var(--card);border:1.5px solid var(--line);border-radius:var(--r);padding:12px;text-align:center}
   .mc .k{font-size:11px;color:var(--muted)}.mc .n{font-size:20px;font-weight:700;margin-top:2px}
-  .safe{background:#F2F6EF;border:1.5px solid #D6E3CC;border-radius:12px;padding:13px 15px;margin-bottom:14px;font-size:12.5px;color:#3f5233;line-height:1.55}
-  .safe b{color:#2f4226;font-weight:700}
-  .safe .h{display:flex;align-items:center;gap:7px;font-size:13.5px;font-weight:700;color:#2f4226;margin-bottom:6px}
+  .done{text-align:center;padding:18px 0 8px}.done .ic{width:60px;height:60px;border-radius:50%;background:var(--honey-soft);display:flex;align-items:center;justify-content:center;font-size:30px;margin:0 auto 12px}
+  .safe{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:13px 15px;margin-bottom:14px;font-size:12.5px;color:var(--muted);line-height:1.55}
+  .safe b{color:var(--ink);font-weight:700}
+  .safe .h{display:flex;align-items:center;gap:7px;font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;font-weight:700;color:var(--ink);margin-bottom:8px}
   .safe ul{margin:8px 0 0;padding-left:2px;list-style:none}
   .safe li{display:flex;gap:7px;margin-bottom:4px}.safe li span{flex-shrink:0}
-  .done{text-align:center;padding:18px 0 8px}.done .ic{width:60px;height:60px;border-radius:50%;background:var(--honey-soft);display:flex;align-items:center;justify-content:center;font-size:30px;margin:0 auto 12px}
   .nav{display:flex;gap:10px;margin-top:22px}
   .seg-t{font-size:13px;font-weight:600;color:var(--muted);margin:14px 0 8px}
   .jsonbox{background:#2B2A26;color:#EDE7D9;border-radius:12px;padding:14px;font-family:ui-monospace,monospace;font-size:11px;white-space:pre-wrap;word-break:break-word;margin-top:12px;max-height:200px;overflow:auto}
