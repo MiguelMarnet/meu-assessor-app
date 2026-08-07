@@ -136,9 +136,15 @@ async function carregarConfig(){
     CFG.GOOGLE_CALLBACK_URL = c.googleOAuthCallbackUrl || "";
   }catch(e){ /* segue sem webhook -> modo teste */ }
 }
+function normWhats(v){
+  let n = String(v||'').replace(/\D/g,'');
+  if (!n.startsWith('55')) n = '55' + n;
+  return (n.length===13) ? n.slice(0,4)+n.slice(5) : n;
+}
 function conectarGoogle(){
-  const digits = $('whats').value.replace(/\D/g,'');
-  if(!digits){alert('Confere seu WhatsApp lá no passo 1 antes de conectar o Google.');return}
+  const raw = $('whats').value.replace(/\D/g,'');
+  if(!raw){alert('Confere seu WhatsApp lá no passo 1 antes de conectar o Google.');return}
+  const digits = normWhats(raw);
   if(!CFG.GOOGLE_CLIENT_ID || !CFG.GOOGLE_CALLBACK_URL){
     alert('Conexão com Google ainda não está disponível — pode criar sua conta sem ela e conectar depois.');
     return;
