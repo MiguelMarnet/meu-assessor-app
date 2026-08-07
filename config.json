@@ -1,5 +1,5 @@
 {
   "cadastroWebhook": "https://asn-morrison-invite-dinner.trycloudflare.com/webhook/meu-assessor-cadastro",
-  "googleOAuthClientId": "",
+  "googleOAuthClientId": "1095588671154-p9saim15plmg7up12sgqa6mqb49f9k83.apps.googleusercontent.com",
   "googleOAuthCallbackUrl": "https://asn-morrison-invite-dinner.trycloudflare.com/webhook/google-oauth-callback"
 }
