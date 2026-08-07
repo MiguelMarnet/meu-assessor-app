@@ -105,6 +105,7 @@
     </div>
     <div id="resumo" class="sub"></div>
     <button class="btn google" id="btnGoogle" onclick="conectarGoogle()">🔗 Conectar Google Agenda (opcional)</button>
+    <p class="sub" style="text-align:center;margin-top:8px"><a href="#" onclick="desconectarGoogle();return false" style="color:inherit;opacity:.6">Já conectei e quero desconectar o Google</a></p>
     <div id="saveState"></div>
   </div>
 
@@ -124,7 +125,8 @@ const CFG = {
   WEBHOOK_URL: Q.get('webhook') || "",
   TOKEN: Q.get('token') || "",
   GOOGLE_CLIENT_ID: "",
-  GOOGLE_CALLBACK_URL: ""
+  GOOGLE_CALLBACK_URL: "",
+  GOOGLE_DISCONNECT_WEBHOOK: ""
 };
 const $ = id => document.getElementById(id);
 async function carregarConfig(){
@@ -134,7 +136,20 @@ async function carregarConfig(){
     if (!CFG.WEBHOOK_URL) CFG.WEBHOOK_URL = c.cadastroWebhook || "";
     CFG.GOOGLE_CLIENT_ID = c.googleOAuthClientId || "";
     CFG.GOOGLE_CALLBACK_URL = c.googleOAuthCallbackUrl || "";
+    CFG.GOOGLE_DISCONNECT_WEBHOOK = c.googleDisconnectWebhook || "";
   }catch(e){ /* segue sem webhook -> modo teste */ }
+}
+async function desconectarGoogle(){
+  const whatsapp = prompt('Qual o seu WhatsApp (com DDD)?', $('whats').value || '');
+  if(!whatsapp)return;
+  if(!CFG.GOOGLE_DISCONNECT_WEBHOOK){alert('Essa opção ainda não está disponível.');return}
+  try{
+    const r = await fetch(CFG.GOOGLE_DISCONNECT_WEBHOOK,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({whatsapp})});
+    if(!r.ok)throw 0;
+    alert('Google desconectado.');
+  }catch(e){
+    alert('Não consegui desconectar agora. Tenta de novo em instantes.');
+  }
 }
 function normWhats(v){
   let n = String(v||'').replace(/\D/g,'');
