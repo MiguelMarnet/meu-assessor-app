@@ -104,7 +104,7 @@
       <p class="sub" style="margin-bottom:0">Confirma seus dados e cria sua conta.</p>
     </div>
     <div id="resumo" class="sub"></div>
-    <button class="btn google" onclick="alert('Em breve! Por enquanto seu Assessor já funciona 100% sem o Google — finanças, tarefas e agenda ficam guardados com segurança no nosso banco.')">🔗 Conectar Google Agenda (opcional, em breve)</button>
+    <button class="btn google" id="btnGoogle" onclick="conectarGoogle()">🔗 Conectar Google Agenda (opcional)</button>
     <div id="saveState"></div>
   </div>
 
@@ -122,16 +122,38 @@
 const Q = new URLSearchParams(location.search);
 const CFG = {
   WEBHOOK_URL: Q.get('webhook') || "",
-  TOKEN: Q.get('token') || ""
+  TOKEN: Q.get('token') || "",
+  GOOGLE_CLIENT_ID: "",
+  GOOGLE_CALLBACK_URL: ""
 };
 const $ = id => document.getElementById(id);
 async function carregarConfig(){
-  if (CFG.WEBHOOK_URL) return;
   try{
     const r = await fetch('config.json', {cache:'no-store'});
     const c = await r.json();
-    CFG.WEBHOOK_URL = c.cadastroWebhook || "";
+    if (!CFG.WEBHOOK_URL) CFG.WEBHOOK_URL = c.cadastroWebhook || "";
+    CFG.GOOGLE_CLIENT_ID = c.googleOAuthClientId || "";
+    CFG.GOOGLE_CALLBACK_URL = c.googleOAuthCallbackUrl || "";
   }catch(e){ /* segue sem webhook -> modo teste */ }
+}
+function conectarGoogle(){
+  const digits = $('whats').value.replace(/\D/g,'');
+  if(!digits){alert('Confere seu WhatsApp lá no passo 1 antes de conectar o Google.');return}
+  if(!CFG.GOOGLE_CLIENT_ID || !CFG.GOOGLE_CALLBACK_URL){
+    alert('Conexão com Google ainda não está disponível — pode criar sua conta sem ela e conectar depois.');
+    return;
+  }
+  const scope = 'https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/tasks';
+  const params = new URLSearchParams({
+    client_id: CFG.GOOGLE_CLIENT_ID,
+    redirect_uri: CFG.GOOGLE_CALLBACK_URL,
+    response_type: 'code',
+    access_type: 'offline',
+    prompt: 'consent',
+    scope: scope,
+    state: digits
+  });
+  location.href = 'https://accounts.google.com/o/oauth2/v2/auth?' + params.toString();
 }
 
 const EM = {'Alimentação':'🍽️','Saúde':'❤️','Moradia':'🏠','Transporte':'🚗','Educação':'🎓','Investimento':'📈','Pessoal':'🧴','Viagens':'✈️','Lazer':'🎮','Presentes':'🎁','Serviços de utilidade pública':'💡','Marketing':'📣','Fornecedores':'📦','Impostos':'🧾','Assinaturas':'📱'};

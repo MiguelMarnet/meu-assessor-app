@@ -1,3 +1,5 @@
 {
-  "cadastroWebhook": "https://animal-upgrades-unlock-assigned.trycloudflare.com/webhook/meu-assessor-cadastro"
+  "cadastroWebhook": "https://animal-upgrades-unlock-assigned.trycloudflare.com/webhook/meu-assessor-cadastro",
+  "googleOAuthClientId": "",
+  "googleOAuthCallbackUrl": "https://animal-upgrades-unlock-assigned.trycloudflare.com/webhook/google-oauth-callback"
 }
