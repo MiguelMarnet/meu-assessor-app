@@ -134,6 +134,7 @@ async function carregarConfig(){
     const r = await fetch('config.json', {cache:'no-store'});
     const c = await r.json();
     if (!CFG.WEBHOOK_URL) CFG.WEBHOOK_URL = c.cadastroWebhook || "";
+    if (!CFG.TOKEN) CFG.TOKEN = c.cadastroToken || "";
     CFG.GOOGLE_CLIENT_ID = c.googleOAuthClientId || "";
     CFG.GOOGLE_CALLBACK_URL = c.googleOAuthCallbackUrl || "";
     CFG.GOOGLE_DISCONNECT_WEBHOOK = c.googleDisconnectWebhook || "";
