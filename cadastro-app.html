@@ -60,6 +60,19 @@
   .group-t{font-family:var(--mono);font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.14em;margin:24px 0 10px}
   .group-t:first-child{margin-top:0}
   .nav{display:flex;gap:10px;margin-top:28px}
+  /* Escolha "com ou sem Google" — cartões tocáveis, mesma linguagem dos
+     presets do passo 2. Cada um diz o que muda na prática, sem jargão:
+     a pessoa não precisa saber o que é OAuth pra decidir. */
+  .opt{display:block;width:100%;text-align:left;background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:15px;margin-top:10px;cursor:pointer;transition:.15s;font-family:inherit;color:inherit}
+  .opt:active{transform:scale(.99)}
+  .opt:hover{border-color:var(--gold)}
+  .opt .t{display:flex;align-items:center;gap:8px;font-size:15px;font-weight:600}
+  .opt .tag{margin-left:auto;font-family:var(--mono);font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:var(--gold);border:1px solid var(--gold);border-radius:99px;padding:2px 7px;white-space:nowrap}
+  .opt p{font-size:12.5px;color:var(--muted);margin-top:6px;line-height:1.5}
+  .howto{background:var(--gold-soft);border-radius:var(--r);padding:14px;margin-top:16px}
+  .howto b{font-size:13px;display:block;margin-bottom:4px}
+  .howto .ex{font-family:var(--mono);font-size:11.5px;background:var(--card);border:1px solid var(--line);border-radius:8px;padding:9px 11px;margin-top:8px}
+  .howto .ex i{display:block;font-family:var(--sans);font-style:normal;font-size:11px;color:var(--muted);margin-top:4px}
   .done{text-align:center;padding:24px 0}
   .done .ic{width:56px;height:56px;border-radius:50%;background:var(--gold-soft);display:flex;align-items:center;justify-content:center;font-size:26px;margin:0 auto 16px}
   .skip{display:block;text-align:center;font-size:13px;color:var(--muted);margin-top:12px;cursor:pointer;text-decoration:underline}
@@ -105,7 +118,6 @@
       <p class="sub" style="margin-bottom:0">Confirma seus dados e cria sua conta.</p>
     </div>
     <div id="resumo" class="sub"></div>
-    <button class="btn google" id="btnGoogle" onclick="conectarGoogle()">🔗 Conectar Google Agenda (opcional)</button>
     <p class="sub" id="errGoogle" style="color:#c0492f;display:none;text-align:center;margin-top:8px"></p>
     <div id="saveState"></div>
   </div>
@@ -231,11 +243,54 @@ async function salvar(){
   try{
     const r=await fetch(CFG.WEBHOOK_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
     if(!r.ok)throw 0;
-    $('saveState').innerHTML='<p class="sub" style="text-align:center;margin-top:16px;color:var(--green)">✅ Conta criada! Pode mandar mensagem no WhatsApp agora — o Assessor já reconhece você.</p>';
+    telaEscolhaGoogle();
   }catch(e){
     $('saveState').innerHTML='<p class="sub" style="text-align:center;margin-top:16px">Não consegui salvar agora. Tenta de novo em instantes.</p><button class="btn primary" style="margin-top:12px;width:100%" onclick="salvar()">Tentar de novo</button>';
   }
 }
+/* ---- Escolha do Google, DEPOIS da conta criada ----------------------------
+   Vem depois de propósito: conectar o Google antes da conta existir mandava o
+   token pra um user_id que ainda não estava na tabela users e estourava a
+   chave estrangeira. Agora a conta já existe quando a pessoa decide.
+   Anti-fadiga: dois cartões pra tocar (não um "opcional" solto que ninguém
+   sabe se aceita), cada um dizendo o que muda NA PRÁTICA, e nada é
+   definitivo — dá pra trocar depois nos Ajustes. */
+function telaEscolhaGoogle(){
+  $('resumo').style.display='none';
+  document.querySelector('.nav').style.display='none';
+  $('saveState').innerHTML = `
+    <p class="sub" style="text-align:center;margin-top:8px;color:var(--green)">✅ Conta criada! Já pode falar com o Assessor no WhatsApp.</p>
+    <div class="group-t" style="margin-top:20px">Quer usar sua Agenda do Google?</div>
+    <button class="opt" id="optCom">
+      <div class="t">📅 Sim, usar minha Agenda <span class="tag">Recomendado</span></div>
+      <p>Quando você marcar um compromisso pelo WhatsApp, ele aparece direto na sua Agenda do Google — junto com o resto da sua vida, no celular e no computador.</p>
+    </button>
+    <button class="opt" id="optSem">
+      <div class="t">💬 Não, só pelo WhatsApp</div>
+      <p>Funciona igual, sem conectar nada: seus compromissos ficam guardados aqui no Assessor e você consulta quando quiser. Finanças, tarefas e lembretes não mudam em nada.</p>
+    </button>
+    <p class="sub" style="text-align:center;margin-top:12px;font-size:12px">Dá pra mudar isso quando quiser, nos Ajustes.</p>`;
+  $('optCom').onclick = conectarGoogle;
+  $('optSem').onclick = () => comoUsar(false);
+}
+/* Instrução curta e concreta: exemplos de mensagem real, não manual. */
+function comoUsar(comGoogle){
+  document.querySelector('.nav').style.display='none';
+  $('saveState').innerHTML = `
+    <div class="done" style="padding:14px 0"><div class="ic">💬</div>
+      <h2 style="font-size:20px">Tudo pronto, ${esc($('nome').value.trim().split(' ')[0]||'')}!</h2></div>
+    <div class="howto">
+      <b>É só mandar mensagem no WhatsApp, do seu jeito:</b>
+      <div class="ex">almoço 30<i>→ lança o gasto na categoria certa</i></div>
+      <div class="ex">reunião com a Ana amanhã 15h<i>→ ${comGoogle ? 'entra na sua Agenda do Google' : 'fica guardado no Assessor'}</i></div>
+      <div class="ex">lembrar de pagar o aluguel dia 5<i>→ vira tarefa com prazo</i></div>
+      <p class="sub" style="margin:10px 0 0;font-size:12px">Pode mandar áudio também — ele entende.</p>
+    </div>
+    ${comGoogle ? '' : '<button class="btn" style="width:100%;margin-top:14px" id="optDepois">📅 Mudei de ideia, quero conectar a Agenda</button>'}`;
+  const b = $('optDepois'); if (b) b.onclick = conectarGoogle;
+}
+const esc = s => String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
 function show(){
   for(let i=1;i<=4;i++)$('s'+i).classList.toggle('on',i===step);
   $('prog').style.width=(step/4*100)+'%';$('stepN').textContent=step+' / 4';
