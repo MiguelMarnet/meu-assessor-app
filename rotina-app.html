@@ -7,15 +7,18 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
-<meta name="theme-color" content="#ece8df" media="(prefers-color-scheme: light)" />
-<meta name="theme-color" content="#16130d" media="(prefers-color-scheme: dark)" />
+<meta name="theme-color" content="#F7F1EA" media="(prefers-color-scheme: light)" />
+<meta name="theme-color" content="#221913" media="(prefers-color-scheme: dark)" />
+<link rel="stylesheet" href="paleta-sereno.css" />
 <style>
-  :root{--bg:#ece8df;--card:#fbf9f4;--ink:#16130d;--muted:#6f6a5c;--line:rgba(22,19,13,0.14);--honey:#b8860b;--honey-soft:rgba(184,134,11,0.12);--olive:#16130d;--green:#3f7a4d;--sans:"Inter",-apple-system,system-ui,sans-serif;--mono:"Space Mono",ui-monospace,monospace;--r:10px}
-  @media (prefers-color-scheme: dark){:root{--bg:#0a0908;--card:#14110d;--ink:#f4f1e9;--muted:#8d887a;--line:rgba(244,241,233,0.15);--honey:#d4a437;--honey-soft:rgba(212,164,55,0.14);--olive:#f4f1e9}}
-  :root[data-theme="dark"]{--bg:#0a0908;--card:#14110d;--ink:#f4f1e9;--muted:#8d887a;--line:rgba(244,241,233,0.15);--honey:#d4a437;--honey-soft:rgba(212,164,55,0.14);--olive:#f4f1e9}
-  :root[data-theme="light"]{--bg:#ece8df;--card:#fbf9f4;--ink:#16130d;--muted:#6f6a5c;--line:rgba(22,19,13,0.14);--honey:#b8860b;--honey-soft:rgba(184,134,11,0.12);--olive:#16130d}
+  /* As cores vêm de paleta-sereno.css — fonte única do produto inteiro
+     (site, mini-apps e painel). Aqui só traduzimos para os nomes que
+     este arquivo já usava, então a troca de identidade não encosta em
+     nenhuma regra de layout. Os três estados de tema (claro, escuro
+     explícito e escuro do sistema) também vivem lá. */
+  :root{--card:var(--panel);--muted:var(--ink-soft);--honey:var(--acento);--honey-soft:var(--acento-soft);--olive:var(--ink);--green:var(--bom);--sans:"Inter",-apple-system,system-ui,sans-serif;--mono:"Space Mono",ui-monospace,monospace;--r:10px}
   *{box-sizing:border-box;margin:0;padding:0}
-  body{font-family:var(--sans);background:var(--bg);color:var(--ink);line-height:1.5;-webkit-font-smoothing:antialiased;transition:background .4s ease,color .4s ease}
+  body{font-family:var(--sans);background:var(--bg);color:var(--ink);line-height:1.5;-webkit-font-smoothing:antialiased;transition:background-color .4s ease,color .4s ease}
   .wrap{max-width:480px;margin:0 auto;min-height:100vh;padding:18px 16px 28px}
   .top{display:flex;align-items:baseline;gap:8px;font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:14px}
   .top b{color:var(--ink);font-weight:700;letter-spacing:.2em}
@@ -32,7 +35,7 @@
   .anchor{background:var(--card);border:1.5px solid var(--line);border-radius:var(--r);padding:16px;margin-bottom:12px}
   .anchor .row{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
   .anchor .v{font-size:26px;font-weight:700;color:var(--olive)}
-  input[type=range]{-webkit-appearance:none;width:100%;height:6px;border-radius:99px;background:#EAE3d3}
+  input[type=range]{-webkit-appearance:none;width:100%;height:6px;border-radius:99px;background:var(--bg-2)}
   input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;border-radius:50%;background:var(--honey);cursor:pointer;border:3px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.15)}
   input[type=text]{font-size:14px;padding:8px 10px;border:1.5px solid var(--line);border-radius:10px;background:var(--card);color:var(--ink);width:100%}
   input[type=text]:focus,select:focus{outline:none;border-color:var(--honey)}
@@ -62,7 +65,7 @@
   .safe li{display:flex;gap:7px;margin-bottom:4px}.safe li span{flex-shrink:0}
   .nav{display:flex;gap:10px;margin-top:22px}
   .seg-t{font-size:13px;font-weight:600;color:var(--muted);margin:14px 0 8px}
-  .jsonbox{background:#2B2A26;color:#EDE7D9;border-radius:12px;padding:14px;font-family:ui-monospace,monospace;font-size:11px;white-space:pre-wrap;word-break:break-word;margin-top:12px;max-height:200px;overflow:auto}
+  .jsonbox{background:var(--ink);color:var(--bg);border-radius:12px;padding:14px;font-family:ui-monospace,monospace;font-size:11px;white-space:pre-wrap;word-break:break-word;margin-top:12px;max-height:200px;overflow:auto}
   .tl{height:26px;border-radius:8px;background:linear-gradient(90deg,#EFECE4 0 8%,#E7F2E3 8% 22%,#EDE7FA 22% 55%,#E3EEFA 55% 78%,#F0EDE6 78% 92%,#EFECE4 92% 100%);margin-top:8px}
 </style>
 </head>

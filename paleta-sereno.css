@@ -1,0 +1,166 @@
+/* ============================================================
+   PALETA SERENO
+   Esfera fosca creme→terracota sobre campo de ondas, luz difusa.
+   Sem preto, sem cinza puro, sem cor fria saturada.
+   Contrastes conferidos por cálculo (WCAG 2.1).
+   ============================================================ */
+
+:root {
+  /* --- areia: fundos e superfícies --- */
+  --areia-50:  #FBF6F0;
+  --areia-100: #F7F1EA;
+  --areia-200: #EFE5DA;
+  --areia-300: #E3CFBD;
+  --areia-400: #D9BEA6;
+
+  /* --- tinta: texto sobre claro --- */
+  --tinta-900: #3A2A20;   /* 12,22:1 · AAA  · corpo e títulos      */
+  --tinta-600: #6B5344;   /*  6,36:1 · AA   · secundário           */
+  --tinta-400: #8A705E;   /*  4,11:1 · AA grande (≥18px)           */
+  --tinta-200: #C4AF9C;   /*  1,88:1 · SÓ linha — nunca texto      */
+
+  /* --- terracota: acento e ação --- */
+  --terra-300: #E39C7A;
+  --terra-500: #D97F5A;   /* botão → texto tinta-900 (4,66:1)      */
+  --terra-700: #B85A38;   /* botão → texto branco   (4,61:1)       */
+  --terra-900: #8A3F26;
+
+  /* --- gradiente do núcleo 3D (de cima p/ baixo) --- */
+  --nucleo-topo:  #F2E7D2;
+  --nucleo-alto:  #EDD3AE;
+  --nucleo-meio:  #E8B896;
+  --nucleo-baixo: #D97F5A;
+  --nucleo-base:  #C96A45;
+
+  /* --- ambiente --- */
+  --onda-crista: #FAF4EC;
+  --onda-vale:   #E3CFBD;
+  --contato:     #C99B7E;
+
+  /* --- estados (dentro da família quente) --- */
+  --alerta:  #A2402A;     /* 6,60:1 */
+  --atencao: #8E6631;     /* 4,57:1 */
+  --bom:     #607452;     /* 4,55:1 */
+
+  /* --- 9 domínios · suave = preenchimento · forte = traço/texto --- */
+  --rotina-suave:      #B8A96B;  --rotina-forte:      #7B6E3B;
+  --saude-suave:       #8CA37D;  --saude-forte:       #607452;
+  --financeiro-suave:  #C79A5E;  --financeiro-forte:  #8E6631;
+  --anotacoes-suave:   #C98B7E;  --anotacoes-forte:   #A85746;
+  --foco-suave:        #B3654F;  --foco-forte:        #A25A46;
+  --projetos-suave:    #8F96BE;  --projetos-forte:    #606AA3;
+  --timeline-suave:    #7C9BB0;  --timeline-forte:    #527288;
+  --cerebro-suave:     #7BA69B;  --cerebro-forte:     #4F766C;
+  --espiritual-suave:  #AC93BF;  --espiritual-forte:  #835E9F;
+
+  /* --- papéis semânticos: use ESTES na interface --- */
+  --bg:        var(--areia-100);
+  --bg-2:      var(--areia-200);
+  --panel:     var(--areia-50);
+  --ink:       var(--tinta-900);
+  --ink-soft:  var(--tinta-600);
+  --ink-faint: var(--tinta-400);
+  --line:      var(--tinta-200);
+  --acento:    var(--terra-500);
+  --acento-fw: var(--terra-700);  /* "fw" = fundo com texto branco */
+}
+
+/* ============================================================
+   NOITE — marrom-carvão, não preto.
+   No escuro os tons empoeirados dos domínios já passam de 6:1,
+   então o `-suave` vira o traço e o `-forte` não é usado.
+   ============================================================ */
+:root[data-theme="dark"] {
+  --areia-50:  #372921;
+  --areia-100: #221913;
+  --areia-200: #2C211A;
+  --areia-300: #453329;
+  --areia-400: #4C382E;
+
+  --tinta-900: #F7F1EA;   /* 15,39:1 · AAA */
+  --tinta-600: #C0AB99;   /*  7,83:1 · AAA */
+  --tinta-400: #97826F;   /*  4,72:1 · AA  */
+  --tinta-200: #453329;
+
+  --terra-500: #E39C7A;   /* clareia p/ manter presença no escuro */
+  --terra-700: #D97F5A;
+
+  /* No escuro as ondas INVERTEM o papel: em vez de sombra sobre um
+     fundo claro, elas captam luz sobre um fundo escuro. Com valores
+     escuros dos dois lados o campo sumia (medido: cristas 6 pontos
+     acima do fundo, invisível) e o objeto boiava no nada. Assim a
+     crista fica ~40 pontos acima do fundo e o chão existe. */
+  --onda-crista: #B88A5C;
+  --onda-vale:   #2A1F17;
+  --contato:     #6B4E33;   /* no escuro é brilho derramado, não sombra */
+
+  --alerta:  #E08163;
+  --atencao: #D9A05B;
+  --bom:     #9BB183;
+
+  /* no escuro, o traço de cada domínio é o próprio tom empoeirado */
+  --rotina-forte:     #B8A96B;
+  --saude-forte:      #8CA37D;
+  --financeiro-forte: #C79A5E;
+  --anotacoes-forte:  #C98B7E;
+  --foco-forte:       #B9705C;
+  --projetos-forte:   #8F96BE;
+  --timeline-forte:   #7C9BB0;
+  --cerebro-forte:    #7BA69B;
+  --espiritual-forte: #AC93BF;
+}
+
+/* ============================================================
+   A MESMA NOITE, MAS AUTOMÁTICA.
+   São TRÊS estados, não dois: quem escolhe o tema na mão ganha
+   [data-theme]; quem deixa no "sistema" não ganha atributo nenhum,
+   e aí só o prefers-color-scheme separa claro de escuro. Sem este
+   bloco, celular no modo escuro abria a interface toda clara.
+   O :not([data-theme="light"]) faz a escolha explícita de CLARO
+   vencer um sistema no escuro.
+   Espelha o bloco de cima -- mexeu num, mexe no outro.
+   ============================================================ */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+  --areia-50:  #372921;
+  --areia-100: #221913;
+  --areia-200: #2C211A;
+  --areia-300: #453329;
+  --areia-400: #4C382E;
+
+  --tinta-900: #F7F1EA;   /* 15,39:1 · AAA */
+  --tinta-600: #C0AB99;   /*  7,83:1 · AAA */
+  --tinta-400: #97826F;   /*  4,72:1 · AA  */
+  --tinta-200: #453329;
+
+  --terra-500: #E39C7A;   /* clareia p/ manter presença no escuro */
+  --terra-700: #D97F5A;
+
+  /* No escuro as ondas INVERTEM o papel: em vez de sombra sobre um
+     fundo claro, elas captam luz sobre um fundo escuro. Com valores
+     escuros dos dois lados o campo sumia (medido: cristas 6 pontos
+     acima do fundo, invisível) e o objeto boiava no nada. Assim a
+     crista fica ~40 pontos acima do fundo e o chão existe. */
+  --onda-crista: #B88A5C;
+  --onda-vale:   #2A1F17;
+  --contato:     #6B4E33;   /* no escuro é brilho derramado, não sombra */
+
+  --alerta:  #E08163;
+  --atencao: #D9A05B;
+  --bom:     #9BB183;
+
+  /* no escuro, o traço de cada domínio é o próprio tom empoeirado */
+  --rotina-forte:     #B8A96B;
+  --saude-forte:      #8CA37D;
+  --financeiro-forte: #C79A5E;
+  --anotacoes-forte:  #C98B7E;
+  --foco-forte:       #B9705C;
+  --projetos-forte:   #8F96BE;
+  --timeline-forte:   #7C9BB0;
+  --cerebro-forte:    #7BA69B;
+  --espiritual-forte: #AC93BF;
+  }
+}
+
+/* Acento rebaixado: fundo de destaque, chip selecionado, realce sutil. */
+:root { --acento-soft: color-mix(in srgb, var(--terra-500) 14%, transparent); }
