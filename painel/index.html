@@ -1,0 +1,1613 @@
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Assessor.IA — Índice</title>
+<link rel="manifest" href="manifest.webmanifest" />
+<link rel="icon" href="icon.svg" type="image/svg+xml" />
+<link rel="apple-touch-icon" href="icon.svg" />
+<meta name="theme-color" content="#EFE5DA" media="(prefers-color-scheme: light)" />
+<meta name="theme-color" content="#3A2A20" media="(prefers-color-scheme: dark)" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-title" content="Assessor" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
+
+<style>
+  /* ===== PALETA SERENO =====
+     Tirada da esfera fosca creme→terracota sobre campo de ondas.
+     Sem preto, sem cinza puro. O tom mais escuro é marrom quente —
+     é daí que vem a calma. Contrastes conferidos por cálculo:
+     ink 12,22:1 · ink-soft 6,36:1 · ink-faint 4,11:1 (só ≥18px).
+     A paleta completa e portátil vive em ../paleta-sereno/. */
+  :root {
+    --areia-50:#FBF6F0; --areia-100:#F7F1EA; --areia-200:#EFE5DA;
+    --areia-300:#E3CFBD; --areia-400:#D9BEA6;
+    --terra-300:#E39C7A; --terra-500:#D97F5A; --terra-700:#B85A38; --terra-900:#8A3F26;
+
+    --bg: var(--areia-100); --bg-2: var(--areia-200); --panel: var(--areia-50);
+    --ink: #3A2A20; --ink-soft: #6B5344; --ink-faint: #8A705E;
+    --line: rgba(58,42,32,0.15);
+    /* `--gold` continua com este nome de propósito: é usado em ~180
+       lugares no app. Trocar o nome seria uma refatoração de risco
+       sem ganho; trocar o VALOR já repinta tudo. */
+    --gold: var(--terra-500); --gold-soft: rgba(217,127,90,0.14);
+    --gold-forte: var(--terra-700);   /* fundo que aceita texto branco */
+
+    --alerta:#A2402A; --atencao:#8E6631; --bom:#607452;
+
+    --mono: "Space Mono", ui-monospace, monospace;
+    --sans: "Inter", -apple-system, system-ui, sans-serif;
+    --gut: 32px;
+  }
+  /* Noite: marrom-carvão, não preto — a v2 usava #1A1310, que brigava
+     com a temperatura da paleta e matava a sensação. */
+  /* Noite CLAREADA. #1A1310 era quase preto: o núcleo boiava no
+     vazio e o campo de ondas sumia junto. Subir a rampa ~8% de
+     luminância devolve o chão sem perder o aconchego — e o texto
+     continua bem acima de AAA. */
+  :root[data-theme="dark"] {
+    --areia-50:#372921; --areia-100:#221913; --areia-200:#2C211A;
+    --areia-300:#453329; --areia-400:#544034;
+
+    --bg: var(--areia-100); --bg-2: var(--areia-200); --panel: var(--areia-50);
+    --ink: #F7F1EA; --ink-soft: #C0AB99; --ink-faint: #97826F;
+    --line: rgba(247,241,234,0.16);
+    --gold: var(--terra-300); --gold-soft: rgba(227,156,122,0.16);
+    --gold-forte: var(--terra-500);
+
+    --alerta:#E08163; --atencao:#D9A05B; --bom:#9BB183;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  /* overflow-x mora no html, nao no body: um so eixo non-visible no body faz o
+     browser promover o outro eixo pra auto (regra da spec CSS overflow), o que
+     transforma o body no seu proprio scroller, desconectado de window.scrollY
+     -- e a animacao 3D + navegacao por clique (data-goto) dependem de scrollY. */
+  html { overflow-anchor: none; overflow-x: hidden; }
+  body {
+    background: var(--bg); color: var(--ink); font-family: var(--sans);
+    -webkit-font-smoothing: antialiased; cursor: none;
+    transition: background .8s ease, color .8s ease;
+  }
+  a, button { cursor: none; font-family: inherit; }
+  @media (hover: none) { body, a, button { cursor: auto; } }
+
+  .track { height: 200vh; }
+  #scene { position: fixed; inset: 0; width: 100vw; height: 100vh; z-index: 0; display: block; }
+
+  /* halo atrás do núcleo — garante leitura de texto sobre a massa */
+  .halo { position: fixed; inset: 0; z-index: 1; pointer-events: none;
+    background: radial-gradient(closest-side at 62% 50%, color-mix(in srgb, var(--bg) 0%, transparent) 0%, transparent 70%); }
+
+  .grain { position: fixed; inset: 0; z-index: 60; pointer-events: none; opacity: .03;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); }
+  .vignette { position: fixed; inset: 0; z-index: 59; pointer-events: none;
+    background: radial-gradient(ellipse at center, transparent 58%, rgba(0,0,0,.12) 100%); }
+
+  .cursor-dot,.cursor-ring{position:fixed;top:0;left:0;z-index:100;pointer-events:none;border-radius:50%;transform:translate(-50%,-50%)}
+  .cursor-dot{width:6px;height:6px;background:var(--ink)}
+  .cursor-ring{width:32px;height:32px;border:1px solid var(--ink-soft);transition:width .25s,height .25s,border-color .3s}
+  .cursor-ring.hot{width:54px;height:54px;border-color:var(--gold)}
+  @media (hover: none){.cursor-dot,.cursor-ring{display:none}}
+  .ripple{position:fixed;z-index:99;pointer-events:none;border:1px solid var(--gold);border-radius:50%;transform:translate(-50%,-50%);animation:rip .7s ease-out forwards}
+  @keyframes rip{from{width:8px;height:8px;opacity:.9}to{width:130px;height:130px;opacity:0}}
+
+  .mono{font-family:var(--mono);font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-soft)}
+  .tag{font-family:var(--mono);font-size:10px;letter-spacing:.24em;text-transform:uppercase;color:var(--ink-soft)}
+
+  /* ===== HUD enxuto ===== */
+  .hud{position:fixed;inset:0;z-index:30;pointer-events:none}
+  .hud .clickable{pointer-events:auto}
+  .topbar{position:absolute;top:24px;left:var(--gut);right:var(--gut);display:flex;align-items:center;justify-content:space-between}
+  .brand{font-weight:600;letter-spacing:.32em;font-size:13px;display:flex;align-items:baseline;gap:8px}
+  .brand sup{font-family:var(--mono);font-size:8px;letter-spacing:.1em;color:var(--gold)}
+  .brand .word{position:relative;display:inline-block}
+  .brand .word::before,.brand .word::after{content:attr(data-t);position:absolute;left:0;top:0;opacity:0}
+  .brand.glitch .word::before{animation:glA .5s steps(2) 3}
+  .brand.glitch .word::after{animation:glB .5s steps(2) 3}
+  @keyframes glA{30%{opacity:.5;transform:translateY(-6px)}60%{opacity:.3;transform:translateY(5px)}}
+  @keyframes glB{30%{opacity:.35;transform:translateY(6px)}60%{opacity:.5;transform:translateY(-5px)}}
+  .controls{display:flex;gap:10px;align-items:center}
+  .seclabel{margin-right:8px}
+  .btn{font-family:var(--mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;background:none;border:1px solid var(--line);color:var(--ink);padding:6px 12px;border-radius:20px;transition:.25s}
+  .btn:hover{background:var(--ink);color:var(--bg)}
+
+  /* rail de progresso (só nas cenas que cabem) */
+  .rail{position:absolute;right:14px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:10px;align-items:center;transition:opacity .4s}
+  .rail .dot{width:5px;height:5px;border-radius:50%;background:var(--ink-soft);opacity:.4;transition:.3s}
+  .rail .dot.on{opacity:1;background:var(--gold);transform:scale(1.5)}
+
+  /* live-bar única no rodapé (consolida chips+strip+eq da v1) */
+  .livebar{position:absolute;left:var(--gut);right:var(--gut);bottom:22px;display:flex;align-items:center;justify-content:space-between;gap:20px;border-top:1px solid var(--line);padding-top:12px;transition:opacity .4s}
+  .livebar .grp{display:flex;gap:26px;align-items:baseline}
+  .livebar .s{display:flex;flex-direction:column;gap:2px}
+  .livebar .s .n{font-family:var(--mono);font-weight:700;font-size:16px;letter-spacing:-.02em}
+  .livebar .s .n small{font-size:10px}
+  .livebar .s .l{font-family:var(--mono);font-size:8px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-soft)}
+  .livebar .eq{display:flex;align-items:flex-end;gap:2px;height:22px}
+  .livebar .eq i{width:2px;background:var(--ink);display:block;animation:eq 1.1s ease-in-out infinite}
+  @keyframes eq{0%,100%{height:20%}50%{height:100%}}
+  .livebar .clk{font-family:var(--mono);font-size:11px;color:var(--ink-soft)}
+
+  /* ===== CENAS fly-through ===== */
+  .stage{position:fixed;inset:0;z-index:10;perspective:1000px}
+  .scene{position:absolute;inset:0;opacity:0;pointer-events:none;will-change:transform,opacity}
+  .scene.active{pointer-events:auto}
+  .wrap{position:absolute;inset:0;display:grid;grid-template-columns:repeat(12,1fr);gap:20px;
+    padding:96px var(--gut) 96px;align-content:center}
+
+  /* — cena 0 HERO — */
+  .hero .col-txt{grid-column:1/6;align-self:center}
+  .hero .kicker{margin-bottom:16px}
+  .hero h1{font-size:clamp(32px,4.2vw,58px);font-weight:400;line-height:.98;letter-spacing:-.025em;min-height:2em}
+  .hero .rotator span{display:inline-block;transition:opacity .45s,transform .45s,filter .45s}
+  .hero .rotator span.out{opacity:0;transform:translateY(-10px) skewX(-6deg);filter:blur(4px)}
+  .hero p{margin-top:16px;max-width:34ch;font-size:13px;line-height:1.55;color:var(--ink-soft)}
+  .cta{display:inline-flex;align-items:center;gap:8px;margin-top:26px;background:var(--ink);color:var(--bg);
+    font-family:var(--mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;padding:11px 18px;border-radius:40px;border:none;transition:transform .25s,box-shadow .25s}
+  .cta:hover{transform:scale(1.05);box-shadow:0 10px 34px rgba(0,0,0,.24)}
+  .cta:active{transform:scale(.96)}
+  .hero .col-meta{grid-column:10/13;align-self:center;text-align:right;font-family:var(--mono)}
+  .hero .col-meta .mrow{display:flex;justify-content:space-between;border-top:1px solid var(--line);padding:7px 0;font-size:11px;gap:24px}
+  .hero .col-meta .mrow span:last-child{color:var(--ink-soft)}
+
+  /* — cena 1 ÍNDICE — */
+  .idx .head{grid-column:1/13;display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:26px}
+  .idx .head h2{font-size:clamp(26px,3.2vw,42px);font-weight:400;letter-spacing:-.02em;line-height:1}
+  .idx .modgrid{grid-column:1/13;display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+  .modcard{position:relative;text-align:left;background:color-mix(in srgb,var(--panel) 82%,transparent);border:1px solid var(--line);
+    border-radius:6px;padding:16px 18px;color:var(--ink);transition:transform .28s cubic-bezier(.2,.7,.2,1),border-color .28s,background .28s;overflow:hidden;min-height:112px}
+  .modcard::after{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--mc,var(--gold));opacity:0;transition:opacity .28s}
+  .modcard:hover{transform:translateY(-4px);border-color:color-mix(in srgb,var(--mc) 55%,var(--line))}
+  .modcard:hover::after{opacity:1}
+  .modcard .top{display:flex;justify-content:space-between;align-items:center}
+  .modcard .num{font-family:var(--mono);font-size:9px;letter-spacing:.2em;color:var(--ink-soft)}
+  .modcard .dot{width:7px;height:7px;border-radius:50%;background:var(--mc)}
+  .modcard .name{font-size:16px;font-weight:500;margin-top:12px;letter-spacing:.01em}
+  .modcard .row{display:flex;justify-content:space-between;align-items:flex-end;margin-top:10px}
+  /* A regra global `.kpi` (das telas de módulo) vaza para cá: ela traz
+     border, border-radius, padding:16px e background, e `.modcard .kpi`
+     só sobrescrevia a fonte. Resultado medido: o conteúdo do card ia a
+     160px dentro de uma caixa de 112px e o `overflow:hidden` comia 50px
+     — o KPI aparecia cortado. Aqui o card zera o que não é dele. */
+  .modcard .kpi{font-family:var(--mono);font-size:18px;font-weight:700;letter-spacing:-.02em;
+    border:none;background:none;padding:0;border-radius:0}
+  .modcard .kpi small{font-size:11px;color:var(--ink-soft)}
+  .modcard .klbl{font-family:var(--mono);font-size:8px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-soft)}
+  .modcard svg{display:block}
+  .modcard .go{position:absolute;right:14px;bottom:12px;font-family:var(--mono);font-size:10px;color:var(--ink-soft);opacity:0;transform:translateX(-4px);transition:.28s}
+  .modcard:hover .go{opacity:1;transform:translateX(0)}
+
+  /* — cena 2 VOCÊ S.A. — */
+  .vsa .col-txt{grid-column:1/6;align-self:center}
+  .vsa h2{font-size:clamp(28px,3.6vw,48px);font-weight:400;letter-spacing:-.025em;line-height:1}
+  .vsa p{margin-top:14px;max-width:38ch;font-size:13px;line-height:1.6;color:var(--ink-soft)}
+  .vsa .insight{margin-top:22px;border-left:2px solid var(--gold);padding:10px 16px;font-size:13px;line-height:1.5}
+  .vsa .insight .src{font-family:var(--mono);font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-soft);margin-top:6px}
+  .vsa .col-radar{grid-column:7/13;justify-self:center;align-self:center}
+  .vsa svg text{font-family:var(--mono);fill:var(--ink-soft);font-size:9px;letter-spacing:.12em}
+
+  /* — cena 3 FINALE — */
+  .fin{place-content:center;text-align:center}
+  .fin .inner{grid-column:1/13;display:grid;place-items:center}
+  .fin .echo{position:relative}
+  .fin h2{font-size:clamp(42px,9vw,140px);font-weight:700;line-height:.92;letter-spacing:-.04em;
+    background:linear-gradient(180deg,var(--ink),color-mix(in srgb,var(--ink) 42%,transparent));-webkit-background-clip:text;background-clip:text;color:transparent}
+  .fin .echo::before,.fin .echo::after{content:attr(data-t);position:absolute;inset:0;font-size:clamp(42px,9vw,140px);font-weight:700;line-height:.92;letter-spacing:-.04em;color:var(--ink);white-space:pre-line}
+  .fin .echo::before{transform:translateY(-12px);opacity:.06}
+  .fin .echo::after{transform:translateY(12px);opacity:.04}
+  .fin .sub{font-family:var(--mono);font-size:11px;letter-spacing:.3em;text-transform:uppercase;color:var(--ink-soft);margin-top:22px}
+  .fin .frow{margin-top:36px;display:flex;gap:12px;justify-content:center;align-items:center}
+
+  /* ===== GAVETA de módulo ===== */
+  .scrim{position:fixed;inset:0;z-index:70;background:rgba(0,0,0,.34);opacity:0;pointer-events:none;transition:opacity .35s}
+  .scrim.open{opacity:1;pointer-events:auto}
+  .drawer{position:fixed;top:0;right:0;bottom:0;width:min(440px,92vw);z-index:71;background:var(--panel);
+    border-left:1px solid var(--line);transform:translateX(100%);transition:transform .42s cubic-bezier(.2,.8,.2,1);
+    display:flex;flex-direction:column;padding:28px 28px 24px}
+  .drawer.open{transform:translateX(0)}
+  .drawer .dtop{display:flex;justify-content:space-between;align-items:center}
+  .drawer .dnum{font-family:var(--mono);font-size:10px;letter-spacing:.2em;color:var(--dc,var(--gold))}
+  .drawer .dclose{background:none;border:1px solid var(--line);color:var(--ink);width:30px;height:30px;border-radius:50%;font-size:14px;transition:.25s}
+  .drawer .dclose:hover{background:var(--ink);color:var(--bg)}
+  .drawer h3{font-size:30px;font-weight:400;letter-spacing:-.02em;margin-top:20px}
+  .drawer .dkpi{display:flex;align-items:baseline;gap:10px;margin-top:6px}
+  .drawer .dkpi .big{font-family:var(--mono);font-size:40px;font-weight:700;letter-spacing:-.03em;color:var(--dc)}
+  .drawer .dkpi .lbl{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-soft)}
+  .drawer .dchart{margin-top:22px;border:1px solid var(--line);border-radius:6px;padding:16px}
+  .drawer .dchart .ct{display:flex;justify-content:space-between;font-family:var(--mono);font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-soft);margin-bottom:10px}
+  .drawer .dinsight{margin-top:20px;border-left:2px solid var(--dc);padding:8px 14px;font-size:13px;line-height:1.5}
+  .drawer .dinsight .conta{display:inline-block;margin-top:8px;font-family:var(--mono);font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-soft);border-bottom:1px dashed var(--line);cursor:none}
+  .drawer .spacer{flex:1}
+  .drawer .dcfg{width:100%;background:var(--ink);color:var(--bg);border:none;border-radius:8px;padding:15px;font-family:var(--mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;transition:transform .2s}
+  .drawer .dcfg:hover{transform:translateY(-2px)}
+  .drawer .dhint{text-align:center;margin-top:10px;font-family:var(--mono);font-size:9px;letter-spacing:.1em;color:var(--ink-soft)}
+
+  /* modal do mini-app */
+  .mamodal{position:fixed;inset:0;z-index:90;background:rgba(0,0,0,.5);opacity:0;pointer-events:none;transition:opacity .35s;display:grid;place-items:center}
+  .mamodal.open{opacity:1;pointer-events:auto}
+  .mamodal .frame{width:min(460px,94vw);height:min(760px,92vh);border-radius:16px;overflow:hidden;border:1px solid var(--line);background:var(--bg);box-shadow:0 30px 90px rgba(0,0,0,.4)}
+  .mamodal iframe{width:100%;height:100%;border:0;display:block}
+  .mamodal .maclose{position:absolute;top:calc(4vh);right:calc(3vw);background:rgba(0,0,0,.4);color:#fff;border:1px solid rgba(255,255,255,.25);width:38px;height:38px;border-radius:50%;font-size:16px}
+
+  /* ===== FINAL: halo dourado + anel de chegada ===== */
+  .finale-bloom{position:fixed;inset:0;z-index:6;pointer-events:none;opacity:0;transition:opacity .3s;
+    background:radial-gradient(circle at 50% 45%, color-mix(in srgb,var(--gold) 55%,transparent) 0%, color-mix(in srgb,var(--gold) 14%,transparent) 30%, transparent 54%)}
+  .finale-ring{position:fixed;left:50%;top:45%;z-index:6;pointer-events:none;width:24px;height:24px;border-radius:50%;
+    border:1.5px solid var(--gold);transform:translate(-50%,-50%) scale(0);opacity:0}
+  .finale-ring.go{animation:arrivalRing 1.8s cubic-bezier(.2,.7,.2,1)}
+  @keyframes arrivalRing{0%{transform:translate(-50%,-50%) scale(.3);opacity:.85}100%{transform:translate(-50%,-50%) scale(22);opacity:0}}
+  body.covered .grain, body.covered .vignette, body.covered .finale-bloom{visibility:hidden}
+  /* Com uma tela de módulo por cima, as cenas do fly-through não
+     precisam continuar como camadas de composição na GPU. Manter
+     `will-change` ligado ali só multiplica superfícies para o
+     navegador redesenhar — e pilha de camadas com `perspective` é
+     fonte conhecida de artefato de repintura ao redimensionar.
+     Zero mudança visual: só devolve as camadas quando não servem. */
+  body.covered .scene, body.covered .stage{will-change:auto}
+  /* Só o mini-app (iframe opaco) esconde o canvas. A tela de módulo
+     não esconde mais: o núcleo continua vivo no topo, encolhido e
+     tingido na cor daquele módulo. */
+  body.mini #scene{visibility:hidden}
+
+  /* ===== TELA CHEIA de módulo (vitrine) ===== */
+  /* A faixa de cima é transparente de propósito: é por ali que o
+     núcleo continua aparecendo, encolhido e tingido na cor do
+     módulo. O resto é opaco porque texto sobre 3D não se lê. */
+  /* `overflow-x:hidden` porque `overflow-y:auto` transforma o elemento
+     em container de rolagem nos DOIS eixos: a gaveta de Projetos, que
+     fica fechada em translateX(100%) fora da tela, empurrava o
+     scrollWidth para 728px numa janela de 375px e a tela deslizava
+     de lado no celular. */
+  .modscreen{position:fixed;inset:0;z-index:75;overflow-y:auto;overflow-x:hidden;opacity:0;pointer-events:none;
+    background:linear-gradient(to bottom, transparent 0, transparent 148px, var(--bg) 224px, var(--bg) 100%);
+    transform:scale(1.05);transition:opacity .45s ease, transform .5s cubic-bezier(.2,.8,.2,1)}
+  .modscreen.open{opacity:1;pointer-events:auto;transform:none}
+  /* gatilho real do mini-app de configuração — antes só existia um
+     botão morto (dentro da gaveta antiga, que nunca abre). Some por
+     padrão; aparece só com um módulo em tela cheia. */
+  .mcfg{position:fixed;top:24px;right:24px;z-index:76;display:none;width:38px;height:38px;border-radius:50%;
+    border:1px solid var(--line);background:var(--panel);color:var(--ink);font-size:15px;align-items:center;justify-content:center;
+    cursor:none;transition:.2s}
+  .mcfg:hover{border-color:var(--gold)}
+  .modscreen.open ~ .mcfg{display:flex}
+  @media(hover:none){.mcfg{cursor:pointer}}
+  /* começa abaixo da faixa transparente onde o orbe aparece */
+  .ms-wrap{max-width:1080px;margin:0 auto;padding:196px var(--gut) 60px}
+  .ms-top{display:flex;justify-content:space-between;align-items:center}
+  .ms-num{font-family:var(--mono);font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--dc,var(--gold))}
+  .ms-close{background:none;border:1px solid var(--line);color:var(--ink);border-radius:20px;padding:7px 14px;font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;transition:.25s}
+  .ms-close:hover{background:var(--ink);color:var(--bg)}
+  .ms-h1{font-size:clamp(30px,4vw,52px);font-weight:400;letter-spacing:-.03em;margin-top:14px}
+  .ms-sub{color:var(--ink-soft);font-size:13px;margin-top:8px;max-width:56ch;line-height:1.5}
+  .ms-tabs{display:flex;gap:8px;margin:26px 0 18px;flex-wrap:wrap}
+  .ms-tabs button{font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;padding:9px 14px;border-radius:20px;border:1px solid var(--line);background:none;color:var(--ink-soft);transition:.2s}
+  .ms-tabs button.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+  .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+  .kpi{border:1px solid var(--line);border-radius:10px;padding:16px;background:var(--panel);border-top:2px solid var(--kc,var(--gold))}
+  .kpi .k{font-family:var(--mono);font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-soft)}
+  .kpi .v{font-family:var(--mono);font-size:23px;font-weight:700;letter-spacing:-.02em;margin-top:6px}
+  .kpi .d{font-size:11px;color:var(--ink-soft);margin-top:3px}
+  .kpi .d.up{color:#607452}.kpi .d.down{color:#A2402A}
+  .g2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px}
+  .fcard{border:1px solid var(--line);border-radius:10px;padding:18px;background:var(--panel)}
+  .fcard.span2{grid-column:1/3}
+  .fct{display:flex;align-items:center;font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-soft);margin-bottom:14px}
+  .fct .sp{margin-left:auto;display:flex;gap:8px}
+  .rowitem{display:flex;align-items:center;gap:12px;padding:11px 0;border-top:1px solid var(--line)}
+  .rowitem .ric{width:32px;height:32px;border-radius:8px;display:grid;place-items:center;background:var(--bg);border:1px solid var(--line);font-size:14px}
+  .rowitem .rt{flex:1;min-width:0}.rowitem .rt b{font-size:14px;font-weight:500}.rowitem .rt span{display:block;font-family:var(--mono);font-size:10px;color:var(--ink-soft);margin-top:2px}
+  .rowitem .rv{font-family:var(--mono);font-weight:700;font-size:14px}
+  .rowitem .del{background:none;border:none;color:var(--ink-soft);font-size:13px;padding:4px}
+  .budget{margin-top:12px}.budget .bl{display:flex;justify-content:space-between;font-size:12px;margin-bottom:6px;font-family:var(--mono)}
+  .budget .bl b{color:var(--ink-soft)}
+  .bar{height:6px;border-radius:4px;background:var(--line);overflow:hidden}.bar i{display:block;height:100%;border-radius:4px;background:var(--bc,var(--gold));transition:width .5s}
+  .flegend{display:flex;flex-wrap:wrap;gap:12px;margin-top:14px;justify-content:center}
+  .flegend span{display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:10px;color:var(--ink-soft)}
+  .flegend i{width:9px;height:9px;border-radius:2px}
+  .msbtn{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;padding:8px 13px;border-radius:20px;border:1px solid var(--line);background:none;color:var(--ink);transition:.2s}
+  .msbtn:hover{border-color:var(--gold)}
+  .msbtn.primary{background:var(--gold);color:#171008;border-color:var(--gold)}
+  .fempty{text-align:center;color:var(--ink-soft);font-size:13px;padding:24px}
+
+  /* ===== Modal de edição + toast (interações portadas do cupertino) ===== */
+  .modalback{position:fixed;inset:0;z-index:80;background:rgba(0,0,0,.42);display:grid;place-items:center;opacity:0;pointer-events:none;transition:opacity .3s}
+  .modalback.on{opacity:1;pointer-events:auto}
+  .modalsheet{width:min(420px,92vw);max-height:86vh;overflow:auto;background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:26px 24px;transform:translateY(12px) scale(.98);transition:transform .3s cubic-bezier(.2,.8,.2,1)}
+  .modalback.on .modalsheet{transform:none}
+  .modalsheet h3{font-size:22px;font-weight:500;letter-spacing:-.01em}
+  .modalsheet .msub{font-size:13px;color:var(--ink-soft);margin-top:6px;line-height:1.5}
+  .modalsheet label.f{display:block;font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-soft);margin:18px 0 8px}
+  .modalsheet label.f b{color:var(--gold)}
+  .modalsheet input,.modalsheet select{width:100%;padding:13px 14px;border:1px solid var(--line);border-radius:12px;background:var(--bg);color:var(--ink);font-family:inherit;font-size:16px;outline:none;transition:.2s}
+  .modalsheet input:focus,.modalsheet select:focus{border-color:var(--gold)}
+  .modalsheet input[type=range]{padding:0;accent-color:var(--gold)}
+  .mactions{display:flex;gap:10px;margin-top:24px}
+  .btn2{flex:1;padding:13px;border-radius:12px;font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;border:1px solid var(--line);background:none;color:var(--ink);transition:.2s}
+  .btn2:hover{border-color:var(--gold)}
+  .btn2.primary{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+  .btn2.primary:hover{transform:translateY(-1px)}
+  .toast{position:fixed;left:50%;bottom:30px;transform:translateX(-50%) translateY(20px);z-index:96;background:var(--ink);color:var(--bg);font-family:var(--mono);font-size:11px;letter-spacing:.05em;padding:12px 20px;border-radius:30px;opacity:0;pointer-events:none;transition:.3s;box-shadow:0 12px 40px rgba(0,0,0,.3)}
+  .toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+  .dquick{width:100%;margin-bottom:10px;background:color-mix(in srgb,var(--dc) 10%,var(--panel));color:var(--ink);border:1px solid color-mix(in srgb,var(--dc) 45%,var(--line));border-radius:8px;padding:14px;font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;transition:.2s}
+  .dquick:hover{background:color-mix(in srgb,var(--dc) 20%,var(--panel))}
+  .gear{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;font-size:14px;line-height:1}
+
+  @media (max-width: 860px){
+    :root{--gut:18px}
+    .hero .col-txt{grid-column:1/13}
+    .hero .col-meta{display:none}
+    /* ===== ÍNDICE NO CELULAR =====
+       O que estava errado, medido: cada card reservava 112px mas o
+       conteúdo pedia 160px, e o `overflow:hidden` comia 50px — o KPI
+       aparecia cortado. Além disso a lista tinha 1120px dentro de uma
+       janela de 487px, criando um scroll dentro do scroll que cortava
+       cards pela metade nas duas pontas.
+       Agora: card deitado (nome à esquerda, número à direita) em vez
+       de empilhado, o que derruba a altura pela metade; e a lista
+       rola com fade nas bordas, para ficar claro que ela rola. */
+    /* `align-content:start` + `grid-auto-rows:min-content` são o que
+       impede o grid de espremer as faixas para caber no max-height.
+       Sem isso ele comprimia cada card em exatamente o tamanho do
+       padding inferior (12px medidos de excesso) e o conteúdo era
+       cortado por baixo — a lista media 503px cravados dentro de uma
+       janela de 503px, o que denunciava a compressão. */
+    .idx .modgrid{grid-template-columns:1fr;gap:8px;max-height:62vh;overflow-y:auto;
+      align-content:start;grid-auto-rows:min-content;
+      -webkit-overflow-scrolling:touch;padding:2px 2px 8px}
+    .idx .head{margin-bottom:14px}
+    .modcard{min-height:0;padding:10px 14px 12px;border-radius:8px;
+      display:grid;grid-template-columns:1fr auto;column-gap:12px;align-items:end}
+    .modcard .top{grid-column:1/3}
+    .modcard .name{grid-column:1;margin-top:5px;font-size:14.5px}
+    .modcard .row{grid-column:2;margin-top:0;gap:10px;align-items:center}
+    .modcard .klbl{display:none}   /* repetia o nome do card */
+    .modcard .kpi{font-size:15px}
+    .modcard svg{width:44px;height:18px}
+    .modcard .go{display:none}
+
+    /* ===== TELAS DE MÓDULO NO CELULAR =====
+       `.kpis` com 4 colunas e `.g2` com 2 não colapsavam, e itens de
+       grid não encolhem abaixo do conteúdo sem `min-width:0` — daí a
+       rolagem lateral. `.ms-wrap` também precisa de menos respiro no
+       topo, já que o orbe é menor aqui. */
+    .kpis{grid-template-columns:1fr 1fr;gap:8px}
+    .kpis>*{min-width:0}
+    .kpi{padding:12px}
+    .g2{grid-template-columns:1fr}
+    .g2>*{min-width:0}
+    .modscreen.open .ms-wrap, .ms-wrap{padding:132px var(--gut) 48px}
+    .modscreen{background:linear-gradient(to bottom,transparent 0,transparent 92px,var(--bg) 152px,var(--bg) 100%)}
+    .ms-wrap img,.ms-wrap svg{max-width:100%}
+
+    /* Estas cinco vieram da v2 e valem em TODA tela estreita.
+       Ao inserir o bloco de tablet eu fechei esta media query cedo
+       demais e elas foram parar lá dentro (min-width:560px) — ou
+       seja, sumiam justamente no celular, que é onde mais importam.
+       É o que quebrou a responsividade. */
+    .vsa .col-txt{grid-column:1/13}
+    .vsa .col-radar{display:none}
+    .livebar .grp{gap:16px}
+    .livebar .s:nth-child(n+3){display:none}
+    .rail{display:none}
+    .drawer{width:100vw;top:auto;height:82vh;border-left:none;border-top:1px solid var(--line);border-radius:18px 18px 0 0;transform:translateY(100%)}
+    .drawer.open{transform:translateY(0)}
+  }
+
+  /* Tablet: só o que MUDA em relação ao celular — duas colunas de
+     card e os grids das telas de módulo de volta ao normal. */
+  @media (min-width:560px) and (max-width:860px){
+    .idx .modgrid{grid-template-columns:1fr 1fr;max-height:none;overflow:visible}
+    .kpis{grid-template-columns:repeat(4,1fr)}
+    .g2{grid-template-columns:1fr 1fr}
+  }
+</style>
+
+<canvas id="scene"></canvas>
+<div class="halo"></div>
+<div class="track"></div>
+
+<!-- ===== HUD ===== -->
+<div class="hud">
+  <div class="topbar">
+    <div class="brand" id="brand"><span class="word" data-t="ASSESSOR.IA">ASSESSOR.IA</span> <sup>[ 02 ]</sup></div>
+    <div class="controls">
+      <span class="mono seclabel" id="secLabel">◦ 01 — NÚCLEO</span>
+      <button class="btn clickable" id="shapeBtn">◇ AUTO</button>
+      <button class="btn clickable" id="themeBtn">ESCURO</button>
+      <button class="btn gear clickable" id="gearBtn" title="Ajustes">⚙</button>
+    </div>
+  </div>
+  <div class="rail" id="rail"><div class="dot on"></div><div class="dot"></div></div>
+  <div class="livebar" id="livebar">
+    <div class="grp">
+      <div class="s"><div class="n">21<small>d</small></div><div class="l">sequência</div></div>
+      <div class="s"><div class="n" id="lb-saldo">R$ 4.820</div><div class="l">saldo do mês</div></div>
+      <div class="s"><div class="n">8.2</div><div class="l">humor médio</div></div>
+      <div class="s"><div class="n" id="liveev">142</div><div class="l">eventos hoje</div></div>
+    </div>
+    <div style="display:flex;align-items:center;gap:18px">
+      <div class="eq" id="eq"></div>
+      <div class="clk">HOJE · <span id="clk">00:00:00</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== CENAS ===== -->
+<div class="stage">
+  <section class="scene" data-i="0">
+    <div class="wrap hero">
+      <div class="col-txt">
+        <div class="kicker mono">◦ 01 — Núcleo</div>
+        <h1 class="rotator"><span id="rot"></span></h1>
+        <p>Finanças, rotina, corpo e mente — um assessor de IA que organiza a sua vida em uma só direção.</p>
+        <button class="cta" data-goto="1">▶ Explorar o índice</button>
+      </div>
+      <div class="col-meta">
+        <div class="mrow"><span>MÓDULOS</span><span class="gold" style="color:var(--gold)">9 / 9</span></div>
+        <div class="mrow"><span>FOCO HOJE</span><span>3h40</span></div>
+        <div class="mrow"><span>SEQUÊNCIA</span><span>21 dias</span></div>
+        <div class="mrow"><span>VOCÊ S.A.</span><span>7.4</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="scene" data-i="1">
+    <div class="wrap idx">
+      <div class="head">
+        <div>
+          <div class="tag" style="margin-bottom:14px">◦ 02 — Índice</div>
+          <h2>Toque em qualquer categoria.</h2>
+        </div>
+        <div class="mono" style="text-align:right">9 MÓDULOS<br>1 NÚCLEO</div>
+      </div>
+      <div class="modgrid" id="modgrid"></div>
+    </div>
+  </section>
+
+</div>
+
+<!-- gaveta -->
+<div class="scrim" id="scrim"></div>
+<aside class="drawer" id="drawer" aria-hidden="true">
+  <div class="dtop"><span class="dnum" id="dnum">MÓDULO</span><button class="dclose clickable" id="dclose">✕</button></div>
+  <h3 id="dname">Módulo</h3>
+  <div class="dkpi"><span class="big" id="dkpi">—</span><span class="lbl" id="dkpilbl"></span></div>
+  <div class="dchart"><div class="ct"><span id="dctl">30 DIAS</span><span class="gold" style="color:var(--dc)">TENDÊNCIA</span></div>
+    <svg id="dchart" width="100%" height="120" viewBox="0 0 380 120" preserveAspectRatio="none"></svg></div>
+  <div class="dinsight" id="dinsight">—<div class="conta clickable" id="dconta">ver a conta</div></div>
+  <div class="spacer"></div>
+  <button class="dquick clickable" id="dquick">+ Registrar</button>
+  <button class="dcfg clickable" id="dcfg">⚙ Configurar módulo</button>
+  <div class="dhint">é a mesma tela que abre pelo WhatsApp</div>
+</aside>
+
+<!-- tela cheia de módulo (vitrine) -->
+<div class="modscreen" id="modscreen"></div>
+<button class="mcfg clickable" id="mcfg" title="Configurar este módulo">⚙</button>
+
+<!-- modal de edição + toast -->
+<div class="modalback" id="modalback"><div class="modalsheet" id="modal"></div></div>
+<div class="toast" id="toast"></div>
+
+<!-- modal mini-app -->
+<div class="mamodal" id="mamodal"><button class="maclose clickable" id="maclose">✕</button><div class="frame"><iframe id="maframe" title="Mini-app"></iframe></div></div>
+
+<!-- gate de login (Google, via Supabase Auth) -->
+<style>
+  /* A porta de entrada fala a mesma língua do app: núcleo fosco
+     creme→terracota sobre campo de ondas (paleta Sereno). O núcleo aqui
+     é 2D em canvas, não WebGL — é a primeira tela que carrega, num
+     celular qualquer, então não vale acordar o three.js antes do login. */
+  #authGate{position:fixed;inset:0;z-index:99999;background:var(--bg);
+    display:flex;align-items:center;justify-content:center;flex-direction:column;
+    font-family:var(--sans);color:var(--ink);text-align:center;padding:24px;
+    /* o cursor custom do app (z-index 100) fica ATRÁS deste gate, e o body
+       é cursor:none -- sem isto a tela de login fica sem cursor nenhum. */
+    cursor:auto}
+  #authGate.hidden{display:none}
+  #authGate *{cursor:inherit}
+  #authGate button,#authGate a{cursor:pointer}
+  #agCanvas{position:absolute;inset:0;width:100%;height:100%;z-index:0}
+  /* margem no topo = o palco do núcleo (o canvas mede esse espaço e se
+     encaixa nele). vh limitado pra não sumir em tela baixa/paisagem. */
+  #authGateInner{position:relative;z-index:1;display:flex;flex-direction:column;
+    align-items:center;gap:14px;max-width:340px;width:100%;
+    margin-top:clamp(140px, 30vh, 260px)}
+
+  #authGate .eyebrow{font-family:var(--mono);font-size:10px;letter-spacing:.18em;
+    text-transform:uppercase;color:var(--ink-faint);display:flex;align-items:center;gap:7px}
+  #authGate .eyebrow i{width:5px;height:5px;border-radius:50%;background:var(--gold);
+    display:inline-block;animation:agPulse 2.8s ease-in-out infinite}
+  @keyframes agPulse{0%,100%{opacity:.45;transform:scale(1)}50%{opacity:1;transform:scale(1.35)}}
+
+  #authGate h1{font-size:clamp(24px,5vw,32px);font-weight:400;letter-spacing:-.02em;
+    line-height:1.12;text-wrap:balance}
+  #authGate p{color:var(--ink-soft);font-size:13.5px;line-height:1.55;text-wrap:pretty}
+
+  #authGate button{font-family:var(--sans);font-size:14px;padding:13px 24px;border-radius:11px;
+    border:1px solid var(--line);background:var(--panel);color:var(--ink);
+    transition:transform .18s cubic-bezier(.2,.8,.2,1),box-shadow .18s ease,background .18s ease}
+  #authGate button.primary{background:var(--gold-forte);border-color:var(--gold-forte);
+    color:#FBF6F0;font-weight:600;letter-spacing:.01em;
+    display:inline-flex;align-items:center;gap:9px;
+    box-shadow:0 2px 0 color-mix(in srgb,var(--gold-forte) 70%,#000),
+               0 10px 26px color-mix(in srgb,var(--gold-forte) 30%,transparent)}
+  #authGate button.primary:hover{transform:translateY(-1px);
+    box-shadow:0 3px 0 color-mix(in srgb,var(--gold-forte) 70%,#000),
+               0 14px 32px color-mix(in srgb,var(--gold-forte) 38%,transparent)}
+  #authGate button.primary:active{transform:translateY(1px);
+    box-shadow:0 1px 0 color-mix(in srgb,var(--gold-forte) 70%,#000)}
+  #authGate button:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
+  #authGate button.primary svg{width:17px;height:17px;flex:0 0 auto}
+
+  #authGate input{font-family:var(--mono);font-size:15px;padding:13px 14px;border-radius:11px;
+    border:1px solid var(--line);background:var(--panel);color:var(--ink);width:100%;
+    max-width:260px;text-align:center;letter-spacing:.06em;transition:border-color .2s,box-shadow .2s}
+  #authGate input:focus{outline:none;border-color:var(--gold);
+    box-shadow:0 0 0 3px var(--gold-soft)}
+  #authGate .err{color:var(--alerta);font-size:12.5px;line-height:1.5}
+  #authGate .ghost{background:none;border:none;color:var(--ink-faint);font-size:12px;
+    text-decoration:underline;text-underline-offset:3px;padding:6px}
+  #authGate .ghost:hover{color:var(--ink-soft)}
+  #authGate .rodape{font-family:var(--mono);font-size:9.5px;letter-spacing:.14em;
+    text-transform:uppercase;color:var(--ink-faint);margin-top:6px}
+  @media (prefers-reduced-motion: reduce){
+    #authGate .eyebrow i{animation:none}
+    #authGate button{transition:none}
+  }
+</style>
+<div id="authGate"><canvas id="agCanvas"></canvas><div id="authGateInner">Carregando…</div></div>
+<script>
+/* Núcleo 2D + campo de ondas da tela de login. Mesmo vocabulário visual do
+   núcleo 3D (fosco, gradiente creme→terracota ancorado na vertical, campo de
+   anéis embaixo), mas em canvas: custa quase nada e roda antes do three.js.
+   Toque/clique solta uma onda que nasce onde você tocou. */
+(function(){
+  const cv = document.getElementById('agCanvas');
+  if (!cv) return;
+  const ctx = cv.getContext('2d');
+  const reduz = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let W=0, H=0, dpr=1, raf=null, t=0;
+  const ondas = [];           // ondas soltas pelo toque
+  let alvoX=0, alvoY=0, offX=0, offY=0;   // parallax suave do núcleo
+
+  const lerToken = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+
+  function medir(){
+    dpr = Math.min(devicePixelRatio||1, 2);
+    W = cv.clientWidth; H = cv.clientHeight;
+    cv.width = Math.round(W*dpr); cv.height = Math.round(H*dpr);
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+  }
+
+  const innerEl = document.getElementById('authGateInner');
+
+  function desenhar(){
+    /* O núcleo mora ACIMA do conteúdo, nunca atrás: medimos o espaço
+       livre até o topo do texto e cabemos ali. Desenhar por trás das
+       letras apagava a linha "01 — Entrar" (visto em teste, 710px). */
+    const gr = cv.getBoundingClientRect();
+    const ir = innerEl.getBoundingClientRect();
+    const espaco = Math.max(ir.top - gr.top, 90);
+    const R = Math.max(34, Math.min(Math.min(W,H)*0.15, espaco*0.33));
+    const cx = W/2 + offX, cy = Math.max(R*1.2, espaco*0.46) + offY;
+    ctx.clearRect(0,0,W,H);
+
+    /* campo de ondas: anéis em perspectiva sob o núcleo. A amplitude
+       varia com o tempo -- é um trem de ondas só, não anéis avulsos. */
+    const linha = lerToken('--line') || 'rgba(58,42,32,0.15)';
+    ctx.save();
+    ctx.strokeStyle = linha;
+    for (let i=1;i<=14;i++){
+      const p = i/14;
+      const rx = R*(1.15 + p*3.4);
+      const onda = Math.sin(t*0.6 - p*5.2) * (1-p) * 7;
+      const ry = rx*0.20 + onda;
+      ctx.globalAlpha = (1-p)*0.5 + 0.06;
+      ctx.beginPath();
+      ctx.ellipse(cx, cy + R*0.92 + p*8, rx, Math.max(ry,1), 0, 0, Math.PI*2);
+      ctx.stroke();
+    }
+    /* ondas do toque, por cima do campo */
+    for (let i=ondas.length-1;i>=0;i--){
+      const o = ondas[i];
+      o.r += 2.6; o.a *= 0.972;
+      if (o.a < 0.01){ ondas.splice(i,1); continue; }
+      ctx.globalAlpha = o.a;
+      ctx.strokeStyle = lerToken('--gold') || '#D97F5A';
+      ctx.beginPath();
+      ctx.ellipse(o.x, o.y, o.r, o.r*0.30, 0, 0, Math.PI*2);
+      ctx.stroke();
+    }
+    ctx.restore();
+
+    /* o núcleo: fosco, sem especular. Raio modulado por dois senos =
+       o mesmo "polimorfismo" do núcleo 3D, em versão barata. */
+    ctx.save();
+    ctx.beginPath();
+    for (let a=0; a<=Math.PI*2+0.001; a+=Math.PI/72){
+      const r = R * (1 + 0.055*Math.sin(3*a + t*0.5) + 0.035*Math.sin(5*a - t*0.32));
+      const x = cx + Math.cos(a)*r, y = cy + Math.sin(a)*r;
+      a===0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y);
+    }
+    ctx.closePath();
+    /* gradiente ancorado na vertical do MUNDO (não gira com a forma) */
+    const g = ctx.createLinearGradient(cx, cy-R*1.1, cx, cy+R*1.1);
+    g.addColorStop(0,   lerToken('--areia-300') || '#E3CFBD');
+    g.addColorStop(0.42,lerToken('--terra-300') || '#E39C7A');
+    g.addColorStop(1,   lerToken('--terra-900') || '#8A3F26');
+    ctx.fillStyle = g;
+    ctx.fill();
+    /* quicada quente do chão: a base não vira sombra morta */
+    const q = ctx.createRadialGradient(cx, cy+R*0.85, 0, cx, cy+R*0.85, R*1.1);
+    q.addColorStop(0, 'rgba(217,127,90,0.30)');
+    q.addColorStop(1, 'rgba(217,127,90,0)');
+    ctx.fillStyle = q; ctx.fill();
+    ctx.restore();
+  }
+
+  function loop(){
+    t += reduz ? 0 : 0.016;
+    offX += (alvoX - offX) * 0.05;
+    offY += (alvoY - offY) * 0.05;
+    desenhar();
+    raf = requestAnimationFrame(loop);
+  }
+
+  function mover(e){
+    const p = e.touches ? e.touches[0] : e;
+    alvoX = ((p.clientX / innerWidth) - 0.5) * 26;
+    alvoY = ((p.clientY / innerHeight) - 0.5) * 16;
+  }
+  function tocar(e){
+    const p = e.touches ? e.touches[0] : e;
+    const r = cv.getBoundingClientRect();
+    ondas.push({ x: p.clientX - r.left, y: p.clientY - r.top, r: 6, a: 0.55 });
+  }
+
+  addEventListener('resize', medir);
+  const gate = document.getElementById('authGate');
+  gate.addEventListener('pointermove', mover, {passive:true});
+  gate.addEventListener('pointerdown', tocar, {passive:true});
+
+  medir(); loop();
+
+  /* para o loop quando o gate sai de cena -- não faz sentido animar
+     um canvas escondido enquanto o núcleo 3D roda atrás. */
+  window.__pararGate = () => { if (raf) cancelAnimationFrame(raf); raf = null; };
+})();
+</script>
+<script type="module">
+  import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+  const supa = createClient(
+    'https://uyxowxpmzlfjqbumkeae.supabase.co',
+    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV5eG93eHBtemxmanFidW1rZWFlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUzNzMyNzUsImV4cCI6MjEwMDk0OTI3NX0.I5sNg70BHUG8XZVnaEvNjdygAR8-cQN93xibC4VhYfc'
+  );
+  window.Supa = supa; // outras telas (fase 2) vao reusar essa mesma conexao
+  const gate = document.getElementById('authGate');
+  const inner = document.getElementById('authGateInner');
+  const norm = (n) => { n = String(n||'').replace(/\D/g,''); if (!n.startsWith('55')) n = '55' + n; return (n.length===13) ? n.slice(0,4)+n.slice(5) : n; };
+
+  const G_SVG = `<svg viewBox="0 0 48 48" aria-hidden="true"><path fill="#FFC107" d="M43.6 20.1H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34.05 6.05 29.3 4 24 4 12.95 4 4 12.95 4 24s8.95 20 20 20 20-8.95 20-20c0-1.3-.15-2.7-.4-3.9z"/><path fill="#FF3D00" d="m6.3 14.7 6.6 4.8C14.65 15.1 18.95 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34.05 6.05 29.3 4 24 4 16.3 4 9.65 8.35 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.85-1.95 13.4-5.2l-6.2-5.2C29.15 35.15 26.7 36 24 36c-5.15 0-9.65-3.3-11.25-7.9l-6.55 5.05C9.5 39.55 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.1H42V20H24v8h11.3c-.75 2.15-2.15 4-3.9 5.35l6.2 5.2C37.15 39.2 44 34 44 24c0-1.3-.15-2.7-.4-3.9z"/></svg>`;
+
+  function telaEntrar(){
+    inner.innerHTML = `<div class="eyebrow"><i></i>01 — Entrar</div>
+      <h1>O assessor que mora no seu bolso.</h1>
+      <p>Entra com sua conta Google e seus lançamentos, rotina e metas aparecem aqui — no celular, no computador, onde você abrir.</p>
+      <button class="primary" id="btnGoogleLogin">${G_SVG}Entrar com Google</button>
+      <div class="rodape">Finanças · Rotina · Corpo · Mente</div>`;
+    document.getElementById('btnGoogleLogin').onclick = () => {
+      supa.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: location.href.split('#')[0] } });
+    };
+  }
+  function telaVincular(session){
+    inner.innerHTML = `<div class="eyebrow"><i></i>02 — Quase lá</div>
+      <h1>Qual é o seu WhatsApp?</h1>
+      <p>Usamos esse número pra achar sua conta — é o mesmo que você usou no cadastro do Assessor.</p>
+      <input id="wLink" placeholder="61999999999" inputmode="numeric" autocomplete="tel">
+      <button class="primary" id="btnLink">Confirmar</button>
+      <p class="err" id="errLink"></p>
+      <button class="ghost" id="btnOutraConta">Entrar com outra conta Google</button>`;
+    document.getElementById('btnOutraConta').onclick = async () => { await supa.auth.signOut(); telaEntrar(); };
+    const campo = document.getElementById('wLink');
+    campo.focus();
+    campo.addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('btnLink').click(); });
+    document.getElementById('btnLink').onclick = async () => {
+      const userId = norm(document.getElementById('wLink').value);
+      const errEl = document.getElementById('errLink');
+      errEl.textContent = '';
+      if (!userId) { errEl.textContent = 'Confere o número.'; return; }
+      const { data: status } = await supa.rpc('check_link_status', { p_user_id: userId });
+      if (status === 'not_found') {
+        errEl.textContent = 'Não achei esse número cadastrado. Confere se você já fez o cadastro pelo link do Assessor, com esse mesmo número.';
+        return;
+      }
+      if (status === 'already_linked') {
+        errEl.textContent = 'Esse número já está ligado a outra conta Google. Se for a sua, entra com ela em vez dessa.';
+        return;
+      }
+      const { data, error } = await supa.from('users').update({ auth_uid: session.user.id }).eq('user_id', userId).is('auth_uid', null).select();
+      if (error || !data || !data.length) {
+        errEl.textContent = 'Não consegui ligar sua conta agora. Tenta de novo em instantes.';
+        return;
+      }
+      abrirApp(userId);
+    };
+  }
+  async function abrirApp(userId){
+    window.__uid = userId;
+    if (window.syncPuxarDoServidor) await window.syncPuxarDoServidor();
+    gate.classList.add('hidden');
+    if (window.__pararGate) window.__pararGate();   // canvas escondido não anima
+  }
+
+  async function boot(){
+    const { data: { session } } = await supa.auth.getSession();
+    if (!session) { telaEntrar(); return; }
+    const { data: row } = await supa.from('users').select('user_id').eq('auth_uid', session.user.id).maybeSingle();
+    if (row) { abrirApp(row.user_id); return; }
+    telaVincular(session);
+  }
+  supa.auth.onAuthStateChange((_ev, _session) => boot());
+  boot();
+</script>
+<div class="finale-bloom" id="bloom"></div>
+<div class="finale-ring" id="fring2"></div>
+<div class="vignette"></div>
+<div class="grain"></div>
+<div class="cursor-ring" id="cring"></div>
+<div class="cursor-dot" id="cdot"></div>
+
+<!-- ===== interações portadas do app cupertino (Store · Bus · Modal · toast · Ajustes) ===== -->
+<script>
+'use strict';
+const esc = s => String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const uid = () => Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+const brl = v => 'R$ '+Math.round(v).toLocaleString('pt-BR');
+
+const Store = { P:'ma1:',
+  get(k,d){ try{ const r=localStorage.getItem(this.P+k); return r===null?d:JSON.parse(r);}catch(e){return d;} },
+  set(k,v){ try{ localStorage.setItem(this.P+k,JSON.stringify(v)); }catch(e){} return v; },
+  keys(){ const o=[]; for(let i=0;i<localStorage.length;i++){ const k=localStorage.key(i); if(k&&k.indexOf(this.P)===0) o.push(k.slice(this.P.length)); } return o; },
+  /* Preserva modo_pessoal mesmo num "Apagar tudo": uma vez em modo
+     pessoal, a Marina não pode voltar nunca — nem por essa porta. */
+  wipe(){ const mp=this.get('modo_pessoal'); this.keys().forEach(k=>localStorage.removeItem(this.P+k)); if(mp) this.set('modo_pessoal',mp); } };
+
+const Bus = {
+  emit(type,payload,value){ const evs=Store.get('events',[]); evs.push({id:uid(),type,payload:payload||{},value:value==null?null:value,occurred_at:new Date().toISOString()}); Store.set('events',evs); },
+  all(){ return Store.get('events',[]); },
+  todayCount(){ const t=new Date().toISOString().slice(0,10); return this.all().filter(e=>String(e.occurred_at).slice(0,10)===t).length; } };
+
+/* Fase 2 (2026-08): quando logado com Google (window.Supa + window.__uid
+   setados pelo gate de login), tx/events tambem sobem pro Supabase -- ficam
+   disponiveis em qualquer aparelho, nao so nesse. Sem login, continua 100%
+   local, nada muda pra quem nao conectou. */
+const _origStoreSet = Store.set.bind(Store);
+Store.set = function(k, v){
+  const r = _origStoreSet(k, v);
+  if (window.Supa && window.__uid && k === 'tx') syncTxUpstream(v);
+  return r;
+};
+async function syncTxUpstream(tx){
+  const last = tx[tx.length - 1];
+  if (!last || last._synced) return;
+  const { error } = await window.Supa.from('finance_transactions').insert({
+    user_id: window.__uid, type: last.tipo === 'receita' ? 'income' : 'expense',
+    occurred_at: last.data, value: last.valor, description: last.desc, category: last.cat
+  });
+  if (!error) { last._synced = true; _origStoreSet('tx', tx); }
+}
+const _origBusEmit = Bus.emit.bind(Bus);
+Bus.emit = function(type, payload, value){
+  _origBusEmit(type, payload, value);
+  if (window.Supa && window.__uid) {
+    window.Supa.from('events').insert({ user_id: window.__uid, type, payload: payload || {}, value: value == null ? null : value }).then(()=>{});
+  }
+};
+window.syncPuxarDoServidor = async function(){
+  if (!window.Supa || !window.__uid) return;
+  try {
+    const { data: evs } = await window.Supa.from('events').select('*').eq('user_id', window.__uid).order('occurred_at', { ascending: true }).limit(500);
+    if (evs && evs.length) {
+      const local = Store.get('events', []);
+      const known = new Set(local.map(e => e.remoteId));
+      evs.forEach(e => { if (!known.has(e.id)) local.push({ id: uid(), remoteId: e.id, type: e.type, payload: e.payload || {}, value: e.value, occurred_at: e.occurred_at }); });
+      _origStoreSet('events', local);
+    }
+    const { data: txs } = await window.Supa.from('finance_transactions').select('*').eq('user_id', window.__uid).order('occurred_at', { ascending: true }).limit(500);
+    if (txs && txs.length) {
+      const local = Store.get('tx', []);
+      const known = new Set(local.map(t => t.remoteId));
+      txs.forEach(t => { if (!known.has(t.id)) local.push({ id: uid(), remoteId: t.id, _synced: true, data: t.occurred_at, desc: t.description, cat: t.category, valor: +t.value, tipo: t.type === 'income' ? 'receita' : 'despesa' }); });
+      _origStoreSet('tx', local);
+    }
+  } catch (e) { /* offline ou sem permissao -- segue local, sem quebrar o app */ }
+};
+
+const Profile = { get(){ return Store.get('profile',{nome:'Miguel',whats:''}); }, set(p){ return Store.set('profile',p); } };
+
+let _tt=null;
+function toast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('on'); clearTimeout(_tt); _tt=setTimeout(()=>t.classList.remove('on'),2600); }
+const Modal = {
+  open(html){ document.getElementById('modal').innerHTML=html; document.getElementById('modalback').classList.add('on'); },
+  close(){ document.getElementById('modalback').classList.remove('on'); } };
+
+/* ações reais por módulo — cada uma salva no Store e emite no Bus (a interligação) */
+const ACTIONS = {
+  financeiro:{ label:'+ Registrar gasto', title:'Registrar gasto', sub:'Na versão conectada, isso é só mandar "almoço 30" no WhatsApp.', cta:'Registrar',
+    fields:[{id:'valor',t:'number',lbl:'Valor (R$)',ph:'0'},{id:'cat',t:'select',lbl:'Categoria',opts:['Mercado','Moradia','Transporte','Lazer','Outros']}],
+    /* Grava os TRÊS: linha em tx, saldo e evento. Antes mexia só no
+       saldo e emitia o evento — a despesa sumia da lista de
+       transações e o Financeiro ficava divergente de si mesmo
+       conforme o caminho usado. O simulador de WhatsApp
+       (screens-wa.js) já fazia certo; aqui segue a mesma forma. */
+    save(v){
+      const val=+v.valor||0; if(!val) return {};
+      const tx=Store.get('tx',[]);
+      tx.push({ id:uid(), data:new Date().toISOString().slice(0,10), desc:v.cat, cat:v.cat, valor:val,
+                tipo:'despesa', conta:(Store.get('fin_contas',[])[0]||{}).nome||'Inter', natureza:'À vista', status:'Concluída' });
+      Store.set('tx',tx);
+      const s=Store.get('saldo',4820)-val; Store.set('saldo',s);
+      Bus.emit('expense',{cat:v.cat},val);
+      return {kpi:brl(s)};
+    } },
+  rotina:{ label:'✓ Marcar hábito', title:'Hábito de hoje', cta:'Marcar',
+    fields:[{id:'hab',t:'select',lbl:'Hábito',opts:['Ritual da manhã','Treino','Leitura','Meditar','Deep work']}],
+    save(v){ Bus.emit('task_done',{habito:v.hab},1); return {}; } },
+  saude:{ label:'🏋️ Registrar treino', title:'Treino de hoje', cta:'Salvar',
+    fields:[{id:'tipo',t:'select',lbl:'Tipo',opts:['Força','Cardio','Mobilidade','Esporte']},{id:'dur',t:'slider',lbl:'Duração',min:15,max:120,step:5,val:60,fmt:'min'}],
+    save(v){ Bus.emit('workout',{tipo:v.tipo},+v.dur); return {}; } },
+  anotacoes:{ label:'😊 Registrar humor', title:'Como você está agora?', cta:'Salvar',
+    fields:[{id:'humor',t:'slider',lbl:'Humor',min:1,max:10,step:1,val:8,fmt:'/10'}],
+    save(v){ Store.set('lastMood',+v.humor); Bus.emit('mood',{},+v.humor); return {kpi:(+v.humor).toFixed(1)}; } },
+  foco:{ label:'🎯 Registrar deep work', title:'Sessão de foco', cta:'Salvar',
+    fields:[{id:'min',t:'slider',lbl:'Minutos',min:15,max:240,step:15,val:90,fmt:'min'}],
+    save(v){ Bus.emit('deep_work',{},+v.min); return {}; } },
+  projetos:{ label:'✓ Avançar meta', title:'Avanço de meta', cta:'Registrar',
+    fields:[{id:'meta',t:'select',lbl:'Trilho',opts:['Carreira','Faculdade','Empresa','Saúde','Finanças','Pessoal']}],
+    save(v){ Bus.emit('goal',{trilho:v.meta},1); return {}; } },
+  timeline:{ label:'📍 Novo marco', title:'Registrar marco', sub:'O porquê fica guardado — memória com contexto.', cta:'Salvar',
+    fields:[{id:'txt',t:'text',lbl:'O que aconteceu?',ph:'ex.: assinei o 1º cliente'},{id:'porque',t:'text',lbl:'Por que importa?',ph:'o porquê'}],
+    save(v){ Bus.emit('milestone',{txt:v.txt,porque:v.porque},1); return {}; } },
+  espiritual:{ label:'🧘 Registrar prática', title:'Prática de hoje', cta:'Salvar',
+    fields:[{id:'dur',t:'slider',lbl:'Minutos',min:5,max:60,step:5,val:15,fmt:'min'}],
+    save(v){ Bus.emit('spiritual',{},+v.dur); return {}; } },
+  cerebro:{ label:'▸ ver a conta do índice', title:'Você S.A. — 7.4', sub:'Média das 6 áreas. Propósito puxa pra cima (8.8); Foco segura embaixo (6.0). Registre nos outros módulos e o índice se move.', cta:'Entendi', fields:[], save(){ return {}; } },
+};
+
+function fieldHTML(f){
+  if(f.t==='select') return `<label class="f">${f.lbl}</label><select id="mf_${f.id}">${f.opts.map(o=>`<option>${o}</option>`).join('')}</select>`;
+  if(f.t==='slider') return `<label class="f">${f.lbl}: <b id="mv_${f.id}">${f.val}${f.fmt||''}</b></label><input type="range" id="mf_${f.id}" min="${f.min}" max="${f.max}" step="${f.step}" value="${f.val}" data-fmt="${f.fmt||''}">`;
+  if(f.t==='text') return `<label class="f">${f.lbl}</label><input type="text" id="mf_${f.id}" placeholder="${f.ph||''}">`;
+  return `<label class="f">${f.lbl}</label><input type="${f.t}" id="mf_${f.id}" placeholder="${f.ph||''}">`;
+}
+window.openAction = function(id){
+  const a=ACTIONS[id]; if(!a) return;
+  Modal.open(`<h3>${a.title}</h3>${a.sub?`<p class="msub">${a.sub}</p>`:''}${a.fields.map(fieldHTML).join('')}
+    <div class="mactions"><button class="btn2 clickable" id="m_cancel">Cancelar</button><button class="btn2 primary clickable" id="m_save">${a.cta||'Salvar'}</button></div>`);
+  document.querySelectorAll('.modalsheet input[type=range]').forEach(r=> r.oninput=()=>{ const el=document.getElementById('mv_'+r.id.slice(3)); if(el) el.textContent=r.value+(r.dataset.fmt||''); });
+  document.getElementById('m_cancel').onclick=Modal.close;
+  document.getElementById('m_save').onclick=()=>{
+    const vals={}; a.fields.forEach(f=>{ const el=document.getElementById('mf_'+f.id); vals[f.id]=el?el.value:''; });
+    const res=(a.save&&a.save(vals))||{}; Modal.close();
+    if(res.kpi && window.__openMod===id){ const k=document.getElementById('dkpi'); if(k) k.textContent=res.kpi; }
+    window.__bumpLive&&window.__bumpLive();
+    if(a.fields.length) toast('Registrado ✔ — o Cérebro já cruzou isso.');
+  };
+};
+window.__bumpLive = function(){ const el=document.getElementById('liveev'); if(el) el.textContent=142+Bus.todayCount(); const sb=document.getElementById('lb-saldo'); if(sb) sb.textContent=brl(Store.get('saldo',4820)); };
+
+const App = {
+  exportAll(){ const dump={exportadoEm:new Date().toISOString(),app:'Assessor.IA',dados:{}}; Store.keys().forEach(k=>dump.dados[k]=Store.get(k));
+    const b=new Blob([JSON.stringify(dump,null,2)],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(b); a.download='meu-assessor-dados.json'; a.click(); toast('Dados exportados.'); },
+  settings(){ const p=Profile.get();
+    const statusConta = window.__uid ? 'Conectado — seus lançamentos e eventos ficam sincronizados na sua conta.' : 'Sem login: tudo fica só neste aparelho (local-first).';
+    const dev = new URLSearchParams(location.search).get('dev')==='1';
+    Modal.open(`<h3>Ajustes</h3><p class="msub">Seu Assessor, do seu jeito. ${esc(statusConta)}</p>
+      <label class="f">Seu nome</label><input type="text" id="cf_nome" value="${esc(p.nome)}">
+      <label class="f">WhatsApp do Assessor (com DDI)</label><input type="text" id="cf_whats" value="${esc(p.whats)}" placeholder="5561999...">
+      <div class="mactions" style="flex-wrap:wrap">${(window.ModoPessoal && !Store.get('modo_pessoal')) ? '<button class="btn2 clickable" id="cf_realmode" style="border-color:var(--gold);color:var(--gold)">Começar com meus dados reais</button>' : ''}<button class="btn2 clickable" id="cf_boasvindas">Rever as boas-vindas</button>${dev ? '<button class="btn2 clickable" id="cf_n8n">Conectar ao n8n</button>' : ''}<button class="btn2 clickable" id="cf_export">Exportar dados</button>${window.__uid ? '<button class="btn2 clickable" id="cf_google">Desconectar Google Agenda</button><button class="btn2 clickable" id="cf_sair">Sair da conta</button>' : ''}<button class="btn2 clickable" id="cf_wipe">Apagar tudo</button><button class="btn2 primary clickable" id="cf_save">Salvar</button></div>`);
+    /* Só aparecem com login: sem conta não há o que desconectar nem de onde sair. */
+    const bGoogle = document.getElementById('cf_google');
+    if (bGoogle) bGoogle.onclick = async () => {
+      const { data: temGoogle } = await window.Supa.rpc('my_google_status');
+      if (!temGoogle) { toast('Você não tem o Google conectado.'); return; }
+      Modal.open(`<h3>Desconectar o Google?</h3><p class="msub">O Assessor para de criar eventos na sua Agenda e tarefas no seu Google Tasks. Seus lançamentos e histórico não são apagados, e dá pra conectar de novo quando quiser.</p><p class="msub">Pra tirar a permissão também do lado do Google, remova o app em <b>myaccount.google.com → Segurança → Apps conectados</b>.</p><div class="mactions"><button class="btn2 clickable" id="g_no">Voltar</button><button class="btn2 primary clickable" id="g_sim">Desconectar</button></div>`);
+      document.getElementById('g_no').onclick = App.settings;
+      document.getElementById('g_sim').onclick = async () => {
+        const { error } = await window.Supa.rpc('disconnect_my_google');
+        Modal.close();
+        toast(error ? 'Não consegui desconectar agora.' : 'Google desconectado.');
+      };
+    };
+    const bSair = document.getElementById('cf_sair');
+    if (bSair) bSair.onclick = () => {
+      Modal.open(`<h3>Sair da conta?</h3><p class="msub">Você volta pra tela de entrar. Seus dados sincronizados continuam salvos na sua conta — é só entrar de novo com o mesmo Google.</p><div class="mactions"><button class="btn2 clickable" id="s_no">Voltar</button><button class="btn2 primary clickable" id="s_sim">Sair</button></div>`);
+      document.getElementById('s_no').onclick = App.settings;
+      document.getElementById('s_sim').onclick = async () => {
+        await window.Supa.auth.signOut();
+        window.__uid = null;
+        location.reload();   // recarrega limpo: o gate volta a aparecer
+      };
+    };
+    document.getElementById('cf_boasvindas').onclick = () => { Modal.close(); openMini(null,'bemvindo'); };
+    /* só aparece com ?dev=1 na URL -- é ferramenta minha (Miguel), nao do usuario final */
+    const bN8N=document.getElementById('cf_n8n');
+    if(bN8N){ if(window.Conectar) bN8N.onclick=()=>window.Conectar.abrir('financeiro'); else bN8N.remove(); }
+    document.getElementById('cf_save').onclick=()=>{ p.nome=document.getElementById('cf_nome').value.trim()||'Você'; p.whats=document.getElementById('cf_whats').value.replace(/\D/g,''); Profile.set(p); Modal.close(); toast('Ajustes salvos'); };
+    document.getElementById('cf_export').onclick=App.exportAll;
+    document.getElementById('cf_wipe').onclick=()=>{
+      const avisoSync = window.__uid ? '<p class="msub">Você está conectado: financeiro e eventos voltam sozinhos da sua conta no próximo login. Rotina, saúde, metas e notas são apagados de vez, sem volta.</p>' : '';
+      Modal.open(`<h3>Apagar tudo?</h3><p class="msub">Remove TODOS os dados deste aparelho, definitivamente.</p>${avisoSync}<div class="mactions"><button class="btn2 clickable" id="w_no">Voltar</button><button class="btn2 primary clickable" id="w_yes">Apagar</button></div>`);
+      document.getElementById('w_no').onclick=App.settings; document.getElementById('w_yes').onclick=()=>{ Store.wipe(); Modal.close(); toast('Tudo apagado.'); window.__bumpLive(); }; };
+    /* Ação de mão única: apaga a Marina, tranca pra sempre (não volta
+       nem com "Apagar tudo") e semeia o roadmap de carreira real. O
+       botão já não aparece depois de ativado — rodar de novo apagaria
+       qualquer progresso real registrado desde então. */
+    const bReal=document.getElementById('cf_realmode');
+    if(bReal) bReal.onclick=()=>{
+      Modal.open(`<h3>Começar com seus dados reais?</h3>
+        <p class="msub">Isto vai:</p>
+        <ul style="margin:10px 0 10px 20px;font-size:13px;line-height:1.6;color:var(--ink-soft)">
+          <li>Apagar todos os dados de demonstração (persona Marina)</li>
+          <li>Trancar a demonstração pra sempre — não volta nem com "Apagar tudo"</li>
+          <li>Carregar seu roadmap de carreira real (${window.ModoPessoal.totalMetas} metas, 4 gates, trilhos)</li>
+          <li>Deixar Rotina, Saúde, Financeiro, Anotações, Foco e Espiritual vazios — você preenche aos poucos</li>
+        </ul>
+        <p class="msub" style="color:var(--gold)">Não pode ser desfeito.</p>
+        <div class="mactions"><button class="btn2 clickable" id="rm_no">Voltar</button><button class="btn2 primary clickable" id="rm_yes">Confirmar</button></div>`);
+      document.getElementById('rm_no').onclick=App.settings;
+      document.getElementById('rm_yes').onclick=()=>{ window.ModoPessoal.iniciar(); Modal.close(); toast('Modo pessoal ativado.'); location.reload(); };
+    };
+  }
+};
+window.openSettings = () => App.settings();
+window.startWhatsApp = () => { const w=Profile.get().whats; if(w) window.open('https://wa.me/'+w+'?text='+encodeURIComponent('Oi, Assessor!'),'_blank'); else { toast('Configure o número em Ajustes (⚙) para abrir o WhatsApp.'); App.settings(); } };
+document.getElementById('modalback').addEventListener('click', e=>{ if(e.target.id==='modalback') Modal.close(); });
+document.getElementById('gearBtn').addEventListener('click', () => App.settings());
+addEventListener('keydown', e=>{ if(e.key==='Escape' && document.getElementById('modalback').classList.contains('on')) Modal.close(); });
+window.Store=Store; window.Bus=Bus; window.ACTIONS=ACTIONS; window.brl=brl; window.Profile=Profile;
+window.Modal=Modal; window.toast=toast; window.uid=uid;
+window.__bumpLive();
+</script>
+
+<script src="modo-pessoal.js"></script>
+<script src="persona.js"></script>
+<script src="insights.js"></script>
+<script src="publicar.js"></script>
+<script src="conectar.js"></script>
+<script src="roadmap.js"></script>
+<script src="screens.js"></script>
+<script src="screens-fin.js"></script>
+<script src="screens-metas.js"></script>
+<script src="screens-notas.js"></script>
+<script src="screens-saude.js"></script>
+<script src="screens-foco.js"></script>
+<script src="screens-timeline.js"></script>
+<script src="graph.js"></script>
+<script src="screens-cerebro.js"></script>
+<script src="screens-espiritual.js"></script>
+<script src="screens-wa.js"></script>
+
+<script type="importmap">
+{ "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js", "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/" } }
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+/* o GLSL do núcleo mora em nucleo.js — fonte única, compartilhada
+   com o mini-app. Antes era uma cópia inline aqui embaixo. */
+import { NucleoSereno } from './nucleo-sereno.js';
+
+history.scrollRestoration = 'manual'; scrollTo(0, 0);
+const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* ============ DADOS DOS 9 MÓDULOS ============ */
+const MODULES = [
+  { id:'rotina', n:'Rotina', shape:1, c:'#9A8A4A', kpi:'21', ks:'d', kl:'sequência', ctl:'HÁBITOS · 14 DIAS',
+    spark:[3,4,3,5,4,6,5,7,6,7,8,7,9,8], ins:'Nos dias com ritual de manhã, seu foco rende <strong>+38min</strong>.', conta:'Rotina × Foco · 30 dias' },
+  { id:'saude', n:'Saúde & Fitness', shape:3, c:'#789267', kpi:'8', ks:'/10', kl:'treinos/mês', ctl:'VOLUME · 12 SEMANAS',
+    spark:[4,5,5,6,5,7,6,8,7,8,9,8], ins:'Treino puxa o humor: <strong>+23%</strong> nos dias ativos.', conta:'Saúde × Anotações · 90 dias' },
+  { id:'financeiro', n:'Financeiro', shape:4, c:'#B2803E', kpi:'R$ 4.820', ks:'', kl:'saldo do mês', ctl:'SALDO · 30 DIAS',
+    spark:[31,32,30,33,34,35,37,36,39,41,44,48], ins:'Impulso cai <strong>−18%</strong> nas semanas com diário em dia.', conta:'Financeiro × Anotações · 12 semanas' },
+  { id:'anotacoes', n:'Anotações', shape:0, c:'#C07868', kpi:'8.2', ks:'', kl:'humor médio', ctl:'HUMOR · 21 DIAS',
+    spark:[6,7,6,8,7,7,8,9,8,8,9,8], ins:'Gratidão 3×/semana ↔ humor mais <strong>estável</strong>.', conta:'Anotações · 12 semanas' },
+  { id:'foco', n:'Foco Digital', shape:2, c:'#B3654F', kpi:'3h40', ks:'', kl:'foco hoje', ctl:'TELA × FOCO · 14 DIAS',
+    spark:[5,4,5,3,4,3,4,2,3,2,3,2], ins:'Tela cai <strong>−26min</strong> nos dias de deep work.', conta:'Foco × Projetos · 30 dias' },
+  { id:'projetos', n:'Projetos & Sonhos', shape:1, c:'#8087B5', kpi:'4', ks:'/6', kl:'trilhos ativos', ctl:'AVANÇO · 90 DIAS',
+    spark:[1,2,2,3,3,4,4,5,5,6,6,7], ins:'Metas quebradas em blocos semanais avançam <strong>2×</strong>.', conta:'Projetos · 90 dias' },
+  { id:'timeline', n:'Linha do Tempo', shape:0, c:'#6D8FA7', kpi:'142', ks:'', kl:'marcos', ctl:'MARCOS · ANO',
+    spark:[2,3,4,4,5,6,7,7,8,9,10,11], ins:'Cada marco guarda <strong>o porquê</strong> — memória com contexto.', conta:'Linha do Tempo · acumulado' },
+  { id:'cerebro', n:'Cérebro · BI', shape:3, c:'#649488', kpi:'7.4', ks:'', kl:'você s.a.', ctl:'ÍNDICE · 6 MESES',
+    spark:[6,6,7,6,7,7,7,8,7,8,8,7], ins:'Propósito é seu eixo mais alto: <strong>8.8</strong>.', conta:'Radar 6 áreas · mês' },
+  { id:'espiritual', n:'Espiritual', shape:4, c:'#9C7FB3', kpi:'12', ks:'d', kl:'prática', ctl:'PRÁTICA · MÊS',
+    spark:[2,3,3,4,5,5,6,7,8,9,10,12], ins:'Semanas com intenção definida: foco <strong>+19%</strong>.', conta:'Espiritual × Foco · mês' },
+];
+window.MODULES = MODULES;
+/* expostos para o grafo (graph.js) usar o dado vivo em vez do valor de design */
+window.liveKPI = m => liveKPI(m);
+window.liveSpark = m => liveSpark(m);
+
+/* ============ NÚCLEO SERENO (motor em nucleo-sereno.js) ============
+   A esfera fica perfeita — a calma da referência vem daí. Quem carrega
+   o dado é o campo de anéis em volta: um anel por semana, com altura
+   igual ao que você registrou. Constante e variável separadas. */
+const canvas = document.getElementById('scene');
+const mouse = { x:0, y:0, tx:0, ty:0 };
+let pulse = 0, spinKick = 0;
+let nucleo = null;
+
+/* ---------- os anéis: 16 semanas de vida ---------- */
+const EVENTO_MOD = { task_done:0, workout:1, expense:2, income:2, mood:3, deep_work:4, goal:5, milestone:6, spiritual:8 };
+const SEMANAS = 16;
+
+function semanasDoStore(){
+  const S = window.Store;
+  const bal = new Array(SEMANAS).fill(0);
+  const hoje = new Date(); hoje.setHours(12,0,0,0);
+  const semanaDe = iso => {
+    if(typeof iso!=='string' || iso.length<10) return -1;
+    const d = new Date(iso.slice(0,10)+'T12:00:00');
+    if(isNaN(d)) return -1;
+    const s = Math.floor((hoje - d) / 6048e5);          // 7 dias em ms
+    return (s>=0 && s<SEMANAS) ? s : -1;
+  };
+  const põe = iso => { const s = semanaDe(iso); if(s>=0) bal[s]++; };
+  try{
+    (S.get('r_habitos')||[]).forEach(h=>Object.keys(h.hist||{}).forEach(põe));
+    (S.get('r_tasks')||[]).forEach(t=>{ if(t.feita) põe(t.dia); });
+    (S.get('sa_treinos')||[]).forEach(t=>põe(t.dia));
+    (S.get('tx')||[]).forEach(t=>põe(t.data));
+    (S.get('nt_notas')||[]).forEach(n=>põe(n.data));
+    (S.get('mt_metas')||[]).forEach(m=>{
+      (m.movs||[]).forEach(v=>põe(v.data||v.d));
+      (m.tarefas||[]).forEach(t=>{ if(t.ok&&t.data) põe(t.data); });
+    });
+    (S.get('tl_marcos')||[]).forEach(m=>põe(m.data));
+    (S.get('es_praticas')||[]).forEach(p=>Object.keys(p.hist||{}).forEach(põe));
+    (S.get('es_reflexoes')||[]).forEach(r=>põe(r.data));
+    /* as ações rápidas só emitem no Bus, não gravam na chave do
+       módulo — sem contar o Bus, registrar não movia nenhum anel.
+       Exceção: expense/income, que o `tx` já contou (contaria dobrado). */
+    for(const e of (window.Bus.all()||[])){
+      const i = EVENTO_MOD[e.type];
+      if(i==null || e.type==='expense' || e.type==='income') continue;
+      põe(String(e.occurred_at).slice(0,10));
+    }
+  }catch(e){}
+  return bal;
+}
+
+let _semanas = new Array(SEMANAS).fill(0);
+function atualizarAneis(){
+  _semanas = semanasDoStore();
+  if(nucleo) nucleo.definirSemanas(_semanas);
+  return _semanas;
+}
+window.__semanas = () => _semanas;
+
+function init3d(){
+  nucleo = new NucleoSereno({ THREE, RoomEnvironment, canvas, reduzido: REDUCED });
+  window.__nucleo = nucleo;
+  atualizarAneis();
+  nucleo.definirTema(root.getAttribute('data-theme')==='dark');
+  ligarToque();
+  ligarEventos();
+}
+
+/* ---------- o dedo ----------
+   Pointer events: o mesmo código serve dedo e mouse. A v2 só ouvia
+   `mousemove`, então no celular o núcleo era um vídeo. */
+function ligarToque(){
+  let apertando=false, ax=0, ay=0, andou=0;
+  const ehUI = el => !!(el && el.closest && el.closest('a,button,input,select,textarea,.clickable,.modscreen,.mamodal,#modalback'));
+  addEventListener('pointermove', e => {
+    mouse.tx=(e.clientX/innerWidth-0.5)*2; mouse.ty=(e.clientY/innerHeight-0.5)*2;
+    if(apertando){
+      andou += Math.abs(e.clientX-ax)+Math.abs(e.clientY-ay);
+      nucleo && nucleo.empurrar(e.clientX-ax, e.clientY-ay);
+      ax=e.clientX; ay=e.clientY;
+      nucleo && nucleo.encostar(e.clientX,e.clientY,true);
+    } else if(nucleo && e.pointerType!=='touch'){
+      nucleo.encostar(e.clientX,e.clientY,false);
+    }
+  }, {passive:true});
+  addEventListener('pointerdown', e => {
+    if(ehUI(e.target)) return;
+    apertando=true; ax=e.clientX; ay=e.clientY; andou=0;
+    nucleo && nucleo.encostar(e.clientX,e.clientY,true);
+  }, {passive:true});
+  addEventListener('pointerup', e => {
+    if(!apertando) return;
+    apertando=false;
+    nucleo && nucleo.soltar();
+    /* toque curto na esfera = cutucada: pulsa e solta uma onda */
+    if(andou<8 && nucleo && nucleo.encostar(e.clientX,e.clientY,false)){
+      nucleo.pulsar(null, 0.55); pulse=Math.min(pulse+0.12,0.4);
+    }
+  }, {passive:true});
+  addEventListener('pointercancel', ()=>{ apertando=false; nucleo&&nucleo.soltar(); }, {passive:true});
+}
+
+/* ---------- registrou → onda ---------- */
+function ligarEventos(){
+  const original = window.Bus.emit.bind(window.Bus);
+  window.Bus.emit = (type, payload, value) => {
+    const r = original(type, payload, value);
+    try{
+      const i = EVENTO_MOD[type];
+      nucleo && nucleo.pulsar(i!=null && MODULES[i] ? MODULES[i].c : null, 1);
+      pulse = Math.min(pulse+0.25, 0.6);
+      atualizarAneis();
+    }catch(e){}
+    return r;
+  };
+}
+
+/* ============ FLY-THROUGH ============ */
+const scenes = [...document.querySelectorAll('.scene')];
+const railDots = [...document.querySelectorAll('.rail .dot')];
+const N = scenes.length;
+let smoothT = 0, lastVel = 0;
+const clamp = (v,a,b) => Math.min(b, Math.max(a,v));
+
+const shapeNames = ['ESFERA','CUBO','ESTRELA','GEMA','DISCO'];
+const shapeForScene = [0, 1];      // núcleo(esfera) → índice(cubo, revela a estrutura)
+let shapeOverride = null, moduleShape = null;   // moduleShape trava a forma qdo a gaveta abre
+let burst = 0;   // flash de wireframe na transição p/ tela cheia (ref. vídeo 12–17, rápido)
+
+/* maxScroll cacheado (ler scrollHeight todo frame força reflow → lag) */
+let maxScroll = Math.max(document.body.scrollHeight - innerHeight, 1);
+function computeMax(){ maxScroll = Math.max(document.body.scrollHeight - innerHeight, 1); }
+addEventListener('resize', computeMax);
+/* overlay opaco cobrindo o canvas → não faz sentido renderizar o 3D atrás */
+const _msE=document.getElementById('modscreen'), _maE=document.getElementById('mamodal'), _mbE=document.getElementById('modalback');
+function overlayOpen(){ return _msE.classList.contains('open') || _maE.classList.contains('open') || _mbE.classList.contains('on'); }
+function targetT(){ return (scrollY/maxScroll)*(N-1); }
+
+function layout(t){
+  scenes.forEach((el,i) => {
+    const local = t - i; let sc,op,bl,z;
+    if (local < 0){ const k=clamp(local+1,0,1); sc=0.72+0.28*k; op=k*k; bl=(1-k)*8; z=-280*(1-k); }
+    else { const k=clamp(local,0,1); sc=1+k*1.7; op=1-k*1.6; bl=k*9; z=k*330; }
+    const opc = clamp(op,0,1);
+    el.style.opacity = opc.toFixed(3);
+    /* blur removido: era o gargalo da transição 3→4 (filtro caro em cena escalada com SVG).
+       a profundidade continua vindo de perspective + scale + translateZ. */
+    el.style.transform = `translateZ(${z.toFixed(1)}px) scale(${sc.toFixed(4)})`;
+    el.style.visibility = opc<0.02 ? 'hidden' : 'visible';
+    el.classList.toggle('active', Math.abs(local)<0.5);
+  });
+  const idx = clamp(Math.round(t),0,N-1);
+  railDots.forEach((d,i) => d.classList.toggle('on', i===idx));
+  setSection(idx);
+  // HUD que some onde não cabe: live-bar só no herói; rail some no índice
+  document.getElementById('livebar').style.opacity = (t < 0.6) ? '1' : '0';
+  document.getElementById('rail').style.opacity = (idx===1) ? '0' : '1';
+  autoTheme(t);
+  morphBlob(t);
+}
+
+const secNames = ['◦ 01 — NÚCLEO','◦ 02 — ÍNDICE'];
+let curIdx = -1;
+function setSection(idx){
+  if (idx===curIdx) return; curIdx=idx;
+  document.getElementById('secLabel').textContent = secNames[idx];
+  const b=document.getElementById('brand'); b.classList.remove('glitch'); void b.offsetWidth; b.classList.add('glitch');
+}
+
+/* A escolha de tema agora é lembrada (ma1:tema). Antes vivia só nesta
+   variável e sumia ao recarregar — e o mini-app não tinha como herdar. */
+let userTheme = (()=>{ const v=Store.get('tema',null); return v==null?null:!!v; })();
+const root=document.documentElement, themeBtn=document.getElementById('themeBtn');
+function applyTheme(dark){ const is=root.getAttribute('data-theme')==='dark'; if(dark===is)return;
+  if(dark){root.setAttribute('data-theme','dark');themeBtn.textContent='CLARO';}else{root.removeAttribute('data-theme');themeBtn.textContent='ESCURO';} syncColors(); }
+function autoTheme(t){ if(userTheme!==null)return; applyTheme(t>2.5); }
+themeBtn.addEventListener('click', () => { userTheme = root.getAttribute('data-theme')!=='dark'; Store.set('tema', userTheme?1:0); applyTheme(userTheme); });
+if(userTheme!==null) applyTheme(userTheme);
+function syncColors(){ if(nucleo) nucleo.definirTema(root.getAttribute('data-theme')==='dark'); }
+
+/* A dissolução do núcleo em fio de arame e pontos conforme o scroll
+   é da v2 e VOLTA aqui — junto com a morfose de forma. Foi isso que
+   a tentativa da esfera perfeita jogou fora, e era justamente o que
+   dava vida ao objeto. */
+function morphBlob(t){
+  if(!nucleo) return;
+  const w = clamp((t-1.55)*2.0,0,1)*(1-clamp((t-2.5)*2.2,0,1));    // pontos na cena Você S.A.
+  const wireScroll = clamp(1-Math.abs(t-1)*1.7,0,1);               // fio no Índice
+  const wire = Math.max(wireScroll, burst);                        // + flash na transição
+  const solid = clamp(1-Math.max(wire,w*1.15),0,1);
+  nucleo.definirCamadas(solid, wire, w);
+}
+
+/* ============ LOOP ============ */
+const clk = new THREE.Clock();
+let quadros=0, marcaFPS=performance.now(), fpsReal=0;
+function loop(){
+  requestAnimationFrame(loop);
+  if(!nucleo) return;
+  const t = clk.getElapsedTime();
+
+  /* O 3D NÃO morre mais ao abrir um módulo (a v2 fazia `return` aqui
+     e o núcleo existia em 2 telas de ~20). Ele encolhe e vira orbe. */
+  if(!overlayOpen()){
+    const tt = targetT(); lastVel = tt - smoothT; smoothT += lastVel*0.07;
+    layout(smoothT);
+  }
+  pulse*=0.94; spinKick*=0.95; burst*=0.9;
+  mouse.x+=(mouse.tx-mouse.x)*0.05; mouse.y+=(mouse.ty-mouse.y)*0.05;
+
+  /* ---- o polimorfismo da v2, intacto ----
+     A amplitude do ruído cresce com a velocidade do scroll (o núcleo
+     "reage" a você rolando) e com o pulso de um registro. A forma
+     interpola entre as cenas: esfera → cubo. */
+  const velAmp = Math.min(Math.abs(lastVel)*0.9, 0.25);
+  const amp = REDUCED ? 0.16 : (0.24 + velAmp + pulse);
+  let sA,sB,sMix;
+  if(moduleShape!==null){ sA=sB=moduleShape; sMix=0; }
+  else if(shapeOverride!==null){ sA=sB=shapeOverride; sMix=0; }
+  else { const seg=clamp(smoothT,0,N-1),i0=Math.floor(seg),i1=Math.min(i0+1,N-1);
+         let f=seg-i0; f=f*f*(3-2*f); sA=shapeForScene[i0]; sB=shapeForScene[i1]; sMix=f; }
+  nucleo.definirForma(sA,sB,sMix);
+  nucleo.definirAmplitude(amp);
+
+  nucleo.quadro(t, {
+    alvoZ: 8.2 - smoothT*2.7,
+    parX: mouse.x + spinKick,
+    parY: mouse.y,
+  });
+
+  quadros++;
+  const ag=performance.now();
+  if(ag-marcaFPS>1000){ fpsReal=quadros*1000/(ag-marcaFPS); quadros=0; marcaFPS=ag; }
+}
+try{ init3d(); }catch(e){ console.error(e); canvas.style.background='radial-gradient(circle at 60% 45%,#EFE5DA,#E3CFBD)'; }
+loop();
+
+window.__sonda = () => {
+  if(!nucleo) return {ok:false, err:'núcleo não subiu'};
+  const s = nucleo.sonda();
+  s.ok=true; s.fps=Math.round(fpsReal);
+  s.semanasCru=_semanas; s.emModulo=overlayOpen();
+  return s;
+};
+
+/* ============ ÍNDICE + GAVETA ============ */
+const spark = (arr, w, h, stroke) => {
+  const min=Math.min(...arr), max=Math.max(...arr), p=3;
+  const x=i=>p+(i/(arr.length-1))*(w-p*2), y=v=>h-p-((v-min)/((max-min)||1))*(h-p*2);
+  let d=''; arr.forEach((v,i)=> d+=(i?' L':'M')+` ${x(i).toFixed(1)} ${y(v).toFixed(1)}`);
+  return `<path d="${d}" fill="none" stroke="${stroke}" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>`;
+};
+/* KPI ao vivo: puxa do Store (a vida real da pessoa); cai no valor de design se não houver dado */
+function liveKPI(m){
+  try{
+    const S=window.Store, hoje=new Date().toISOString().slice(0,10);
+    const addD=(iso,n)=>{const d=new Date(iso+'T12:00:00');d.setDate(d.getDate()+n);return d.toISOString().slice(0,10);};
+    const streak=(hist)=>{let n=0;for(let i=0;i<90;i++){if(hist&&hist[addD(hoje,-i)])n++;else if(i>0)break;}return n;};
+    if(m.id==='financeiro'){ const s=S.get('saldo'); if(s!=null) return {v:'R$ '+Math.round(s).toLocaleString('pt-BR'),ks:''}; }
+    if(m.id==='anotacoes'){ const mo=S.get('lastMood'); if(mo!=null) return {v:(+mo).toFixed(1),ks:'/10'}; }
+    if(m.id==='rotina'){ const hs=S.get('r_habitos'); if(hs) return {v:''+Math.max(0,...hs.map(h=>streak(h.hist))),ks:'d'}; }
+    if(m.id==='saude'){ const tr=S.get('sa_treinos'); if(tr) return {v:''+tr.filter(t=>t.dia>=addD(hoje,-6)).length,ks:'/sem'}; }
+    if(m.id==='espiritual'){ const ps=S.get('es_praticas'); if(ps) return {v:''+Math.max(0,...ps.map(p=>streak(p.hist))),ks:'d'}; }
+    if(m.id==='timeline'){ const ms=S.get('tl_marcos'); if(ms) return {v:''+ms.length,ks:''}; }
+    if(m.id==='projetos'){ const g=S.get('mt_metas'); if(g) return {v:''+g.length,ks:''}; }
+    if(m.id==='foco'){ const ap=S.get('fo_apps'); if(ap){const r=ap.filter(a=>a.cat==='social').reduce((s,a)=>s+a.min,0);return {v:r>=60?Math.floor(r/60)+'h'+(r%60?String(r%60).padStart(2,'0'):''):r+'min',ks:''};} }
+    if(m.id==='cerebro'){ const g=S.get('mt_metas'); if(g&&g.length){const md=g.reduce((a,x)=>a+(x.medir==='valor'?x.atual/x.alvo:x.tarefas.filter(t=>t.ok).length/Math.max(x.tarefas.length,1)),0)/g.length; return {v:(md*10*0.7+2).toFixed(1),ks:''};} }
+  }catch(e){}
+  return {v:m.kpi,ks:m.ks};
+}
+/* Sparkline ao vivo: mesma regra do liveKPI — série real do Store quando
+   existe histórico; se não existe, cai no traçado de design (m.spark).
+   Módulos sem série temporal (foco, projetos, cerebro, anotações) ficam
+   no fallback de propósito: inventar uma curva seria pior que reusar a
+   de design, e o número que importa (o KPI) já vem do dado real. */
+function liveSpark(m){
+  try{
+    const S=window.Store, hoje=new Date().toISOString().slice(0,10);
+    const addD=(iso,n)=>{const d=new Date(iso+'T12:00:00');d.setDate(d.getDate()+n);return d.toISOString().slice(0,10);};
+    /* conta marcações por semana, 12 semanas pra trás */
+    const porSemana = arr => {
+      const out=[];
+      for(let s=11;s>=0;s--){
+        const fim=addD(hoje,-s*7), ini=addD(fim,-6);
+        let n=0; arr.forEach(h=>{ for(const d in (h.hist||{})) if(d>=ini&&d<=fim) n++; });
+        out.push(n);
+      }
+      return out.some(v=>v>0)?out:null;
+    };
+    if(m.id==='rotina'){ const hs=S.get('r_habitos'); if(hs&&hs.length) return porSemana(hs); }
+    if(m.id==='espiritual'){ const ps=S.get('es_praticas'); if(ps&&ps.length) return porSemana(ps); }
+    if(m.id==='saude'){
+      /* % de exames dentro da faixa, coleta a coleta — série real de verdade */
+      const ex=S.get('sa_exames');
+      if(ex&&ex.length&&ex[0].serie&&ex[0].serie.length>=2){
+        const n=ex[0].serie.length, out=[];
+        for(let i=0;i<n;i++){
+          const dentro=ex.filter(e=>{const v=e.serie[i];return v>=e.ref[0]&&v<=e.ref[1];}).length;
+          out.push(Math.round(dentro/ex.length*100));
+        }
+        return out;
+      }
+    }
+    if(m.id==='timeline'){
+      /* marcos acumulados por mês, 12 meses */
+      const ms=S.get('tl_marcos');
+      if(ms&&ms.length){
+        const out=[]; const d=new Date();
+        for(let i=11;i>=0;i--){
+          const ref=new Date(d.getFullYear(),d.getMonth()-i+1,1).toISOString().slice(0,10);
+          out.push(ms.filter(x=>(x.data||'')<ref).length);
+        }
+        return out.some(v=>v>0)?out:null;
+      }
+    }
+    if(m.id==='financeiro'){
+      /* saldo acumulado ao longo dos lançamentos do mês corrente */
+      const tx=S.get('tx'); const mes=hoje.slice(0,7);
+      if(tx&&tx.length){
+        const doMes=tx.filter(t=>(t.data||'').slice(0,7)===mes).sort((a,b)=>a.data.localeCompare(b.data));
+        if(doMes.length>=4){ let acc=0; return doMes.map(t=>{ acc+=(t.tipo==='receita'?t.valor:-t.valor); return acc; }); }
+      }
+    }
+  }catch(e){}
+  return null;
+}
+const grid = document.getElementById('modgrid');
+MODULES.forEach((m,i) => {
+  const card = document.createElement('button');
+  card.className='modcard clickable'; card.style.setProperty('--mc', m.c); card.dataset.mod=m.id;
+  const lk = liveKPI(m);
+  card.innerHTML = `
+    <div class="top"><span class="num">${String(i+1).padStart(2,'0')}</span><span class="dot"></span></div>
+    <div class="name">${m.n}</div>
+    <div class="row">
+      <div><div class="kpi">${lk.v}<small>${lk.ks}</small></div><div class="klbl">${m.kl}</div></div>
+      <svg width="64" height="24" viewBox="0 0 64 24">${spark(liveSpark(m)||m.spark,64,24,m.c)}</svg>
+    </div>
+    <span class="go">abrir →</span>`;
+  card.addEventListener('click', () => { if(m.id==='financeiro' || (window.Screens && window.Screens[m.id])) openModuleScreen(m.id); else openModule(m.id); });
+  grid.appendChild(card);
+});
+
+const scrim=document.getElementById('scrim'), drawer=document.getElementById('drawer');
+let openMod=null;
+function openModule(id){
+  const m = MODULES.find(x=>x.id===id); if(!m) return;
+  openMod=m; moduleShape=m.shape;
+  document.documentElement.style.setProperty('--dc', m.c);
+  document.getElementById('dnum').textContent = '◦ MÓDULO · '+m.n.toUpperCase();
+  document.getElementById('dnum').style.color = m.c;
+  document.getElementById('dname').textContent = m.n;
+  document.getElementById('dkpi').textContent = m.kpi+(m.ks||''); document.getElementById('dkpi').style.color=m.c;
+  document.getElementById('dkpilbl').textContent = m.kl;
+  document.getElementById('dctl').textContent = m.ctl;
+  document.getElementById('dinsight').innerHTML = m.ins+`<div class="conta clickable" id="dconta">▸ ver a conta</div>`;
+  document.getElementById('dconta').addEventListener('click', () => { document.getElementById('dconta').textContent = 'fonte: '+m.conta; });
+  // KPI reflete dado salvo (financeiro/anotações) + botão de ação rápida
+  if(m.id==='financeiro' && window.Store) document.getElementById('dkpi').textContent = window.brl(window.Store.get('saldo',4820));
+  if(m.id==='anotacoes' && window.Store && window.Store.get('lastMood')!==undefined && window.Store.get('lastMood')!==null) document.getElementById('dkpi').textContent = (+window.Store.get('lastMood')).toFixed(1);
+  window.__openMod = m.id;
+  const dq = document.getElementById('dquick'), act = window.ACTIONS && window.ACTIONS[m.id];
+  if(act){ dq.style.display=''; dq.textContent = act.label; dq.onclick = () => window.openAction(m.id); }
+  else dq.style.display='none';
+  // gráfico grande da gaveta
+  const big = m.spark.concat(m.spark.map(v=>v)); // densifica visual
+  document.getElementById('dchart').innerHTML =
+    `<path d="${areaPath(m.spark,380,120)}" fill="${m.c}" opacity="0.10"/>` + spark(m.spark,380,120,m.c).replace('stroke-width="1.6"','stroke-width="2"') +
+    endDot(m.spark,380,120,m.c);
+  scrim.classList.add('open'); drawer.classList.add('open'); drawer.setAttribute('aria-hidden','false');
+  root.classList.add('locked'); document.documentElement.style.overflow='hidden';
+  pulse=Math.min(pulse+0.25,0.5);
+}
+function areaPath(arr,w,h){ const min=Math.min(...arr),max=Math.max(...arr),p=6;
+  const x=i=>p+(i/(arr.length-1))*(w-p*2), y=v=>h-p-((v-min)/((max-min)||1))*(h-p*2);
+  let d=`M ${x(0)} ${h-p}`; arr.forEach((v,i)=> d+=` L ${x(i).toFixed(1)} ${y(v).toFixed(1)}`); d+=` L ${x(arr.length-1)} ${h-p} Z`; return d; }
+function endDot(arr,w,h,c){ const min=Math.min(...arr),max=Math.max(...arr),p=6;
+  const x=p+(w-p*2), y=h-p-((arr[arr.length-1]-min)/((max-min)||1))*(h-p*2);
+  return `<circle cx="${x}" cy="${y.toFixed(1)}" r="3.5" fill="${c}" stroke="var(--panel)" stroke-width="2"/>`; }
+function closeModule(){
+  scrim.classList.remove('open'); drawer.classList.remove('open'); drawer.setAttribute('aria-hidden','true');
+  moduleShape=null; openMod=null; window.__openMod=null; root.classList.remove('locked'); document.documentElement.style.overflow='';
+}
+document.getElementById('dclose').addEventListener('click', closeModule);
+scrim.addEventListener('click', closeModule);
+
+/* ============ TELA CHEIA — FINANCEIRO (módulo-vitrine) ============ */
+const rid = () => Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+const donutSVG = (segs,size,big,small) => {
+  const total=segs.reduce((a,s)=>a+s.value,0)||1, r=size/2-12, cx=size/2, cy=size/2, C=2*Math.PI*r;
+  let off=0, arcs='';
+  segs.forEach(s=>{ const len=(s.value/total)*C; arcs+=`<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${s.color}" stroke-width="16" stroke-dasharray="${len.toFixed(2)} ${(C-len).toFixed(2)}" stroke-dashoffset="${(-off).toFixed(2)}" transform="rotate(-90 ${cx} ${cy})"/>`; off+=len; });
+  return `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" style="display:block;margin:0 auto">${arcs}<text x="${cx}" y="${cy-1}" text-anchor="middle" style="fill:var(--ink);font-weight:700;font-size:15px;font-family:var(--mono)">${big}</text><text x="${cx}" y="${cy+15}" text-anchor="middle" style="fill:var(--ink-soft);font-size:9px;font-family:var(--mono);letter-spacing:.1em">${small}</text></svg>`;
+};
+
+const Finance = {
+  tab:'visao',
+  cats:{ Mercado:'#789267', Moradia:'#B3654F', Transporte:'#9A8A4A', Lazer:'#C07868', Assinaturas:'#8087B5', Outros:'#9A8A4A' },
+  budgets:{ Mercado:1500, Moradia:1200, Transporte:600, Lazer:500 },
+  cor(c){ return this.cats[c] || '#9A8A4A'; },
+  mes(){ return new Date().toISOString().slice(0,7); },
+  seed(){
+    if((window.Store.get('tx',[])||[]).length) return;
+    if (window.__uid) return; // logado de verdade -- nunca inventa lançamento nem deixa ele subir pro banco real
+    const m=this.mes();
+    const demo=[['Salário / EMF','Vendas',5200,'receita',2],['Mercado do mês','Mercado',480,'despesa',3],['Aluguel','Moradia',980,'despesa',5],['Uber','Transporte',60,'despesa',6],['Cinema','Lazer',90,'despesa',7],['Mercado','Mercado',210,'despesa',9],['Netflix + Spotify','Assinaturas',55,'despesa',10],['Aporte Tesouro','Outros',850,'despesa',12]];
+    window.Store.set('tx', demo.map(d=>({id:rid(),data:m+'-'+String(d[4]).padStart(2,'0'),desc:d[0],cat:d[1],valor:d[2],tipo:d[3]})));
+  },
+  txMes(){ const m=this.mes(); return window.Store.get('tx',[]).filter(t=>t.data.slice(0,7)===m); },
+  addTx(tipo){
+    const cats = tipo==='receita' ? ['Vendas','Serviços','Outros'] : Object.keys(this.cats);
+    window.Modal.open(`<h3>${tipo==='receita'?'💵 Nova receita':'💸 Novo gasto'}</h3>
+      <p class="msub">Na versão conectada é só mandar "almoço 30" no WhatsApp — cai aqui sozinho.</p>
+      <label class="f">Descrição</label><input type="text" id="tx_desc" placeholder="${tipo==='receita'?'ex.: Venda planner':'ex.: Almoço'}">
+      <label class="f">Valor (R$)</label><input type="number" id="tx_valor" placeholder="0">
+      <label class="f">Categoria</label><select id="tx_cat">${cats.map(c=>`<option>${c}</option>`).join('')}</select>
+      <div class="mactions"><button class="btn2 clickable" id="tx_cancel">Cancelar</button><button class="btn2 primary clickable" id="tx_save">Lançar</button></div>`);
+    document.getElementById('tx_cancel').onclick = window.Modal.close;
+    document.getElementById('tx_save').onclick = () => {
+      const v=parseFloat(document.getElementById('tx_valor').value);
+      if(!v||v<=0){ window.toast('Informe o valor 🙂'); return; }
+      const tx=window.Store.get('tx',[]);
+      tx.push({ id:rid(), data:new Date().toISOString().slice(0,10), desc:document.getElementById('tx_desc').value||(tipo==='receita'?'Receita':'Gasto'), cat:document.getElementById('tx_cat').value, valor:v, tipo });
+      window.Store.set('tx',tx);
+      window.Bus.emit(tipo==='receita'?'income':'expense',{cat:document.getElementById('tx_cat').value},v);
+      window.Modal.close(); this.render(); window.__bumpLive&&window.__bumpLive();
+      window.toast((tipo==='receita'?'💵 ':'💸 ')+window.brl(v)+' lançado ✔'); pulse=Math.min(pulse+0.22,0.5);
+    };
+  },
+  delTx(id){ window.Store.set('tx', window.Store.get('tx',[]).filter(t=>t.id!==id)); this.render(); window.toast('Lançamento removido'); },
+  setTab(t){ this.tab=t; this.render(); },
+
+  render(){
+    const el=document.getElementById('modscreen');
+    const tx=this.txMes();
+    const rec=tx.filter(t=>t.tipo==='receita').reduce((a,t)=>a+t.valor,0);
+    const desp=tx.filter(t=>t.tipo==='despesa').reduce((a,t)=>a+t.valor,0);
+    const saldo=rec-desp, poup=rec>0?Math.round((1-desp/rec)*100):0;
+    document.documentElement.style.setProperty('--dc','#B2803E');
+    let body;
+    if(this.tab==='gastos') body=this.tabGastos(tx,desp);
+    else if(this.tab==='invest') body=this.tabInvest();
+    else body=this.tabVisao(tx,rec,desp,saldo,poup);
+    el.innerHTML = `<div class="ms-wrap">
+      <div class="ms-top"><span class="ms-num">◦ MÓDULO 03 · FINANCEIRO</span>
+        <button class="ms-close clickable" id="ms_close">✕ Voltar ao índice</button></div>
+      <h1 class="ms-h1">Financeiro</h1>
+      <p class="ms-sub">Você S.A.: o dinheiro tratado como o caixa da sua empresa-vida. Registre pelo WhatsApp, analise aqui.</p>
+      <div class="ms-tabs">
+        <button class="${this.tab==='visao'?'on':''}" data-tab="visao">📊 Visão geral</button>
+        <button class="${this.tab==='gastos'?'on':''}" data-tab="gastos">💸 Gastos &amp; Orçamento</button>
+        <button class="${this.tab==='invest'?'on':''}" data-tab="invest">📈 Investimentos</button>
+      </div>${body}</div>`;
+    document.getElementById('ms_close').onclick = closeModuleScreen;
+    el.querySelectorAll('.ms-tabs button').forEach(b=> b.onclick=()=>this.setTab(b.dataset.tab));
+    el.querySelectorAll('[data-add]').forEach(b=> b.onclick=()=>this.addTx(b.dataset.add));
+    el.querySelectorAll('[data-del]').forEach(b=> b.onclick=()=>this.delTx(b.dataset.del));
+  },
+
+  tabVisao(tx,rec,desp,saldo,poup){
+    const m=this.mes(); let acc=0; const serie=[];
+    const dias=[...new Set(tx.map(t=>t.data))].sort();
+    (dias.length?dias:[m+'-01']).forEach(d=>{ tx.filter(x=>x.data===d).forEach(x=>acc+=x.tipo==='receita'?x.valor:-x.valor); serie.push(acc); });
+    if(serie.length<2) serie.unshift(0);
+    const porCat={}; tx.filter(x=>x.tipo==='despesa').forEach(x=>porCat[x.cat]=(porCat[x.cat]||0)+x.valor);
+    const segs=Object.keys(porCat).sort((a,b)=>porCat[b]-porCat[a]).map(c=>({label:c,value:porCat[c],color:this.cor(c)}));
+    const chart=`<svg width="100%" height="150" viewBox="0 0 480 150" preserveAspectRatio="none">`+
+      `<path d="${areaPath(serie,480,150)}" fill="#B2803E" opacity="0.12"/>`+spark(serie,480,150,'#171008').replace('stroke-width="1.6"','stroke-width="2"').replace('#171008','var(--ink)')+endDot(serie,480,150,'#B2803E')+`</svg>`;
+    const recent = window.Store.get('tx',[]).slice().sort((a,b)=>b.data.localeCompare(a.data)).slice(0,7).map(x=>
+      `<div class="rowitem"><div class="ric">${x.tipo==='receita'?'💵':'💸'}</div>
+        <div class="rt"><b>${esc(x.desc)}</b><span>${x.data.split('-').reverse().join('/')} · ${esc(x.cat)}</span></div>
+        <div class="rv" style="color:${x.tipo==='receita'?'#607452':'var(--ink)'}">${x.tipo==='receita'?'+':'−'}${window.brl(x.valor)}</div>
+        <button class="del clickable" data-del="${x.id}">✕</button></div>`).join('');
+    return `<div class="kpis">
+      <div class="kpi" style="--kc:#789267"><div class="k">Receitas · mês</div><div class="v">${window.brl(rec)}</div><div class="d up">EMF em alta</div></div>
+      <div class="kpi" style="--kc:#A2402A"><div class="k">Despesas · mês</div><div class="v">${window.brl(desp)}</div><div class="d">até hoje</div></div>
+      <div class="kpi" style="--kc:#B2803E"><div class="k">Saldo</div><div class="v">${window.brl(saldo)}</div><div class="d ${saldo>=0?'up':'down'}">${saldo>=0?'no azul':'atenção'}</div></div>
+      <div class="kpi" style="--kc:#8087B5"><div class="k">Poupança</div><div class="v">${poup}%</div><div class="d">meta 30%</div></div>
+    </div>
+    <div class="g2">
+      <div class="fcard"><div class="fct">🌊 Fluxo de caixa do mês</div>${chart}<p class="ms-sub" style="margin-top:8px">Acumulado dia a dia. Acima de zero = mês saudável.</p></div>
+      <div class="fcard"><div class="fct">🍩 Para onde foi o dinheiro</div>${segs.length?donutSVG(segs,168,window.brl(desp),'despesas')+`<div class="flegend">${segs.slice(0,5).map(s=>`<span><i style="background:${s.color}"></i>${s.label}</span>`).join('')}</div>`:'<div class="fempty">🍃 Sem despesas no mês ainda.</div>'}</div>
+      <div class="fcard span2"><div class="fct">🕘 Últimos lançamentos <span class="sp"><button class="msbtn clickable" data-add="receita">+ receita</button><button class="msbtn primary clickable" data-add="despesa">+ gasto</button></span></div>${recent||'<div class="fempty">Nenhum lançamento ainda. Comece com “+ gasto”.</div>'}</div>
+    </div>`;
+  },
+
+  tabGastos(tx,desp){
+    const porCat={}; tx.filter(x=>x.tipo==='despesa').forEach(x=>porCat[x.cat]=(porCat[x.cat]||0)+x.valor);
+    const bars=Object.keys(this.budgets).map(c=>{ const g=porCat[c]||0, teto=this.budgets[c], pct=Math.min(100,Math.round(g/teto*100)), over=g>teto;
+      return `<div class="budget"><div class="bl"><span>${c}</span><b>${window.brl(g)} / ${window.brl(teto)}</b></div><div class="bar"><i style="--bc:${over?'#A2402A':this.cor(c)};width:${pct}%"></i></div></div>`; }).join('');
+    return `<div class="fcard span2" style="grid-column:auto"><div class="fct">🎯 Orçamento do mês <span class="sp"><button class="msbtn primary clickable" data-add="despesa">+ gasto</button></span></div>${bars}<p class="ms-sub" style="margin-top:14px">Cada categoria tem um teto — você vê antes de estourar. Barra vermelha = passou.</p></div>`;
+  },
+
+  tabInvest(){
+    const aloc=[{label:'Renda Fixa',value:52,color:'#9A8A4A'},{label:'Ações',value:28,color:'#789267'},{label:'FIIs',value:12,color:'#B2803E'},{label:'Cripto',value:8,color:'#8087B5'}];
+    return `<div class="g2"><div class="fcard"><div class="fct">📈 Diversificação</div>${donutSVG(aloc,168,'R$ 38k','investido')}<div class="flegend">${aloc.map(s=>`<span><i style="background:${s.color}"></i>${s.label} ${s.value}%</span>`).join('')}</div></div>
+      <div class="fcard"><div class="fct">🎯 Aportes</div><div class="kpi" style="--kc:#B2803E;border:none;padding:0"><div class="k">Este mês</div><div class="v">${window.brl(850)}</div><div class="d up">21% da renda</div></div><p class="ms-sub" style="margin-top:14px">Meta de aporte acompanhada mês a mês. Consistência &gt; timing.</p></div></div>`;
+  }
+};
+
+function openModuleScreen(id){
+  const scr = window.Screens && window.Screens[id];
+  if(id!=='financeiro' && !scr){ openModule(id); return; }
+  const meta = MODULES.find(m=>m.id===id);
+  burst=1.25; pulse=Math.min(pulse+0.4,0.6); spinKick+=0.6; moduleShape=meta?meta.shape:4;   // flash wireframe + forma do módulo
+  window.__openMod=id;
+  if(scr){ scr.render(document.getElementById('modscreen'), closeModuleScreen); }
+  else { Finance.seed(); Finance.tab='visao'; Finance.render(); }
+  document.documentElement.style.overflow='hidden';
+  /* o núcleo vai junto: encolhe pro topo e a base do gradiente migra
+     pra cor do módulo. É o mesmo corpo, visto de perto. */
+  if(nucleo && meta) nucleo.companheiro(true, meta.c);
+  setTimeout(()=>{ document.getElementById('modscreen').classList.add('open'); document.body.classList.add('covered'); }, 150);
+}
+function closeModuleScreen(){
+  burst=1.0; document.getElementById('modscreen').classList.remove('open'); document.body.classList.remove('covered');
+  moduleShape=null; window.__openMod=null; document.documentElement.style.overflow=''; computeMax();
+  if(nucleo) nucleo.companheiro(false);
+}
+window.__closeModScreen = closeModuleScreen;
+window.openModuleScreen = openModuleScreen;
+addEventListener('keydown', e => { if(e.key!=='Escape') return; if(document.getElementById('modalback').classList.contains('on')) return; if(document.getElementById('mamodal').classList.contains('open')) closeMini(); else if(document.getElementById('modscreen').classList.contains('open')) closeModuleScreen(); else if(openMod) closeModule(); });
+
+/* mini-app modal */
+const maModal=document.getElementById('mamodal'), maFrame=document.getElementById('maframe');
+function openMini(id, fluxo){ maFrame.src = fluxo ? 'mini-app.html?fluxo='+fluxo : 'mini-app.html?mod='+id; maModal.classList.add('open'); document.body.classList.add('covered'); document.body.classList.add('mini'); }
+function closeMini(){ maModal.classList.remove('open'); document.body.classList.remove('mini'); if(!_msE.classList.contains('open')) document.body.classList.remove('covered'); setTimeout(()=>maFrame.src='',350); }
+document.getElementById('dcfg').addEventListener('click', () => { if(openMod) openMini(openMod.id); });
+document.getElementById('maclose').addEventListener('click', closeMini);
+/* o gatilho de verdade: aparece só com um módulo em tela cheia
+   (via CSS), abre o mini-app daquele módulo especificamente. */
+document.getElementById('mcfg').addEventListener('click', () => { if(window.__openMod) openMini(window.__openMod); });
+window.openMini = openMini;
+addEventListener('message', e => { if(e.data==='miniapp-done') closeMini(); });
+
+/* ============ HUD micro-vida ============ */
+const phrases = ['A sua vida,<br>em uma direção.','Nove módulos.<br>Um núcleo.','O assessor que<br>mora no seu bolso.'];
+let pidx=0; const rot=document.getElementById('rot'); rot.innerHTML=phrases[0];
+if(!REDUCED) setInterval(() => { rot.classList.add('out'); setTimeout(()=>{ pidx=(pidx+1)%phrases.length; rot.innerHTML=phrases[pidx]; rot.classList.remove('out'); },450); }, 4400);
+
+const eqEl=document.getElementById('eq'); for(let i=0;i<26;i++){ const b=document.createElement('i'); b.style.animationDelay=(Math.random()*-1.1)+'s'; b.style.animationDuration=(0.7+Math.random()*0.9)+'s'; eqEl.appendChild(b); }
+const pad=n=>String(n).padStart(2,'0');
+setInterval(()=>{ const d=new Date(); document.getElementById('clk').textContent=pad(d.getHours())+':'+pad(d.getMinutes())+':'+pad(d.getSeconds()); },1000);
+setInterval(()=>{ window.__bumpLive && window.__bumpLive(); },1500);
+
+/* botão de forma (teste) */
+const shapeBtn=document.getElementById('shapeBtn');
+function setShape(v){ shapeOverride=v; shapeBtn.textContent = v===null?'◇ AUTO':'◇ '+shapeNames[v]; }
+shapeBtn.addEventListener('click', ()=>{ const nx=shapeOverride===null?0:shapeOverride+1; setShape(nx>4?null:nx); });
+addEventListener('keydown', e=>{ if(e.key>='0'&&e.key<='4') setShape(+e.key); else if(e.key.toLowerCase()==='a') setShape(null); });
+
+/* goto */
+document.querySelectorAll('[data-goto]').forEach(el => el.addEventListener('click', () => { const i=+el.dataset.goto; const max=document.body.scrollHeight-innerHeight; scrollTo({top:(i/(N-1))*max, behavior:'smooth'}); }));
+
+/* cliques → ripple + pulso */
+addEventListener('pointerdown', e => { const r=document.createElement('div'); r.className='ripple'; r.style.left=e.clientX+'px'; r.style.top=e.clientY+'px'; document.body.appendChild(r); setTimeout(()=>r.remove(),720); pulse=Math.min(pulse+0.2,0.5); spinKick+=0.3; });
+
+/* cursor */
+const cdot=document.getElementById('cdot'), cring=document.getElementById('cring');
+let cx=0,cy=0,rx=0,ry=0;
+addEventListener('mousemove', e=>{ cx=e.clientX; cy=e.clientY; });
+(function cl(){ requestAnimationFrame(cl); rx+=(cx-rx)*0.18; ry+=(cy-ry)*0.18; cdot.style.transform=`translate(${cx}px,${cy}px) translate(-50%,-50%)`; cring.style.transform=`translate(${rx}px,${ry}px) translate(-50%,-50%)`; })();
+document.addEventListener('mouseover', e => { if(e.target.closest('button,a,.modcard,.conta')) cring.classList.add('hot'); });
+document.addEventListener('mouseout', e => { if(e.target.closest('button,a,.modcard,.conta')) cring.classList.remove('hot'); });
+</script>
+
+<script>
+/* PWA — instala no celular e roda offline. Só em contexto seguro
+   (https ou localhost); aberto direto do disco (file://) fica inerte
+   e o app segue funcionando exatamente igual. */
+/* EM LOCALHOST O SW FICA DESLIGADO, de propósito: ele serve do cache
+   antes de ir na rede, então toda alteração de arquivo continuava
+   invisível no navegador — e pior, dá a impressão de que a correção
+   não funcionou. Em produção (https) ele entra normal. */
+const _local = /^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname);
+if ('serviceWorker' in navigator && location.protocol !== 'file:') {
+  if (_local) {
+    navigator.serviceWorker.getRegistrations().then(rs => rs.forEach(r => r.unregister())).catch(()=>{});
+    if (window.caches) caches.keys().then(ks => ks.forEach(k => caches.delete(k))).catch(()=>{});
+  } else {
+    addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+  }
+}
+</script>

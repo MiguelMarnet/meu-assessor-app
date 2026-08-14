@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <radialGradient id="fundo" cx="50%" cy="38%" r="82%">
+      <stop offset="0%" stop-color="#241f16"/>
+      <stop offset="100%" stop-color="#100d08"/>
+    </radialGradient>
+    <linearGradient id="ouro" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%"   stop-color="#f0d68a"/>
+      <stop offset="45%"  stop-color="#b8860b"/>
+      <stop offset="100%" stop-color="#7a560a"/>
+    </linearGradient>
+    <radialGradient id="nucleo" cx="38%" cy="32%" r="75%">
+      <stop offset="0%"   stop-color="#ffe9a8"/>
+      <stop offset="38%"  stop-color="#c9971b"/>
+      <stop offset="100%" stop-color="#6b4a08"/>
+    </radialGradient>
+  </defs>
+
+  <rect width="512" height="512" rx="112" fill="url(#fundo)"/>
+
+  <!-- os nove módulos orbitando o núcleo -->
+  <g stroke="url(#ouro)" stroke-width="5" fill="none" opacity=".5">
+    <line x1="256" y1="256" x2="256" y2="104"/>
+    <line x1="256" y1="256" x2="363" y2="149"/>
+    <line x1="256" y1="256" x2="408" y2="256"/>
+    <line x1="256" y1="256" x2="363" y2="363"/>
+    <line x1="256" y1="256" x2="256" y2="408"/>
+    <line x1="256" y1="256" x2="149" y2="363"/>
+    <line x1="256" y1="256" x2="104" y2="256"/>
+    <line x1="256" y1="256" x2="149" y2="149"/>
+  </g>
+  <g fill="#100d08" stroke="url(#ouro)" stroke-width="7">
+    <circle cx="256" cy="104" r="21"/>
+    <circle cx="363" cy="149" r="21"/>
+    <circle cx="408" cy="256" r="21"/>
+    <circle cx="363" cy="363" r="21"/>
+    <circle cx="256" cy="408" r="21"/>
+    <circle cx="149" cy="363" r="21"/>
+    <circle cx="104" cy="256" r="21"/>
+    <circle cx="149" cy="149" r="21"/>
+  </g>
+
+  <!-- o núcleo -->
+  <circle cx="256" cy="256" r="82" fill="url(#nucleo)"/>
+  <circle cx="256" cy="256" r="82" fill="none" stroke="url(#ouro)" stroke-width="4" opacity=".9"/>
+  <ellipse cx="230" cy="228" rx="30" ry="21" fill="#fff6da" opacity=".38" transform="rotate(-28 230 228)"/>
+</svg>

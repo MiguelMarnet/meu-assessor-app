@@ -1,0 +1,379 @@
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Configurar módulo — Assessor.IA</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
+<style>
+  /* Tokens idênticos aos do index.html — claro e escuro. Antes daqui
+     só existia o claro, então o mini-app abria ofuscante pra quem usa
+     o app no escuro. */
+  :root{
+    --bg:#EFE5DA; --bg-2:#F7F1EA; --panel:#FBF6F0;
+    --ink:#3A2A20; --ink-soft:#6B5344; --line:rgba(58,42,32,0.15);
+    --gold:#D97F5A; --gold-soft:rgba(184,134,11,0.12); --mc:#D97F5A;
+    --mono:"Space Mono",ui-monospace,monospace; --sans:"Inter",-apple-system,system-ui,sans-serif;
+  }
+  :root[data-theme="dark"]{
+    --bg:#1A1310; --bg-2:#241A15; --panel:#2E211B;
+    --ink:#F7F1EA; --ink-soft:#C0AB99; --line:rgba(247,241,234,0.16);
+    --gold:#E39C7A; --gold-soft:rgba(212,164,55,0.14);
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{height:100%}
+  body{background:var(--bg);color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased;overflow:hidden;cursor:none}
+  a,button,input{cursor:none;font-family:inherit}
+  @media (hover:none){body,a,button,input{cursor:auto}}
+  .app{height:100%;display:flex;flex-direction:column;position:relative}
+
+  /* grão — a mesma textura do index.html */
+  .grao{position:fixed;inset:0;z-index:60;pointer-events:none;opacity:.03;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+
+  /* cursor customizado — o mesmo par ponto+anel do app */
+  .cursor-dot,.cursor-ring{position:fixed;top:0;left:0;z-index:100;pointer-events:none;border-radius:50%;transform:translate(-50%,-50%)}
+  .cursor-dot{width:6px;height:6px;background:var(--ink)}
+  .cursor-ring{width:32px;height:32px;border:1px solid var(--ink-soft);transition:width .25s,height .25s,border-color .3s}
+  .cursor-ring.hot{width:54px;height:54px;border-color:var(--gold)}
+  @media (hover:none){.cursor-dot,.cursor-ring{display:none}}
+
+  /* Profundidade do fundo — as mesmas camadas do index.html.
+     Sem 3D e sem interação: é só luz. O calor dourado nasce no alto
+     à direita, onde o núcleo ficava, e o fundo assenta com a vinheta.
+     Estático de propósito: numa tela de configuração, movimento
+     compete com a pergunta. */
+  .halo{position:fixed;inset:0;z-index:0;pointer-events:none;
+    background:
+      radial-gradient(760px 520px at 88% -8%, var(--gold-soft), transparent 62%),
+      radial-gradient(520px 420px at 50% 108%, var(--gold-soft), transparent 70%)}
+  .vignette{position:fixed;inset:0;z-index:59;pointer-events:none;
+    background:radial-gradient(ellipse at center, transparent 56%, rgba(0,0,0,.12) 100%)}
+  :root[data-theme="dark"] .vignette{background:radial-gradient(ellipse at center, transparent 48%, rgba(0,0,0,.34) 100%)}
+
+  header{padding:22px 24px 0;display:flex;justify-content:space-between;align-items:center;z-index:2}
+  .htitle{font-family:var(--mono);font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--ink-soft)}
+  .htitle b{color:var(--mc)}
+  .later{font-family:var(--mono);font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-soft);background:none;border:none;cursor:pointer;text-decoration:underline;text-underline-offset:3px}
+
+  .prog{display:flex;gap:6px;padding:16px 24px 0;z-index:2}
+  .prog i{height:3px;flex:1;background:var(--line);border-radius:2px;overflow:hidden;position:relative}
+  .prog i.on::after,.prog i.done::after{content:"";position:absolute;inset:0;background:var(--mc);transform-origin:left;transition:transform .5s ease}
+  .prog i.done::after{transform:scaleX(1)}
+  .prog i.on::after{transform:scaleX(1)}
+  .pcount{font-family:var(--mono);font-size:9px;letter-spacing:.14em;color:var(--ink-soft);padding:8px 24px 0;z-index:2}
+
+  main{flex:1;overflow-y:auto;padding:18px 24px;z-index:2}
+  .step{animation:in .5s cubic-bezier(.2,.7,.2,1)}
+  @keyframes in{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+  .glyph{width:52px;height:52px;border-radius:14px;display:grid;place-items:center;background:var(--panel);border:1px solid var(--line);font-size:25px;margin-bottom:18px}
+  h1{font-size:clamp(29px,7vw,36px);font-weight:400;letter-spacing:-.03em;line-height:1.06}
+  .sub{margin-top:10px;font-size:14px;line-height:1.55;color:var(--ink-soft);max-width:34ch}
+
+  .feats{margin-top:22px;display:flex;flex-direction:column;gap:2px}
+  .feat{display:flex;gap:14px;padding:14px 0;border-top:1px solid var(--line)}
+  .feat .fi{width:30px;height:30px;border-radius:8px;display:grid;place-items:center;font-size:15px;flex-shrink:0;background:var(--panel);border:1px solid var(--line)}
+  .feat .ft{font-size:15px;font-weight:500}
+  .feat .fd{font-size:13px;color:var(--ink-soft);margin-top:3px;line-height:1.45}
+
+  .opts{margin-top:22px;display:flex;flex-direction:column;gap:10px}
+  .opt{display:flex;justify-content:space-between;align-items:center;gap:14px;text-align:left;padding:15px 16px;border:1px solid var(--line);border-radius:12px;background:var(--panel);cursor:pointer;transition:.2s;width:100%;color:var(--ink);font-family:inherit}
+  .opt:hover{border-color:color-mix(in srgb,var(--mc) 50%,var(--line))}
+  .opt.sel{border-color:var(--mc);background:color-mix(in srgb,var(--mc) 8%,var(--panel))}
+  .opt .ot{font-size:16px;font-weight:500}
+  .opt .od{font-size:13px;color:var(--ink-soft);margin-top:3px;line-height:1.45}
+  .opt .chk{width:20px;height:20px;border-radius:50%;border:1.5px solid var(--line);flex-shrink:0;display:grid;place-items:center;transition:.2s}
+  .opt.sel .chk{border-color:var(--mc);background:var(--mc);color:#fff}
+
+  .slid{margin-top:24px;display:flex;flex-direction:column;gap:26px}
+  .sl label{display:flex;justify-content:space-between;font-size:14px;margin-bottom:13px}
+  .sl label b{font-family:var(--mono);color:var(--mc);font-size:16px}
+  input[type=range]{width:100%;-webkit-appearance:none;appearance:none;height:3px;background:var(--line);border-radius:3px;outline:none}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;border-radius:50%;background:var(--mc);cursor:pointer;border:3px solid var(--panel);box-shadow:0 1px 6px rgba(0,0,0,.2)}
+
+  .fields{margin-top:22px;display:flex;flex-direction:column;gap:16px}
+  .fld label{font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-soft)}
+  .fld input{width:100%;margin-top:8px;padding:14px 14px;border:1px solid var(--line);border-radius:12px;background:var(--panel);font-family:inherit;font-size:17px;color:var(--ink);outline:none;transition:.2s}
+  .fld input:focus{border-color:var(--mc)}
+
+  /* tela "Olá" — a saudação que troca de idioma, como no primeiro iPhone */
+  .hello{display:grid;place-items:center;text-align:center;padding-top:40px;min-height:230px}
+  .hello .ola{font-size:clamp(46px,12vw,58px);font-weight:300;letter-spacing:-.03em;line-height:1;color:var(--ink);animation:olain .6s ease}
+  .hello .ola-sub{margin-top:22px;font-size:14px;line-height:1.6;color:var(--ink-soft);max-width:32ch}
+  @keyframes olain{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  @media(prefers-reduced-motion:reduce){.hello .ola{animation:none}}
+  .done{display:grid;place-items:center;text-align:center;padding-top:14px}
+  .done .ring{width:74px;height:74px;border-radius:50%;border:2px solid var(--mc);display:grid;place-items:center;font-size:34px;color:var(--mc);margin-bottom:20px;animation:pop .5s cubic-bezier(.2,1.4,.4,1)}
+  @keyframes pop{from{transform:scale(.4);opacity:0}to{transform:scale(1);opacity:1}}
+
+  footer{padding:16px 24px 24px;z-index:2}
+  .cont{width:100%;padding:16px;border:none;border-radius:14px;background:var(--ink);color:var(--bg);font-family:var(--mono);font-size:12px;letter-spacing:.14em;text-transform:uppercase;cursor:pointer;transition:transform .2s}
+  .cont:hover{transform:translateY(-2px)}
+  .cont:active{transform:translateY(0)}
+  .back{display:block;margin:12px auto 0;background:none;border:none;color:var(--ink-soft);font-family:var(--mono);font-size:9px;letter-spacing:.14em;text-transform:uppercase;cursor:pointer}
+</style>
+
+<script>
+/* Tema antes de qualquer pintura, senão pisca branco: herda a escolha
+   feita no app (ma1:tema); se nunca houve escolha, segue o sistema. */
+(function(){
+  var d;
+  try{ var v=localStorage.getItem('ma1:tema'); d = v==null ? null : !!JSON.parse(v); }catch(e){ d=null; }
+  if(d===null) d = matchMedia('(prefers-color-scheme: dark)').matches;
+  if(d) document.documentElement.setAttribute('data-theme','dark');
+})();
+</script>
+
+<div class="halo"></div>
+<div class="vignette"></div>
+<div class="grao"></div>
+<div class="cursor-ring" id="cring"></div><div class="cursor-dot" id="cdot"></div>
+<div class="app">
+  <header>
+    <div class="htitle">ASSESSOR.IA · CONFIGURAR <b id="hmod">MÓDULO</b></div>
+    <button class="later" id="later">Configurar depois</button>
+  </header>
+  <div class="prog" id="prog"></div>
+  <div class="pcount" id="pcount"></div>
+  <main id="main"></main>
+  <footer>
+    <button class="cont" id="cont">Continuar</button>
+    <button class="back" id="back" style="display:none">← Voltar</button>
+  </footer>
+</div>
+
+<script>
+'use strict';
+const qs = new URLSearchParams(location.search);
+const MOD = qs.get('mod') || 'rotina';
+
+const COLORS = { rotina:'#9A8A4A', saude:'#789267', financeiro:'#B2803E', anotacoes:'#C07868', foco:'#B3654F', projetos:'#8087B5', timeline:'#6D8FA7', cerebro:'#649488', espiritual:'#9C7FB3' };
+const NAMES  = { rotina:'ROTINA', saude:'SAÚDE', financeiro:'FINANCEIRO', anotacoes:'ANOTAÇÕES', foco:'FOCO DIGITAL', projetos:'PROJETOS', timeline:'LINHA DO TEMPO', cerebro:'CÉREBRO', espiritual:'ESPIRITUAL' };
+
+/* fluxos anti-fadiga: um passo por tela, preset já escolhido, curto */
+const FLOWS = {
+  rotina:[
+    { type:'hero', glyph:'🗓️', title:'Sua semana, do seu jeito', sub:'Nada de grade em branco: escolha um ritmo e ajuste com um toque.',
+      feats:[['🌅','Blocos, não horas','O dia é uma sequência: ritual, foco, treino, descanso.'],['⚓','Duas âncoras bastam','Diga quando acorda e quando dorme. O resto se distribui.'],['✦','Nada é definitivo','Mudar a rotina é sempre 1 toque.']] },
+    { type:'choice', id:'preset', title:'Qual ritmo parece o seu?', sub:'A semana já vem montada. Você só ajusta.',
+      opts:[['founder','Founder / Empreendedor','Acorda cedo, treino, deep work e operação.',1],['estudante','Estudante','Aulas em bloco, estudo profundo à tarde.'],['nine5','9–5 + projeto paralelo','Trabalho fixo com espaço protegido pro seu projeto.'],['saude','Foco em saúde','Treino em dobro, refeições marcadas, sono protegido.']] },
+    { type:'sliders', title:'Suas duas âncoras', sub:'O app redistribui todos os blocos entre esses horários.',
+      sliders:[['wake','Acordo às',240,600,15,360,'hhmm'],['sleep','Durmo às',1200,1500,15,1380,'hhmm']] },
+    { type:'done', title:'Semana montada.', sub:'Toque em qualquer bloco da grade pra editar. Ao conectar, vira eventos na sua Google Agenda.' }
+  ],
+  financeiro:[
+    { type:'hero', glyph:'💳', title:'Seu dinheiro, com clareza', sub:'Você registra em segundos; o Assessor transforma em análise.',
+      feats:[['💬','"Almoço 30" e pronto','Registrar é mandar uma mensagem no WhatsApp.'],['🎯','Orçamento que avisa','Cada categoria tem um teto — você vê antes de estourar.'],['📈','Investir com direção','Diversificação e aportes acompanhados mês a mês.']] },
+    { type:'form', title:'Ponto de partida', sub:'Dois números pra calibrar suas análises. Estimativas valem.',
+      fields:[['saldo','Saldo atual (R$)','number','0'],['renda','Renda mensal (R$)','number','0']] },
+    { type:'choice', id:'meta', title:'Quanto quer guardar por mês?', sub:'A meta certa é a que você cumpre.',
+      opts:[['10','10% — Começando','Criar o hábito vem primeiro.'],['20','20% — Constante','Equilíbrio entre presente e futuro.',1],['30','30% — Agressivo','Liberdade financeira no radar.']] },
+    { type:'done', title:'Financeiro calibrado.', sub:'O painel já mostra fluxo de caixa, categorias e investimentos.' }
+  ],
+  saude:[
+    { type:'hero', glyph:'❤️', title:'Energia é o combustível', sub:'Alimentação, treino e exames — um painel só, olhando pra frente.',
+      feats:[['🥗','Macros sem neura','Estimativas honestas, nunca certeza falsa.'],['🏋️','Treino com progressão','Volume e carga subindo no ritmo certo.'],['🩸','Exames que contam história','Cada exame vira evolução visível no tempo.']] },
+    { type:'choice', id:'obj', title:'Qual é o objetivo agora?', sub:'Isso calibra calorias e proteína.',
+      opts:[['perder','Perder gordura','Déficit leve, proteína alta.'],['ganhar','Ganhar músculo','Superávit controlado, treino de força.',1],['manter','Manter e ter energia','Equilíbrio e constância.']] },
+    { type:'sliders', title:'Suas metas diárias', sub:'Sugerimos um ponto de partida — ajuste ao seu corpo.',
+      sliders:[['kcal','Calorias',1600,3200,50,2400,'kcal'],['prot','Proteínas',80,220,5,150,'g']] },
+    { type:'done', title:'Saúde configurada.', sub:'Os anéis de macros já refletem suas metas.' }
+  ],
+  foco:[
+    { type:'hero', glyph:'🛡️', title:'Sua atenção é sua', sub:'Foco Digital protege blocos de deep work e mede o tempo de tela.',
+      feats:[['⏱️','Tela que você vê','Quanto tempo, em quais apps, comparado ao seu foco.'],['🚧','Janelas de proteção','Bloqueios em blocos de estudo e trabalho profundo.'],['🔗','Foco ↔ Projetos','O tempo protegido vira avanço nas suas metas.']] },
+    { type:'choice', id:'rigor', title:'Qual o nível de rigor?', sub:'De lembrete gentil a bloqueio firme. Muda quando quiser.',
+      opts:[['flex','Flexível','Só um lembrete quando passar do limite.'],['medio','Equilibrado','Avisa e sugere pausa nos apps de distração.',1],['rigido','Rígido','Bloqueia mesmo, nas janelas de proteção.']] },
+    { type:'sliders', title:'Seu teto diário', sub:'Tempo de tela recreativa por dia.',
+      sliders:[['tela','Limite de tela',30,300,15,120,'min']] },
+    { type:'done', title:'Foco configurado.', sub:'No app nativo, o bloqueio real usa o Tempo de Uso do seu celular.' }
+  ],
+};
+/* Fluxos resgatados de app/js/onboarding.js — os 5 módulos que aqui
+   caíam no genérico. Mesma estrutura dos 4 que já existiam. */
+Object.assign(FLOWS, {
+  anotacoes:[
+    { type:'hero', glyph:'📝', title:'Onde a cabeça descansa', sub:'Diário, ideias e o que você não quer esquecer — tudo puxando os outros módulos.',
+      feats:[['/','Vira tarefa na hora','Digite "/" numa nota e a linha vira tarefa na Rotina.'],['@','Vira hábito','Digite "@" e o Assessor passa a acompanhar.'],['[','Amarra numa meta','Digite "[" e a nota se liga ao seu projeto.']] },
+    { type:'choice', id:'uso', title:'O que você mais vai escrever aqui?', sub:'Isso define as pastas iniciais. Dá pra mudar depois.',
+      opts:[['diario','Diário','Como foi o dia, o que senti, o que aprendi.',1],['ideias','Ideias e projetos','Rascunhos, roteiros, coisas pra fazer.'],['tudo','Os dois','Uma pasta pra cada, sem misturar.']] },
+    { type:'done', title:'Anotações prontas.', sub:'Comece escrevendo qualquer coisa — os atalhos "/" "@" "[" funcionam de imediato.' }
+  ],
+  projetos:[
+    { type:'hero', glyph:'🎯', title:'Sonho com prazo é meta', sub:'Cada meta ganha ritmo, trilho e um gate que diz se o plano ainda vale.',
+      feats:[['🛤️','Trilhos','Negócio, carreira, saúde, vida — cada meta no seu eixo.'],['⛩️','Gate falsificável','Uma condição com prazo. Se falhar, o plano muda — não o esforço.'],['🚦','Limite de WIP','Duas frentes por vez. Foco disperso rende menos.']] },
+    { type:'sliders', title:'Quantas frentes ao mesmo tempo?', sub:'O número que você consegue puxar de verdade, não o que gostaria.',
+      sliders:[['wip','Frentes ativas',1,5,1,2,'frentes']] },
+    { type:'choice', id:'horizonte', title:'Qual horizonte te move mais?', sub:'Define o prazo sugerido das metas novas.',
+      opts:[['90d','90 dias','Ciclo curto, resultado visível.',1],['1a','1 ano','Construção com fôlego.'],['10a','Década','A tese grande, quebrada depois.']] },
+    { type:'done', title:'Projetos configurado.', sub:'Na aba Roadmap você vê os trilhos, o gate e quantas frentes estão ativas.' }
+  ],
+  timeline:[
+    { type:'hero', glyph:'📍', title:'A memória com contexto', sub:'Não só o que aconteceu — o porquê, guardado junto.',
+      feats:[['🧭','O porquê fica','Cada marco guarda o motivo. É isso que vira memória.'],['⚡','Marcos automáticos','Metas concluídas e exames que viram entram sozinhos.'],['🔎','Sua história visível','Um ano inteiro numa tela, por área da vida.']] },
+    { type:'choice', id:'inicio', title:'De quando começamos a contar?', sub:'Só pra posicionar a linha — você pode registrar marcos de qualquer data.',
+      opts:[['ano','Este ano','O recorte mais comum.',1],['sempre','Desde sempre','Quero registrar coisas antigas também.']] },
+    { type:'done', title:'Linha do tempo pronta.', sub:'Registre o primeiro marco — e não esqueça de escrever o porquê.' }
+  ],
+  cerebro:[
+    { type:'hero', glyph:'🧠', title:'A conta sempre aberta', sub:'O Cérebro lê os outros oito módulos e mostra sua vida como sistema.',
+      feats:[['🔗','Cruza os módulos','Correlações entre corpo, mente, capital e propósito.'],['📖','Nunca inventa número','Sem dado, ele diz "ainda não sei". Todo número tem origem.'],['🪞','Espelho, não juiz','Hipóteses pra você aceitar ou descartar — e ele recalibra.']] },
+    { type:'choice', id:'tom', title:'Como prefere receber os insights?', sub:'Muda o tom, nunca o rigor do número.',
+      opts:[['direto','Direto','Fato e conta, sem rodeio.'],['gentil','Gentil','Contexto antes da conclusão.',1],['provocativo','Provocativo','Faz a pergunta difícil.']] },
+    { type:'done', title:'Cérebro ligado.', sub:'Quanto mais os módulos registram, mais fino ele fica. Toque em "ver a conta" em qualquer número.' }
+  ],
+  espiritual:[
+    { type:'hero', glyph:'🕊️', title:'O eixo silencioso', sub:'Opcional e discreto — só existe se você quiser. Nada aqui vira cobrança.',
+      feats:[['🧘','Práticas, não metas','Sequência acompanhada com leveza, sem culpa por falhar.'],['✍️','Reflexões guardadas','O que você escreve aqui não vira métrica de ninguém.'],['🎯','Intenção da semana','Uma frase que orienta — e some quando a semana vira.']] },
+    { type:'choice', id:'praticas', title:'O que faz sentido acompanhar?', sub:'Escolha um ponto de partida. Adicione ou remova quando quiser.',
+      opts:[['meditacao','Meditação e silêncio','Alguns minutos por dia.',1],['gratidao','Gratidão','Três coisas, no fim do dia.'],['leitura','Leitura contemplativa','Um texto que assenta.'],['nenhuma','Prefiro não usar','O módulo fica desligado e some do índice.']] },
+    { type:'done', title:'Espiritual configurado.', sub:'Sem sequência pra defender, sem número pra bater. É só seu.' }
+  ],
+});
+
+/* Boas-vindas: a experiência "primeiro iPhone". Só abre por link
+   (mini-app.html?fluxo=bemvindo) — nunca dispara sozinho. */
+const WELCOME = [
+  { type:'hello' },
+  { type:'form', title:'Como devemos te chamar?', sub:'Seu Assessor fala com você pelo nome — como um bom parceiro faria.',
+    fields:[['nome','Nome','text','Seu nome']] },
+  { type:'choice', id:'intensidade', title:'Quanto o seu Assessor deve falar?', sub:'Você muda isso quando quiser, nos Ajustes.',
+    opts:[['minimo','Mínimo','Só o essencial. Sem interrupções.'],['medio','Médio','Equilíbrio entre presença e silêncio.',1],['parceirao','Parceirão','Acompanha de perto e celebra junto.']] },
+  { type:'hero', glyph:'🤝', title:'O que ele é — e o que não é', sub:'Combinado é combinado, desde o primeiro dia.',
+    feats:[
+      ['🪞','Espelho, não juiz','Mostra os fatos com respeito. Nunca faz você se sentir mal.'],
+      ['📖','Nunca inventa número','Sem dado, ele diz "ainda não sei". Todo número tem origem.'],
+      ['🩺','Não é médico nem psicólogo','Cuida dos hábitos e encaminha a profissionais quando é clínico.'],
+      ['🔒','Seus dados são seus','Tudo fica no seu aparelho. Exporte ou apague quando quiser.']] },
+  { type:'done', title:'Tudo pronto.', sub:'Cada módulo pede uma configuração rápida na primeira visita — como um aparelho novo.' }
+];
+
+const GENERIC = [
+  { type:'hero', glyph:'✦', title:'Vamos configurar', sub:'Poucos toques e este módulo já começa útil, com dados de demonstração.',
+    feats:[['🧩','Preset primeiro','Você escolhe um ponto de partida, nunca uma tela em branco.'],['↔️','Tudo ajustável','Nada é definitivo — mude aqui ou no WhatsApp.'],['🔒','Seus dados são seus','Tudo fica no seu aparelho.']] },
+  { type:'choice', id:'ritmo', title:'Como você quer começar?', sub:'Dá pra trocar depois.',
+    opts:[['leve','Leve','O essencial, sem peso.',1],['completo','Completo','Todos os recursos desde já.']] },
+  { type:'done', title:'Pronto.', sub:'Este módulo já está ativo com um ponto de partida.' }
+];
+
+/* ?fluxo=bemvindo abre as boas-vindas; senão, o mini-app do módulo (?mod=) */
+const FLUXO = qs.get('fluxo');
+const isWelcome = FLUXO === 'bemvindo';
+const flow = isWelcome ? WELCOME : (FLOWS[MOD] || GENERIC);
+const mc = isWelcome ? '#D97F5A' : (COLORS[MOD] || '#D97F5A');
+document.documentElement.style.setProperty('--mc', mc);
+document.getElementById('hmod').textContent = isWelcome ? 'BEM-VINDO' : (NAMES[MOD] || 'MÓDULO');
+
+let step = 0; const answers = {};
+const main = document.getElementById('main'), prog = document.getElementById('prog'), pcount = document.getElementById('pcount');
+const contBtn = document.getElementById('cont'), backBtn = document.getElementById('back');
+
+function buildProg(){ prog.innerHTML = flow.map((_,i)=>`<i class="${i<step?'done':i===step?'on':''}"></i>`).join(''); pcount.textContent = `PASSO ${step+1} DE ${flow.length}`; }
+
+const fmt = { hhmm:v=>String(Math.floor(v/60)).padStart(2,'0')+':'+String(v%60).padStart(2,'0'), kcal:v=>v+' kcal', g:v=>v+' g', min:v=>v>=60?(Math.floor(v/60)+'h'+(v%60?String(v%60).padStart(2,'0'):'')):(v+'min'), frentes:v=>v+(v===1?' frente':' frentes') };
+
+function render(){
+  const s = flow[step]; buildProg();
+  backBtn.style.display = step>0 && s.type!=='done' ? 'block' : 'none';
+  contBtn.textContent = s.type==='done' ? 'Concluir' : (step===flow.length-1 ? 'Concluir' : 'Continuar');
+  let h = '<div class="step">';
+  if(s.type==='hero'){
+    h += `<div class="glyph">${s.glyph}</div><h1>${s.title}</h1><div class="sub">${s.sub}</div><div class="feats">`;
+    h += s.feats.map(f=>`<div class="feat"><div class="fi">${f[0]}</div><div><div class="ft">${f[1]}</div><div class="fd">${f[2]}</div></div></div>`).join('');
+    h += `</div>`;
+  } else if(s.type==='choice'){
+    if(answers[s.id]===undefined){ const d=s.opts.find(o=>o[3]); answers[s.id]=(d||s.opts[0])[0]; }
+    h += `<h1>${s.title}</h1><div class="sub">${s.sub}</div><div class="opts">`;
+    h += s.opts.map(o=>`<button class="opt ${answers[s.id]===o[0]?'sel':''}" data-v="${o[0]}"><div><div class="ot">${o[1]}</div><div class="od">${o[2]}</div></div><div class="chk">✓</div></button>`).join('');
+    h += `</div>`;
+  } else if(s.type==='sliders'){
+    h += `<h1>${s.title}</h1><div class="sub">${s.sub}</div><div class="slid">`;
+    h += s.sliders.map(sl=>{ if(answers[sl[0]]===undefined) answers[sl[0]]=sl[5]; const f=fmt[sl[6]]||(v=>v);
+      return `<div class="sl"><label><span>${sl[1]}</span><b id="v_${sl[0]}">${f(answers[sl[0]])}</b></label><input type="range" id="s_${sl[0]}" min="${sl[2]}" max="${sl[3]}" step="${sl[4]}" value="${answers[sl[0]]}" data-fmt="${sl[6]}"></div>`; }).join('');
+    h += `</div>`;
+  } else if(s.type==='form'){
+    h += `<h1>${s.title}</h1><div class="sub">${s.sub}</div><div class="fields">`;
+    h += s.fields.map(f=>`<div class="fld"><label>${f[1]}</label><input id="f_${f[0]}" type="${f[2]}" placeholder="${f[3]}" value="${answers[f[0]]||''}"></div>`).join('');
+    h += `</div>`;
+  } else if(s.type==='hello'){
+    h += `<div class="hello"><div class="ola" id="ola">Olá</div>
+      <div class="ola-sub">Antes de começar, três perguntas rápidas. Nada aqui é definitivo — tudo se muda depois, em um toque.</div></div>`;
+  } else if(s.type==='done'){
+    h += `<div class="done"><div class="ring">✓</div><h1>${s.title}</h1><div class="sub" style="max-width:30ch">${s.sub}</div></div>`;
+  }
+  h += '</div>';
+  main.innerHTML = h; main.scrollTop = 0;
+
+  /* o "Olá" troca de idioma sozinho, como na tela de setup do iPhone */
+  if(s.type==='hello'){
+    const OLAS = ['Olá','Hello','Hola','Bonjour','Ciao','こんにちは','Hallo','안녕하세요','Привет','مرحبا'];
+    const el = document.getElementById('ola');
+    const reduz = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if(el && !reduz){
+      let i = 0;
+      clearInterval(window.__olaT);
+      window.__olaT = setInterval(()=>{
+        if(!document.getElementById('ola')){ clearInterval(window.__olaT); return; }
+        i = (i+1) % OLAS.length;
+        el.style.animation='none'; void el.offsetWidth; el.style.animation='';
+        el.textContent = OLAS[i];
+      }, 1600);
+    }
+  } else { clearInterval(window.__olaT); }
+
+  main.querySelectorAll('.opt').forEach(b=> b.addEventListener('click', ()=>{ answers[s.id]=b.dataset.v; main.querySelectorAll('.opt').forEach(x=>x.classList.toggle('sel', x===b)); }));
+  main.querySelectorAll('input[type=range]').forEach(inp=> inp.addEventListener('input', ()=>{ const id=inp.id.slice(2); answers[id]=+inp.value; const f=fmt[inp.dataset.fmt]||(v=>v); document.getElementById('v_'+id).textContent=f(+inp.value); }));
+  main.querySelectorAll('.fld input').forEach(inp=> inp.addEventListener('input', ()=>{ answers[inp.id.slice(2)]=inp.value; }));
+}
+
+function next(){
+  if(flow[step].type==='done'){ finish(); return; }
+  if(step < flow.length-1){ step++; render(); }
+  else finish();
+}
+function finish(){
+  try{ localStorage.setItem('ma1:setup:'+(isWelcome?'bemvindo':MOD), JSON.stringify({ at:Date.now(), ...answers })); }catch(e){}
+  /* boas-vindas grava no perfil que o app inteiro já lê (ma1:profile),
+     sem apagar o que houver lá — aditivo, nunca sobrescreve o objeto. */
+  if(isWelcome){
+    try{
+      const P = JSON.parse(localStorage.getItem('ma1:profile') || '{}') || {};
+      if(answers.nome && answers.nome.trim()) P.nome = answers.nome.trim();
+      if(answers.intensidade) P.intensidade = answers.intensidade;
+      localStorage.setItem('ma1:profile', JSON.stringify(P));
+    }catch(e){}
+  }
+  /* o limite de WIP tem UMA fonte de verdade: pj_career, que a camada de
+     Roadmap lê. Sem isto o usuário configuraria aqui e o roadmap ignoraria. */
+  if(MOD === 'projetos' && answers.wip){
+    try{
+      const C = JSON.parse(localStorage.getItem('ma1:pj_career') || '{}') || {};
+      C.wip = +answers.wip;
+      localStorage.setItem('ma1:pj_career', JSON.stringify(C));
+    }catch(e){}
+  }
+  // sinaliza o pai (a experiência) pra fechar o modal
+  try{ parent.postMessage('miniapp-done','*'); }catch(e){}
+}
+contBtn.addEventListener('click', next);
+backBtn.addEventListener('click', ()=>{ if(step>0){ step--; render(); } });
+document.getElementById('later').addEventListener('click', ()=>{ try{ parent.postMessage('miniapp-done','*'); }catch(e){} });
+
+render();
+</script>
+
+<script>
+/* cursor customizado — mesmo comportamento do index.html */
+(function(){
+  var dot=document.getElementById('cdot'), ring=document.getElementById('cring');
+  if(!dot||!matchMedia('(hover: hover)').matches) return;
+  var cx=innerWidth/2, cy=innerHeight/2, rx=cx, ry=cy;
+  addEventListener('mousemove', function(e){ cx=e.clientX; cy=e.clientY; }, {passive:true});
+  (function laco(){ requestAnimationFrame(laco);
+    rx+=(cx-rx)*0.18; ry+=(cy-ry)*0.18;
+    dot.style.transform='translate('+cx+'px,'+cy+'px) translate(-50%,-50%)';
+    ring.style.transform='translate('+rx+'px,'+ry+'px) translate(-50%,-50%)';
+  })();
+  document.addEventListener('mouseover', function(e){ if(e.target.closest('button,input,.opt')) ring.classList.add('hot'); });
+  document.addEventListener('mouseout',  function(e){ if(e.target.closest('button,input,.opt')) ring.classList.remove('hot'); });
+})();
+</script>
