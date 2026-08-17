@@ -100,7 +100,15 @@ function falha(msg){
     const r = await fetch(webhook + '?code=' + encodeURIComponent(code) + '&state=' + encodeURIComponent(state), {
       headers: { 'ngrok-skip-browser-warning': '1' }
     });
-    if (!r.ok) throw new Error('http ' + r.status);
+    /* CUIDADO: `r.ok` NÃO basta. Quando o fluxo do n8n quebra no meio (código
+       expirado, secret errado, chave de criptografia errada), ele ainda
+       responde 200 -- só que com o corpo VAZIO, porque nunca chegou no nó
+       "Responder". Checar só o status faria esta tela dizer "conectado!"
+       para quem não conectou nada -- mentira pior que erro, porque a pessoa
+       só descobriria quando a agenda não funcionasse. Corpo cheio = passou
+       pelo nó Responder = conectou de verdade. */
+    const corpo = (await r.text()).trim();
+    if (!r.ok || !corpo) throw new Error('fluxo nao concluiu');
     sucesso();
   } catch(e) {
     falha('O Assessor não respondeu agora. Se o problema continuar, tenta conectar de novo mais tarde.');
