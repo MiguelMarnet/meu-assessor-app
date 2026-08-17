@@ -239,7 +239,9 @@ async function salvar(){
     return;
   }
   try{
-    const r=await fetch(CFG.WEBHOOK_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
+    /* 'ngrok-skip-browser-warning' evita a tela de aviso do ngrok gratuito.
+       Inofensivo em qualquer outro provedor -- é só um cabeçalho a mais. */
+    const r=await fetch(CFG.WEBHOOK_URL,{method:'POST',headers:{'Content-Type':'application/json','ngrok-skip-browser-warning':'1'},body:JSON.stringify(data)});
     if(!r.ok)throw 0;
     telaEscolhaGoogle();
   }catch(e){

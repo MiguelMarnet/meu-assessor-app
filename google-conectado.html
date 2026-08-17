@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Assessor.IA — Agenda conectada</title>
+<meta name="theme-color" content="#F7F1EA" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#221913" media="(prefers-color-scheme: dark)">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="paleta-sereno.css">
+<style>
+  /* Esta página é o ENDEREÇO DE RETORNO do Google, e mora aqui no GitHub
+     Pages de propósito -- não no n8n. Dois motivos:
+     1. O ngrok gratuito mostra uma tela de aviso quando o NAVEGADOR entra
+        direto no túnel. Dá pra pular com um cabeçalho, mas numa navegação
+        vinda do Google não dá pra mandar cabeçalho. Aqui a gente chama o
+        n8n por fetch, com o cabeçalho, e a tela de aviso nunca aparece.
+     2. Este endereço NUNCA muda. Então o que fica registrado no Google
+        Console é fixo pra sempre -- trocar de túnel deixa de exigir mexer
+        lá, que era o passo mais chato e mais fácil de esquecer. */
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:"Inter",-apple-system,system-ui,sans-serif;background:var(--bg);color:var(--ink);
+    min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;
+    -webkit-font-smoothing:antialiased}
+  .card{max-width:340px;width:100%;display:flex;flex-direction:column;align-items:center;gap:12px;text-align:center}
+  .orb{width:84px;height:84px;border-radius:50%;
+    background:linear-gradient(180deg,var(--areia-300),var(--terra-300) 45%,var(--terra-900));
+    box-shadow:0 18px 42px color-mix(in srgb,var(--terra-700) 30%,transparent);
+    transition:opacity .4s ease}
+  .orb.carregando{animation:pulsa 1.4s ease-in-out infinite}
+  @keyframes pulsa{0%,100%{transform:scale(1);opacity:.75}50%{transform:scale(1.06);opacity:1}}
+  .eyebrow{font-family:"Space Mono",ui-monospace,monospace;font-size:10px;letter-spacing:.18em;
+    text-transform:uppercase;color:var(--ink-faint)}
+  h1{font-size:22px;font-weight:400;letter-spacing:-.02em;line-height:1.2}
+  p.sub{color:var(--ink-soft);font-size:13px;line-height:1.55}
+  .howto{background:var(--acento-soft);border-radius:10px;padding:14px;margin-top:6px;text-align:left;width:100%}
+  .howto b{font-size:12.5px;display:block;margin-bottom:2px}
+  .ex{font-family:"Space Mono",ui-monospace,monospace;font-size:11.5px;background:var(--panel);
+    border:1px solid var(--line);border-radius:8px;padding:9px 11px;margin-top:8px}
+  .ex i{display:block;font-family:"Inter",sans-serif;font-style:normal;font-size:11px;color:var(--ink-soft);margin-top:4px}
+  a.btn{margin-top:10px;display:inline-block;text-decoration:none;background:var(--acento-fw);
+    color:#FBF6F0;font-weight:600;font-size:14px;padding:13px 26px;border-radius:11px}
+  .erro{color:var(--alerta);font-size:13px;line-height:1.55}
+  @media (prefers-reduced-motion: reduce){ .orb.carregando{animation:none} }
+</style>
+</head>
+<body>
+<div class="card" id="card">
+  <div class="orb carregando"></div>
+  <div class="eyebrow">Conectando</div>
+  <h1>Ligando sua Agenda…</h1>
+  <p class="sub">Só um instante.</p>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const q = new URLSearchParams(location.search);
+
+const EXEMPLOS = `
+  <div class="howto">
+    <b>Manda mensagem no WhatsApp, do seu jeito:</b>
+    <div class="ex">almoço 30<i>→ lança o gasto na categoria certa</i></div>
+    <div class="ex">reunião com a Ana amanhã 15h<i>→ entra na sua Agenda do Google</i></div>
+    <div class="ex">lembrar de pagar o aluguel dia 5<i>→ vira tarefa com prazo</i></div>
+    <p class="sub" style="margin-top:10px;font-size:12px">Pode mandar áudio também — ele entende.</p>
+  </div>`;
+
+function sucesso(){
+  $('card').innerHTML = `<div class="orb"></div>
+    <div class="eyebrow">Agenda conectada</div>
+    <h1>Pronto! Agora é só falar.</h1>
+    ${EXEMPLOS}
+    <a class="btn" href="./">Abrir o Assessor.IA</a>`;
+}
+function falha(msg){
+  $('card').innerHTML = `<div class="orb" style="opacity:.35"></div>
+    <div class="eyebrow">Não deu certo</div>
+    <h1>Não consegui ligar sua Agenda.</h1>
+    <p class="erro">${msg}</p>
+    <p class="sub">Sua conta continua funcionando normalmente pelo WhatsApp — finanças, tarefas e lembretes não dependem disso.</p>
+    <a class="btn" href="./">Voltar</a>`;
+}
+
+(async function(){
+  if (q.get('error')) { falha('Você cancelou a autorização no Google, ou ela expirou.'); return; }
+  const code = q.get('code'), state = q.get('state');
+  if (!code || !state) { falha('O Google não devolveu os dados esperados. Tenta conectar de novo pelo cadastro.'); return; }
+
+  let webhook = '';
+  try {
+    const c = await (await fetch('config.json', {cache:'no-store'})).json();
+    webhook = c.googleOAuthWebhook || '';
+  } catch(e) {}
+  if (!webhook) { falha('Configuração indisponível no momento. Tenta de novo em instantes.'); return; }
+
+  try {
+    // O cabeçalho abaixo é o que faz o ngrok NÃO mostrar a tela de aviso dele.
+    const r = await fetch(webhook + '?code=' + encodeURIComponent(code) + '&state=' + encodeURIComponent(state), {
+      headers: { 'ngrok-skip-browser-warning': '1' }
+    });
+    if (!r.ok) throw new Error('http ' + r.status);
+    sucesso();
+  } catch(e) {
+    falha('O Assessor não respondeu agora. Se o problema continuar, tenta conectar de novo mais tarde.');
+  }
+})();
+</script>
+</body>
+</html>

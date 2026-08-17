@@ -2,6 +2,7 @@
   "cadastroWebhook": "https://disregard-zips-retreat.ngrok-free.dev/webhook/meu-assessor-cadastro",
   "cadastroToken": "XwJDMrctleHy_Vr93gVt47XQwHcAmriP",
   "googleOAuthClientId": "1095588671154-p9saim15plmg7up12sgqa6mqb49f9k83.apps.googleusercontent.com",
-  "googleOAuthCallbackUrl": "https://disregard-zips-retreat.ngrok-free.dev/webhook/google-oauth-callback",
-  "googleDisconnectWebhook": "https://disregard-zips-retreat.ngrok-free.dev/webhook/google-disconnect"
+  "googleOAuthCallbackUrl": "https://miguelmarnet.github.io/meu-assessor-app/google-conectado.html",
+  "googleDisconnectWebhook": "https://disregard-zips-retreat.ngrok-free.dev/webhook/google-disconnect",
+  "googleOAuthWebhook": "https://disregard-zips-retreat.ngrok-free.dev/webhook/google-oauth-callback"
 }
