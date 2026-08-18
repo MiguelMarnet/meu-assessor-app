@@ -153,6 +153,27 @@
   window.__sessao = session || null;
   window.__entrarGoogle = () => supa.auth.signInWithOAuth({ provider: "google", options: { redirectTo: location.href.split("#")[0].split("?")[0] } });
   if (window.__aplicarSessao) window.__aplicarSessao();
+
+  /* A sessao pode chegar um instante DEPOIS deste script (o supabase-js ainda
+     esta lendo o hash que o Google devolveu na URL). Sem este ouvinte, quem
+     voltasse do login veria a porta de entrada de novo, como se nao tivesse
+     entrado. */
+  supa.auth.onAuthStateChange((_ev, s2) => {
+    if (s2) { window.__sessao = s2; if (window.__aplicarSessao) window.__aplicarSessao(); }
+  });
+
+  /* O Google/Supabase devolvem erro pela propria URL. Sem mostrar isso, a
+     pessoa so ve a tela inicial de novo e nao entende o que houve. */
+  const p = new URLSearchParams(location.search.slice(1) + "&" + location.hash.slice(1));
+  if (p.get("error")) {
+    const el = document.getElementById("errAuth");
+    if (el) {
+      el.textContent = p.get("error_description")
+        ? "Nao consegui entrar com o Google: " + p.get("error_description").split("+").join(" ")
+        : "Nao consegui entrar com o Google agora. Tenta de novo, ou siga sem conta Google.";
+      el.style.display = "block";
+    }
+  }
 </script>
 <script>
 // Config: ?webhook=URL&token=SEGREDO tem prioridade (útil pra teste local).
