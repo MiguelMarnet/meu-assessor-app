@@ -84,11 +84,24 @@
 
   <!-- 1 nome + whatsapp -->
   <div class="step on" id="s1">
-    <h2>Oi! Vamos te cadastrar 🍯</h2>
-    <p class="sub">Só o essencial pra começar — o resto você ajusta pelo WhatsApp mesmo, conversando.</p>
-    <div class="field"><label>Seu nome</label><input type="text" id="nome" placeholder="Como quer ser chamado(a)"></div>
-    <div class="field"><label>Seu WhatsApp (com DDD)</label><input type="tel" id="whats" placeholder="61 9XXXX-XXXX"></div>
-    <p class="sub" id="errStep1" style="color:var(--alerta);display:none;margin-top:-8px"></p>
+    <!-- Porta de entrada: Google primeiro. A conta pertence ao login Google
+         (durável, recuperável); o WhatsApp é o canal, e pode ser trocado
+         depois sem perder nada. Quem não quiser Google segue pelo link. -->
+    <div id="s1auth">
+      <h2>Oi! Bora começar 🍯</h2>
+      <p class="sub">Entre com sua conta Google — é ela que guarda seu acesso, então você nunca perde a conta, mesmo se trocar de número.</p>
+      <button class="btn google" id="btnEntrarGoogle" style="width:100%">Entrar com Google</button>
+      <p class="sub" style="text-align:center;margin:14px 0 0"><a href="#" id="semGoogle" style="color:inherit;opacity:.65">Prefiro continuar sem conta Google</a></p>
+      <p class="sub" id="errAuth" style="color:var(--alerta);display:none;text-align:center;margin-top:10px"></p>
+    </div>
+    <div id="s1dados" style="display:none">
+      <h2>Oi! Vamos te cadastrar 🍯</h2>
+      <p class="sub" id="s1sub">Só o essencial pra começar — o resto você ajusta pelo WhatsApp mesmo, conversando.</p>
+      <div class="field"><label>Seu nome</label><input type="text" id="nome" placeholder="Como quer ser chamado(a)"></div>
+      <div class="field"><label>Seu WhatsApp (com DDD)</label><input type="tel" id="whats" placeholder="61 9XXXX-XXXX"></div>
+      <p class="sub" style="margin:-10px 0 0;font-size:12px">É por aqui que o Assessor vai falar com você.</p>
+      <p class="sub" id="errStep1" style="color:var(--alerta);display:none;margin-top:8px"></p>
+    </div>
   </div>
 
   <!-- 2 preset -->
@@ -126,6 +139,21 @@
   </div>
 </div>
 
+<script type="module">
+  /* Login Google no cadastro. A conta passa a pertencer ao Google e o telefone
+     vira só o canal -- assim quem perde/troca o número não perde a conta, e
+     número reciclado pela operadora não dá acesso ao histórico de ninguém. */
+  import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+  const supa = createClient(
+    "https://uyxowxpmzlfjqbumkeae.supabase.co",
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV5eG93eHBtemxmanFidW1rZWFlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUzNzMyNzUsImV4cCI6MjEwMDk0OTI3NX0.I5sNg70BHUG8XZVnaEvNjdygAR8-cQN93xibC4VhYfc"
+  );
+  window.Supa = supa;
+  const { data: { session } } = await supa.auth.getSession();
+  window.__sessao = session || null;
+  window.__entrarGoogle = () => supa.auth.signInWithOAuth({ provider: "google", options: { redirectTo: location.href.split("#")[0].split("?")[0] } });
+  if (window.__aplicarSessao) window.__aplicarSessao();
+</script>
 <script>
 // Config: ?webhook=URL&token=SEGREDO tem prioridade (útil pra teste local).
 // Sem isso, busca config.json do mesmo lugar onde a página está hospedada —
@@ -243,6 +271,11 @@ async function salvar(){
        Inofensivo em qualquer outro provedor -- é só um cabeçalho a mais. */
     const r=await fetch(CFG.WEBHOOK_URL,{method:'POST',headers:{'Content-Type':'application/json','ngrok-skip-browser-warning':'1'},body:JSON.stringify(data)});
     if(!r.ok)throw 0;
+    /* Conta criada pelo n8n (service_role). Se a pessoa entrou com Google,
+       amarra a conta ao login agora -- é o que a torna recuperável depois. */
+    if (window.Supa && window.__sessao) {
+      try { await window.Supa.rpc('link_my_account', { p_phone: normWhats($('whats').value) }); } catch(e){}
+    }
     telaEscolhaGoogle();
   }catch(e){
     $('saveState').innerHTML='<p class="sub" style="text-align:center;margin-top:16px">Não consegui salvar agora. Tenta de novo em instantes.</p><button class="btn primary" style="margin-top:12px;width:100%" onclick="salvar()">Tentar de novo</button>';
@@ -291,10 +324,42 @@ function comoUsar(comGoogle){
 }
 const esc = s => String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
+/* ---- Porta de entrada: Google primeiro ------------------------------------
+   window.__sessao vem do modulo Supabase no topo. Ele carrega depois deste
+   script, por isso ele chama __aplicarSessao() quando terminar. */
+let entrou = false;   // true = ja passou da porta (com Google ou sem)
+function mostrarDados(comGoogle, nome){
+  entrou = true;
+  $('s1auth').style.display = 'none';
+  $('s1dados').style.display = 'block';
+  if (nome) $('nome').value = nome;
+  $('s1sub').textContent = comGoogle
+    ? 'Só falta o WhatsApp — é por lá que o Assessor fala com você.'
+    : 'Sem conta Google: guarde bem seu número, porque é ele que identifica você.';
+  show();
+  ($('whats').value ? $('nome') : $('whats')).focus();
+}
+window.__aplicarSessao = function(){
+  const s = window.__sessao;
+  if (!s) return;
+  const u = s.user || {};
+  const m = u.user_metadata || {};
+  mostrarDados(true, (m.full_name || m.name || '').split(' ')[0] || '');
+};
+document.addEventListener('click', e => {
+  if (e.target && e.target.id === 'btnEntrarGoogle') {
+    if (window.__entrarGoogle) window.__entrarGoogle();
+    else { $('errAuth').textContent = 'Login indisponível agora. Use a opção sem conta Google.'; $('errAuth').style.display='block'; }
+  }
+  if (e.target && e.target.id === 'semGoogle') { e.preventDefault(); mostrarDados(false, ''); }
+});
+
 function show(){
   for(let i=1;i<=4;i++)$('s'+i).classList.toggle('on',i===step);
   $('prog').style.width=(step/4*100)+'%';$('stepN').textContent=step+' / 4';
   $('back').style.visibility=step===1?'hidden':'visible';
+  /* na porta de entrada nao existe "Continuar": a acao e escolher como entrar */
+  document.querySelector('.nav').style.display = (step===1 && !entrou) ? 'none' : 'flex';
   $('next').textContent=step===4?'Criar minha conta':'Continuar';
   if(step===2)renderPresets();if(step===3)renderChips();if(step===4)renderResumo();
 }
