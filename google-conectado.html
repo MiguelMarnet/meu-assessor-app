@@ -84,7 +84,19 @@ function falha(msg){
 }
 
 (async function(){
-  if (q.get('error')) { falha('Você cancelou a autorização no Google, ou ela expirou.'); return; }
+  if (q.get('error')) {
+    /* Não assumir que a pessoa cancelou. O Google devolve access_denied
+       também quando a conta não está na lista de testadores do app -- que é
+       o caso mais comum antes do app ser verificado. Dizer "você cancelou"
+       nesse caso joga a culpa em quem não fez nada errado. */
+    const cod = q.get('error');
+    const desc = (q.get('error_description') || '').split('+').join(' ');
+    const motivo = cod === 'access_denied'
+      ? 'O Google não liberou o acesso. Se você não cancelou na tela dele, é porque sua conta ainda não está autorizada a testar o Assessor — me avisa que eu libero.'
+      : 'O Google recusou a autorização.';
+    falha(motivo + (desc ? '<br><small style="opacity:.7">' + desc + '</small>' : '<br><small style="opacity:.7">' + cod + '</small>'));
+    return;
+  }
   const code = q.get('code'), state = q.get('state');
   if (!code || !state) { falha('O Google não devolveu os dados esperados. Tenta conectar de novo pelo cadastro.'); return; }
 
