@@ -71,6 +71,16 @@
   .howto b{font-size:13px;display:block;margin-bottom:4px}
   .howto .ex{font-family:var(--mono);font-size:11.5px;background:var(--card);border:1px solid var(--line);border-radius:8px;padding:9px 11px;margin-top:8px}
   .howto .ex i{display:block;font-family:var(--sans);font-style:normal;font-size:11px;color:var(--muted);margin-top:4px}
+  /* Simulação da tela de aviso do Google. Ela assusta — parece golpe — e é
+     onde muita gente desiste. Mostrar ANTES, com o botão certo destacado,
+     transforma um susto em algo esperado. */
+  .mock{border:1px solid var(--line);border-radius:var(--r);background:var(--card);padding:14px;margin-top:12px}
+  .mock .mt{font-size:13px;font-weight:600;margin-bottom:3px}
+  .mock .ms{font-size:11.5px;color:var(--muted);line-height:1.5}
+  .mock .mb{display:flex;gap:8px;justify-content:flex-end;margin-top:12px;align-items:center}
+  .mock .mb span{font-size:12px;color:var(--muted)}
+  .mock .mb b{font-size:12px;color:var(--gold);border:1px solid var(--gold);border-radius:6px;padding:4px 10px}
+  .mock .seta{font-family:var(--mono);font-size:10.5px;color:var(--gold);text-align:right;margin-top:6px;letter-spacing:.04em}
   .done{text-align:center;padding:24px 0}
   .done .ic{width:56px;height:56px;border-radius:50%;background:var(--gold-soft);display:flex;align-items:center;justify-content:center;font-size:26px;margin:0 auto 16px}
   .skip{display:block;text-align:center;font-size:13px;color:var(--muted);margin-top:12px;cursor:pointer;text-decoration:underline}
@@ -89,9 +99,9 @@
          depois sem perder nada. Quem não quiser Google segue pelo link. -->
     <div id="s1auth">
       <h2>Oi! Bora começar 🍯</h2>
-      <p class="sub">Entre com sua conta Google — é ela que guarda seu acesso, então você nunca perde a conta, mesmo se trocar de número.</p>
+      <p class="sub">Entre com sua conta Google — é ela que guarda seu acesso. Você nunca perde a conta, mesmo trocando de número.</p>
       <button class="btn google" id="btnEntrarGoogle" style="width:100%">Entrar com Google</button>
-      <p class="sub" style="text-align:center;margin:14px 0 0"><a href="#" id="semGoogle" style="color:inherit;opacity:.65">Prefiro continuar sem conta Google</a></p>
+      <p class="sub" style="text-align:center;margin:14px 0 0;font-size:12px">Sua conta fica no login Google. É o que permite trocar de número sem perder nada — e o que impede outra pessoa de assumir sua conta sabendo seu número.</p>
       <p class="sub" id="errAuth" style="color:var(--alerta);display:none;text-align:center;margin-top:10px"></p>
     </div>
     <div id="s1dados" style="display:none">
@@ -265,8 +275,13 @@ function renderResumo(){
   $('resumo').innerHTML = `<b>${$('nome').value.trim()}</b> · ${$('whats').value.trim()}<br>Perfil: ${perfil} · ${selCat.size} categorias · ${selPag.size} formas de pagamento`;
 }
 function payload(){
+  /* O access_token vai junto para o n8n CONFERIR a sessão no Supabase antes de
+     criar a conta. Sem isso, o cadastro aceitaria qualquer número — a conta
+     nasceria sem dono e seria reivindicável por quem soubesse o telefone. */
+  const sessao = window.__sessao || {};
   return {
     token: CFG.TOKEN,
+    access_token: sessao.access_token || '',
     nome: $('nome').value.trim(),
     whatsapp: $('whats').value.trim(),
     categorias: [...selCat],
@@ -282,7 +297,11 @@ function validaStep1(){
   return true;
 }
 async function salvar(){
-  const data=payload(); $('saveState').innerHTML='<p class="sub" style="text-align:center;margin-top:16px">Criando sua conta…</p>';
+  const data=payload();
+  if(!data.access_token){
+    $('saveState').innerHTML='<p class="sub" style="text-align:center;margin-top:16px">Sua sessão do Google expirou. Entra de novo para criar a conta.</p><button class="btn primary" style="margin-top:12px;width:100%" onclick="location.reload()">Entrar de novo</button>';
+    return;
+  } $('saveState').innerHTML='<p class="sub" style="text-align:center;margin-top:16px">Criando sua conta…</p>';
   if(!CFG.WEBHOOK_URL){
     $('saveState').innerHTML='<p class="sub" style="text-align:center;margin-top:16px">Modo teste (sem webhook). Isto será enviado:</p><div class="jsonbox">'+JSON.stringify(data,null,2)+'</div>';
     return;
@@ -292,11 +311,10 @@ async function salvar(){
        Inofensivo em qualquer outro provedor -- é só um cabeçalho a mais. */
     const r=await fetch(CFG.WEBHOOK_URL,{method:'POST',headers:{'Content-Type':'application/json','ngrok-skip-browser-warning':'1'},body:JSON.stringify(data)});
     if(!r.ok)throw 0;
-    /* Conta criada pelo n8n (service_role). Se a pessoa entrou com Google,
-       amarra a conta ao login agora -- é o que a torna recuperável depois. */
-    if (window.Supa && window.__sessao) {
-      try { await window.Supa.rpc('link_my_account', { p_phone: normWhats($('whats').value) }); } catch(e){}
-    }
+    /* Não é mais preciso "amarrar" a conta depois: o n8n valida a sessão do
+       Google e já grava o auth_uid na criação. Amarrar pelo navegador era
+       frágil (o erro era engolido em silêncio) e a função que fazia isso
+       permitia assumir conta alheia sabendo só o número. */
     telaEscolhaGoogle();
   }catch(e){
     $('saveState').innerHTML='<p class="sub" style="text-align:center;margin-top:16px">Não consegui salvar agora. Tenta de novo em instantes.</p><button class="btn primary" style="margin-top:12px;width:100%" onclick="salvar()">Tentar de novo</button>';
@@ -324,9 +342,31 @@ function telaEscolhaGoogle(){
       <p>Funciona igual, sem conectar nada: seus compromissos ficam guardados aqui no Assessor e você consulta quando quiser. Finanças, tarefas e lembretes não mudam em nada.</p>
     </button>
     <p class="sub" style="text-align:center;margin-top:12px;font-size:12px">Dá pra mudar isso quando quiser, nos Ajustes.</p>`;
-  $('optCom').onclick = conectarGoogle;
+  $('optCom').onclick = telaAvisoGoogle;
   $('optSem').onclick = () => comoUsar(false);
 }
+/* Prepara a pessoa pra tela de aviso do Google. O app é novo e ainda não
+   passou pela verificação, então o Google mostra um alerta de "app não
+   verificado". Quem não sabe disso acha que é golpe e desiste — e desistir
+   aqui é perder a pessoa, não só o recurso. */
+function telaAvisoGoogle(){
+  document.querySelector('.nav').style.display='none';
+  $('saveState').innerHTML = `
+    <div class="group-t" style="margin-top:18px">Antes de continuar</div>
+    <p class="sub" style="margin-bottom:0">O Google vai mostrar um aviso dizendo que o Assessor não foi verificado por ele. Isso é esperado: somos novos e a verificação leva semanas. <b>Não é erro e não é golpe.</b></p>
+    <div class="mock">
+      <div class="mt">⚠️ O Google não verificou este app</div>
+      <div class="ms">É assim que a tela aparece. Toque em <b>Avançado</b> e depois em <b>Acessar Assessor.IA (não seguro)</b>.</div>
+      <div class="mb"><span>Voltar</span><b>Avançado</b></div>
+      <div class="seta">↑ é aqui que você toca</div>
+    </div>
+    <p class="sub" style="margin-top:14px">Pedimos acesso só à <b>Agenda</b> e às <b>Tarefas</b> — nada de e-mail, arquivos ou fotos. E dá pra desconectar quando quiser, nos Ajustes.</p>
+    <button class="btn primary" style="width:100%" id="avisoOk">Entendi, continuar</button>
+    <button class="btn" style="width:100%;margin-top:10px" id="avisoDepois">Deixa pra depois</button>`;
+  $('avisoOk').onclick = conectarGoogle;
+  $('avisoDepois').onclick = () => comoUsar(false);
+}
+
 /* Instrução curta e concreta: exemplos de mensagem real, não manual. */
 function comoUsar(comGoogle){
   document.querySelector('.nav').style.display='none';
@@ -340,7 +380,13 @@ function comoUsar(comGoogle){
       <div class="ex">lembrar de pagar o aluguel dia 5<i>→ vira tarefa com prazo</i></div>
       <p class="sub" style="margin:10px 0 0;font-size:12px">Pode mandar áudio também — ele entende.</p>
     </div>
+    <button class="btn primary" style="width:100%;margin-top:16px" id="irPainel">Abrir meu painel</button>
+    <p class="sub" style="text-align:center;margin-top:8px;font-size:12px">Você já está logado — o painel abre direto, sem entrar de novo.</p>
     ${comGoogle ? '' : '<button class="btn" style="width:100%;margin-top:14px" id="optDepois">📅 Mudei de ideia, quero conectar a Agenda</button>'}`;
+  /* A conta nasce vinculada ao login Google, entao o painel reconhece a pessoa
+     na hora -- nao pede login de novo nem cai na tela de vincular. Antes desta
+     sessao isso nao era verdade, e por isso a porta nao existia aqui. */
+  $('irPainel').onclick = () => { location.href = 'painel/'; };
   const b = $('optDepois'); if (b) b.onclick = conectarGoogle;
 }
 const esc = s => String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -354,9 +400,7 @@ function mostrarDados(comGoogle, nome){
   $('s1auth').style.display = 'none';
   $('s1dados').style.display = 'block';
   if (nome) $('nome').value = nome;
-  $('s1sub').textContent = comGoogle
-    ? 'Só falta o WhatsApp — é por lá que o Assessor fala com você.'
-    : 'Sem conta Google: guarde bem seu número, porque é ele que identifica você.';
+  $('s1sub').textContent = 'Só falta o WhatsApp — é por lá que o Assessor fala com você.';
   show();
   ($('whats').value ? $('nome') : $('whats')).focus();
 }
@@ -370,9 +414,10 @@ window.__aplicarSessao = function(){
 document.addEventListener('click', e => {
   if (e.target && e.target.id === 'btnEntrarGoogle') {
     if (window.__entrarGoogle) window.__entrarGoogle();
-    else { $('errAuth').textContent = 'Login indisponível agora. Use a opção sem conta Google.'; $('errAuth').style.display='block'; }
+    else { $('errAuth').textContent = 'Login indisponível agora. Tenta de novo em instantes.'; $('errAuth').style.display='block'; }
   }
-  if (e.target && e.target.id === 'semGoogle') { e.preventDefault(); mostrarDados(false, ''); }
+  /* Não existe mais caminho "sem Google": a conta PRECISA de dono. Sem login,
+     o cadastro nasceria órfão e qualquer pessoa poderia reivindicá-lo depois. */
 });
 
 function show(){

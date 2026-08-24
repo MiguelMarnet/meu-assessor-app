@@ -744,6 +744,9 @@
   async function boot(){
     const { data: { session } } = await supa.auth.getSession();
     if (!session) { telaEntrar(); return; }
+    /* Porteiro: conta com 2FA ativo não entra só com o login do Google.
+       Fica ANTES de qualquer leitura de dado — depois já seria tarde. */
+    if (window.Seguranca && !(await window.Seguranca.exigirSegundoFator())) return;
     const { data: row } = await supa.from('users').select('user_id').eq('auth_uid', session.user.id).maybeSingle();
     if (row) { abrirApp(row.user_id); return; }
     telaVincular(session);
@@ -906,8 +909,10 @@ const App = {
     Modal.open(`<h3>Ajustes</h3><p class="msub">Seu Assessor, do seu jeito. ${esc(statusConta)}</p>
       <label class="f">Seu nome</label><input type="text" id="cf_nome" value="${esc(p.nome)}">
       <label class="f">WhatsApp do Assessor (com DDI)</label><input type="text" id="cf_whats" value="${esc(p.whats)}" placeholder="5561999...">
-      <div class="mactions" style="flex-wrap:wrap">${(window.ModoPessoal && !Store.get('modo_pessoal')) ? '<button class="btn2 clickable" id="cf_realmode" style="border-color:var(--gold);color:var(--gold)">Começar com meus dados reais</button>' : ''}<button class="btn2 clickable" id="cf_boasvindas">Rever as boas-vindas</button>${dev ? '<button class="btn2 clickable" id="cf_n8n">Conectar ao n8n</button>' : ''}<button class="btn2 clickable" id="cf_export">Exportar dados</button>${window.__uid ? '<button class="btn2 clickable" id="cf_google">Desconectar Google Agenda</button><button class="btn2 clickable" id="cf_sair">Sair da conta</button>' : ''}<button class="btn2 clickable" id="cf_wipe">Apagar tudo</button><button class="btn2 primary clickable" id="cf_save">Salvar</button></div>`);
+      <div class="mactions" style="flex-wrap:wrap">${(window.ModoPessoal && !Store.get('modo_pessoal')) ? '<button class="btn2 clickable" id="cf_realmode" style="border-color:var(--gold);color:var(--gold)">Começar com meus dados reais</button>' : ''}<button class="btn2 clickable" id="cf_boasvindas">Rever as boas-vindas</button>${dev ? '<button class="btn2 clickable" id="cf_n8n">Conectar ao n8n</button>' : ''}<button class="btn2 clickable" id="cf_export">Exportar dados</button>${window.__uid ? '<button class="btn2 clickable" id="cf_2fa">Verificação em duas etapas</button><button class="btn2 clickable" id="cf_google">Desconectar Google Agenda</button><button class="btn2 clickable" id="cf_sair">Sair da conta</button>' : ''}<button class="btn2 clickable" id="cf_wipe">Apagar tudo</button><button class="btn2 primary clickable" id="cf_save">Salvar</button></div>`);
     /* Só aparecem com login: sem conta não há o que desconectar nem de onde sair. */
+    const b2fa = document.getElementById('cf_2fa');
+    if (b2fa) b2fa.onclick = () => window.Seguranca.abrir();
     const bGoogle = document.getElementById('cf_google');
     if (bGoogle) bGoogle.onclick = async () => {
       const { data: temGoogle } = await window.Supa.rpc('my_google_status');
@@ -988,6 +993,7 @@ window.__bumpLive();
 <script src="screens-cerebro.js"></script>
 <script src="screens-espiritual.js"></script>
 <script src="screens-wa.js"></script>
+<script src="seguranca.js"></script>
 
 <script type="importmap">
 { "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js", "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/" } }
