@@ -102,13 +102,17 @@
       <p class="sub">Entre com sua conta Google — é ela que guarda seu acesso. Você nunca perde a conta, mesmo trocando de número.</p>
       <button class="btn google" id="btnEntrarGoogle" style="width:100%">Entrar com Google</button>
       <p class="sub" style="text-align:center;margin:14px 0 0;font-size:12px">Sua conta fica no login Google. É o que permite trocar de número sem perder nada — e o que impede outra pessoa de assumir sua conta sabendo seu número.</p>
+      <p class="sub" style="text-align:center;margin:10px 0 0;font-size:12px"><b>Já tem conta?</b> É o mesmo botão — o Assessor reconhece você e abre seu painel, sem cadastrar de novo.</p>
       <p class="sub" id="errAuth" style="color:var(--alerta);display:none;text-align:center;margin-top:10px"></p>
     </div>
     <div id="s1dados" style="display:none">
       <h2>Oi! Vamos te cadastrar 🍯</h2>
       <p class="sub" id="s1sub">Só o essencial pra começar — o resto você ajusta pelo WhatsApp mesmo, conversando.</p>
       <div class="field"><label>Seu nome</label><input type="text" id="nome" placeholder="Como quer ser chamado(a)"></div>
-      <div class="field"><label>Seu WhatsApp (com DDD)</label><input type="tel" id="whats" placeholder="61 9XXXX-XXXX"></div>
+      <div class="field"><label>Seu WhatsApp (com DDD)</label>
+        <input type="tel" id="whats" inputmode="numeric" autocomplete="tel-national" maxlength="16" placeholder="(61) 99999-9999">
+        <p class="sub" id="whatsDica" style="font-size:12px;margin:6px 0 0;min-height:17px"></p>
+      </div>
       <p class="sub" style="margin:-10px 0 0;font-size:12px">É por aqui que o Assessor vai falar com você.</p>
       <p class="sub" id="errStep1" style="color:var(--alerta);display:none;margin-top:8px"></p>
     </div>
@@ -215,6 +219,73 @@ function normWhats(v){
   if (!n.startsWith('55')) n = '55' + n;
   return (n.length===13) ? n.slice(0,4)+n.slice(5) : n;
 }
+
+/* ---- Campo de WhatsApp: guiar, não punir --------------------------------
+   O campo se formata sozinho enquanto a pessoa digita, aceita colado em
+   qualquer formato (+55, pontos, parênteses) e diz o que FALTA em vez de
+   dizer "inválido" no fim. Validação que pune é anti-padrão: a pessoa erra,
+   leva bronca e não sabe o que fazer.
+
+   O que a máscara resolve: número ilegível ou fora do padrão.
+   O que ela NÃO resolve: número errado mas plausível (digitou o do vizinho).
+   Só a confirmação por código no WhatsApp prova posse — está na lista. */
+
+/* DDDs que existem de verdade. Sem isso, "00" ou "13" passam como válidos e
+   o erro só aparece quando a mensagem nunca chega. */
+const DDDS = [11,12,13,14,15,16,17,18,19,21,22,24,27,28,31,32,33,34,35,37,38,
+  41,42,43,44,45,46,47,48,49,51,53,54,55,61,62,63,64,65,66,67,68,69,
+  71,73,74,75,77,79,81,82,83,84,85,86,87,88,89,91,92,93,94,95,96,97,98,99];
+
+function soDigitosWhats(v){
+  let d = String(v||'').replace(/\D/g,'');
+  if (d.startsWith('55') && d.length > 11) d = d.slice(2);   // colou com +55
+  return d.slice(0,11);
+}
+
+function formatarWhats(d){
+  if (!d) return '';
+  if (d.length <= 2) return '(' + d;
+  if (d.length <= 7) return '(' + d.slice(0,2) + ') ' + d.slice(2);
+  return '(' + d.slice(0,2) + ') ' + d.slice(2,7) + '-' + d.slice(7);
+}
+
+/* Devolve {ok, dica}. A dica é sempre no tom de "falta isto", nunca de erro. */
+function conferirWhats(d){
+  if (!d) return { ok:false, dica:'' };
+  if (d.length < 2) return { ok:false, dica:'Começa pelo DDD — 61 para Brasília.' };
+  const ddd = Number(d.slice(0,2));
+  if (!DDDS.includes(ddd)) return { ok:false, dica:'O DDD ' + d.slice(0,2) + ' não existe no Brasil. Confere?' };
+  /* Avisa cedo que é celular: quem começou a digitar um fixo descobre no
+     terceiro dígito, não depois de digitar o número inteiro. */
+  if (d.length >= 3 && d[2] !== '9') return { ok:false, dica:'O WhatsApp é num celular — depois do DDD vem o 9.' };
+  if (d.length < 11) {
+    const faltam = 11 - d.length;
+    return { ok:false, dica: faltam===1 ? 'Falta 1 dígito.' : 'Faltam ' + faltam + ' dígitos.' };
+  }
+  return { ok:true, dica:'Certinho ✔' };
+}
+
+/* O user_id guardado é 55 + DDD + 8 dígitos: a normalização TIRA o 9 do
+   celular. Para mostrar de volta é preciso recolocá-lo, senão sai torto. */
+function bonitoDoUserId(uid){
+  const d = String(uid||'').replace(/\D/g,'');
+  if (d.length !== 12 || !d.startsWith('55')) return String(uid||'');
+  return '(' + d.slice(2,4) + ') 9' + d.slice(4,8) + '-' + d.slice(8);
+}
+
+function ligarCampoWhats(){
+  const el = $('whats'), dica = $('whatsDica');
+  if (!el) return;
+  const pintar = () => {
+    const d = soDigitosWhats(el.value);
+    el.value = formatarWhats(d);
+    const r = conferirWhats(d);
+    dica.textContent = r.dica;
+    dica.style.color = r.ok ? 'var(--gold)' : 'var(--ink-faint)';
+  };
+  el.addEventListener('input', pintar);
+  el.addEventListener('paste', () => setTimeout(pintar, 0));
+}
 function conectarGoogle(){
   const errEl = $('errGoogle'); errEl.style.display='none';
   const raw = $('whats').value.replace(/\D/g,'');
@@ -272,7 +343,16 @@ function addCustom(){
   selCat.add(v);$('newCat').value='';renderChips();
 }
 function renderResumo(){
-  $('resumo').innerHTML = `<b>${$('nome').value.trim()}</b> · ${$('whats').value.trim()}<br>Perfil: ${perfil} · ${selCat.size} categorias · ${selPag.size} formas de pagamento`;
+  /* Mostra o número DE VOLTA, no formato em que ele vai ser usado de verdade.
+     Máscara impede número ilegível; ler de volta é o que pega o número errado
+     mas plausível -- a pessoa reconhece o próprio telefone de relance. */
+  const d = soDigitosWhats($('whats').value);
+  const bonito = '+55 ' + formatarWhats(d);
+  $('resumo').innerHTML = `<b>${esc($('nome').value.trim())}</b><br>
+    <span style="font-size:13px">Vamos falar com você neste WhatsApp:</span><br>
+    <b style="font-family:var(--mono);letter-spacing:.02em">${esc(bonito)}</b>
+    <span class="sub" style="display:block;font-size:12px;margin-top:2px">É esse mesmo? Dá pra voltar e corrigir.</span>
+    <span style="font-size:13px">Perfil: ${esc(perfil)} · ${selCat.size} categorias · ${selPag.size} formas de pagamento</span>`;
 }
 function payload(){
   /* O access_token vai junto para o n8n CONFERIR a sessão no Supabase antes de
@@ -292,8 +372,15 @@ function payload(){
 function validaStep1(){
   const errEl = $('errStep1'); errEl.style.display='none';
   if(!$('nome').value.trim()){errEl.textContent='Como podemos te chamar?';errEl.style.display='block';return false}
-  const digits = $('whats').value.replace(/\D/g,'');
-  if(digits.length < 10){errEl.textContent='Confere o número do WhatsApp com DDD.';errEl.style.display='block';return false}
+  /* A mesma checagem que guia enquanto digita decide aqui — assim a pessoa
+     nunca é barrada por um motivo que o campo não tinha avisado antes. */
+  const r = conferirWhats(soDigitosWhats($('whats').value));
+  if(!r.ok){
+    errEl.textContent = r.dica || 'Falta o seu WhatsApp com DDD.';
+    errEl.style.display='block';
+    $('whats').focus();
+    return false;
+  }
   return true;
 }
 async function salvar(){
@@ -404,13 +491,48 @@ function mostrarDados(comGoogle, nome){
   show();
   ($('whats').value ? $('nome') : $('whats')).focus();
 }
-window.__aplicarSessao = function(){
+window.__aplicarSessao = async function(){
   const s = window.__sessao;
   if (!s) return;
   const u = s.user || {};
   const m = u.user_metadata || {};
-  mostrarDados(true, (m.full_name || m.name || '').split(' ')[0] || '');
+  const primeiro = (m.full_name || m.name || '').split(' ')[0] || '';
+
+  /* Antes de pedir qualquer dado: esta conta Google JÁ tem Assessor?
+     Um login Google = uma conta (auth_uid é único no banco). Sem esta
+     checagem, quem já é cadastrado era levado a preencher tudo de novo e só
+     descobria no fim, com um "não consegui salvar" que não explica nada. */
+  if (window.Supa) {
+    try {
+      const { data } = await window.Supa
+        .from('users').select('user_id,name')
+        .eq('auth_uid', u.id).maybeSingle();
+      if (data) return telaJaTemConta(data, primeiro);
+    } catch (e) { /* se a checagem falhar, segue o cadastro normal */ }
+  }
+  mostrarDados(true, primeiro);
 };
+
+/* Quem já tem conta não precisa de cadastro — precisa de porta. */
+function telaJaTemConta(conta, primeiro){
+  entrou = true;
+  $('s1auth').style.display = 'none';
+  $('s1dados').style.display = 'block';
+  document.querySelector('.nav').style.display = 'none';
+  $('s1dados').innerHTML = `
+    <div class="done" style="padding:10px 0"><div class="ic">👋</div>
+      <h2 style="font-size:20px">Bem-vindo de volta${primeiro ? ', ' + esc(primeiro) : ''}!</h2></div>
+    <p class="sub" style="text-align:center">Esta conta Google já tem um Assessor — não precisa criar de novo.</p>
+    <p class="sub" style="text-align:center;margin-top:6px">WhatsApp desta conta: <b>${esc(bonitoDoUserId(conta.user_id))}</b></p>
+    <button class="btn primary" style="width:100%;margin-top:16px" id="jtc_painel">Abrir meu painel</button>
+    <button class="btn" style="width:100%;margin-top:10px" id="jtc_trocar">Entrar com outra conta Google</button>`;
+  show();
+  $('jtc_painel').onclick = () => { location.href = 'painel/'; };
+  $('jtc_trocar').onclick = async () => {
+    await window.Supa.auth.signOut();
+    location.reload();
+  };
+}
 document.addEventListener('click', e => {
   if (e.target && e.target.id === 'btnEntrarGoogle') {
     if (window.__entrarGoogle) window.__entrarGoogle();
@@ -436,6 +558,7 @@ function onNext(){
   go(1);
 }
 carregarConfig();
+ligarCampoWhats();
 show();
 </script>
 </body>

@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#F7F1EA" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#221913" media="(prefers-color-scheme: dark)">
+<meta name="description" content="Entre no Assessor.IA com sua conta Google.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="paleta-sereno.css">
+<title>Entrar · Assessor.IA</title>
+<style>
+  /* Página de LOGIN. Uma única coisa acontece aqui: a pessoa entra.
+     Nada de ferramenta, nada de menu, nada que dispute a atenção com o
+     botão — é a regra número um de página de login e era o que faltava:
+     a entrada estava misturada com um índice de mini-apps. */
+  :root{--card:var(--panel);--muted:var(--ink-soft);--honey:var(--acento);--honey-soft:var(--acento-soft);--r:16px}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+       background:var(--bg);color:var(--ink);line-height:1.5;-webkit-font-smoothing:antialiased}
+  .tela{min-height:100dvh;display:flex;flex-direction:column;align-items:center;justify-content:center;
+        padding:32px 20px;gap:0}
+  .caixa{width:100%;max-width:380px}
+  .brand{display:flex;align-items:center;justify-content:center;gap:8px;font-size:15px;color:var(--muted);margin-bottom:30px}
+  .brand b{color:var(--honey);font-weight:700;font-size:18px}
+  h1{font-size:25px;font-weight:700;line-height:1.22;text-align:center;margin-bottom:8px}
+  .lead{font-size:14.5px;color:var(--muted);text-align:center;margin-bottom:28px}
+
+  /* Alvo de toque grande (≥44px) e estado de foco visível para quem navega
+     por teclado — os dois são requisito de acessibilidade, não enfeite. */
+  .btn-google{width:100%;min-height:52px;display:flex;align-items:center;justify-content:center;gap:10px;
+    background:var(--card);color:var(--ink);border:1.5px solid var(--line);border-radius:var(--r);
+    font-family:inherit;font-size:15.5px;font-weight:600;cursor:pointer;transition:.15s}
+  .btn-google:hover{border-color:var(--honey)}
+  .btn-google:active{transform:scale(.99)}
+  .btn-google:focus-visible{outline:3px solid var(--honey);outline-offset:2px}
+  .btn-google[disabled]{opacity:.6;cursor:default}
+  .btn-google svg{width:19px;height:19px;flex:none}
+
+  .nota{font-size:12.5px;color:var(--muted);text-align:center;margin-top:12px}
+  .erro{display:none;font-size:13.5px;color:var(--ruim,#B85A38);background:var(--honey-soft);
+        border:1px solid var(--line);border-radius:12px;padding:11px 13px;margin-bottom:16px}
+  .erro a{color:inherit}
+
+  .ponte{margin-top:26px;padding-top:20px;border-top:1px solid var(--line);text-align:center;font-size:14px;color:var(--muted)}
+  .ponte a{color:var(--honey);font-weight:600;text-decoration:none}
+  .ponte a:hover{text-decoration:underline}
+
+  .seguranca{margin-top:22px;font-size:12px;color:var(--muted);text-align:center;line-height:1.6}
+  .seguranca b{color:var(--ink);font-weight:600}
+  .rodape{margin-top:30px;font-size:11.5px;color:var(--muted);text-align:center}
+  .rodape a{color:var(--muted)}
+  @media (min-height:760px){ .tela{gap:0} }
+</style>
+</head>
+<body>
+<main class="tela">
+  <div class="caixa">
+    <div class="brand"><b>🐝 Assessor.IA</b></div>
+
+    <h1>Entrar no Assessor</h1>
+    <p class="lead">Uma porta só: se você já tem conta, ela abre. Se ainda não tem, a gente cria na hora — sem preencher nada duas vezes.</p>
+
+    <p class="erro" id="erro" role="alert"></p>
+
+    <button class="btn-google" id="btnEntrar">
+      <svg viewBox="0 0 48 48" aria-hidden="true">
+        <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+        <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+        <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24s.92 7.54 2.56 10.78l7.97-6.19z"/>
+        <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+      </svg>
+      <span id="btnTexto">Continuar com Google</span>
+    </button>
+
+    <p class="nota">O Assessor vê só seu <b>nome e e-mail</b>. Nunca posta nada por você.</p>
+
+    <div class="ponte">
+      Primeira vez aqui? É o mesmo botão — o Assessor reconhece você.
+    </div>
+
+    <p class="seguranca">
+      🔒 Sua conta é a do <b>login Google</b> — trocar de número não faz você perder nada.<br>
+      Seus tokens ficam <b>criptografados</b>, e dá pra ligar <b>verificação em duas etapas</b> nos Ajustes.
+    </p>
+
+    <p class="rodape"><a href="privacidade.html">Privacidade</a></p>
+  </div>
+</main>
+
+<script type="module">
+  import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+  const supa = createClient(
+    "https://uyxowxpmzlfjqbumkeae.supabase.co",
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV5eG93eHBtemxmanFidW1rZWFlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUzNzMyNzUsImV4cCI6MjEwMDk0OTI3NX0.I5sNg70BHUG8XZVnaEvNjdygAR8-cQN93xibC4VhYfc"
+  );
+
+  /* Para onde ir depois de entrar. Quem chegou aqui redirecionado do painel
+     volta para o painel — ninguém deve ter que se reencontrar depois do login.
+     Só aceito destino RELATIVO: assim um link de fora não consegue usar esta
+     página para jogar alguém autenticado num site que ele escolheu. */
+  const bruto = new URLSearchParams(location.search).get("next") || "painel/";
+  const destino = /^[a-z0-9\-._/]+$/i.test(bruto) && !bruto.startsWith("//") ? bruto : "painel/";
+
+  const btn = document.getElementById("btnEntrar");
+  const btnTexto = document.getElementById("btnTexto");
+  const erro = document.getElementById("erro");
+
+  function mostrarErro(msg) {
+    erro.innerHTML = msg;
+    erro.style.display = "block";
+  }
+
+  /* O Google devolve falha pela própria URL. Sem ler isso, a pessoa volta e vê
+     a mesma tela, como se nada tivesse acontecido — e conclui que está quebrado. */
+  const p = new URLSearchParams(location.search.slice(1) + "&" + location.hash.slice(1));
+  if (p.get("error")) {
+    const desc = (p.get("error_description") || "").split("+").join(" ");
+    mostrarErro(desc
+      ? "Não consegui entrar: " + desc + " — tenta de novo."
+      : "Não consegui entrar com o Google agora. Tenta de novo em instantes.");
+  }
+
+  /* --- Uma porta, dois destinos, decididos PELO SISTEMA ------------------
+     Depois que o Google responde, quem sabe se a pessoa já tem conta é o
+     banco — não ela. Perguntar "você quer entrar ou criar conta?" antes do
+     login é jogar para o usuário uma decisão que é nossa; e pedir o número
+     "para achar sua conta" depois do login é pior ainda: é pedir que ela
+     faça o trabalho do sistema.
+
+       tem conta  -> vai para onde queria ir (painel)
+       não tem    -> CONTINUA o cadastro, já autenticada, só com o que falta
+
+     Nunca uma página dizendo "criar conta" para quem acabou de se autenticar. */
+  async function seguirDepoisDoLogin(session) {
+    try {
+      const { data } = await supa
+        .from('users').select('user_id')
+        .eq('auth_uid', session.user.id).maybeSingle();
+      location.replace(data ? destino : 'cadastro-app.html');
+    } catch (e) {
+      /* Se a consulta falhar, o cadastro é o destino seguro: ele também
+         reconhece quem já tem conta e oferece o painel. Ninguém fica preso. */
+      location.replace('cadastro-app.html');
+    }
+  }
+
+  const { data: { session } } = await supa.auth.getSession();
+  if (session) seguirDepoisDoLogin(session);
+
+  btn.onclick = async () => {
+    btn.disabled = true;
+    btnTexto.textContent = "Abrindo o Google…";
+    const volta = location.origin + location.pathname + "?next=" + encodeURIComponent(destino);
+    const { error } = await supa.auth.signInWithOAuth({ provider: "google", options: { redirectTo: volta } });
+    if (error) {
+      btn.disabled = false;
+      btnTexto.textContent = "Entrar com Google";
+      mostrarErro("Não consegui abrir o Google: " + error.message);
+    }
+  };
+
+  supa.auth.onAuthStateChange((_ev, s) => { if (s) seguirDepoisDoLogin(s); });
+</script>
+</body>
+</html>

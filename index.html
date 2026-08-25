@@ -35,53 +35,106 @@
      configurar planilha. */
   .card.destaque{border-color:var(--honey);background:linear-gradient(180deg,var(--honey-soft),var(--card) 60%)}
   .sep{font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:26px 0 12px}
+
+  /* --- porta de entrada --------------------------------------------------
+     Uma ação primária ("criar conta"), o login sempre visível no topo, e o
+     produto explicado por exemplo em vez de adjetivo. */
+  .topo{display:flex;align-items:center;justify-content:space-between;margin-bottom:30px}
+  .brand{margin-bottom:0}
+  .entrar{font-size:14.5px;font-weight:600;color:var(--honey);text-decoration:none;
+          padding:8px 14px;border:1.5px solid var(--line);border-radius:99px;min-height:40px;
+          display:inline-flex;align-items:center;transition:.15s}
+  .entrar:hover{border-color:var(--honey)}
+  h1{font-size:28px;margin-bottom:10px}
+  .exemplos{margin:24px 0 28px;display:flex;flex-direction:column;gap:9px}
+  .ex{background:var(--card);border:1.5px solid var(--line);border-radius:13px;padding:12px 14px}
+  .ex b{display:block;font-size:14.5px;font-weight:600}
+  .ex i{display:block;font-style:normal;font-size:12.5px;color:var(--muted);margin-top:3px}
+  .ex i::before{content:"→ "}
+  .cta{display:flex;align-items:center;justify-content:center;min-height:54px;
+       background:var(--terra-700);color:#fff;border-radius:var(--r);
+       font-size:16px;font-weight:600;text-decoration:none;transition:.15s}
+  .cta:hover{filter:brightness(1.06)}
+  .cta:active{transform:scale(.99)}
+  .sub-cta{font-size:13px;color:var(--muted);text-align:center;margin-top:10px}
+  .sub-cta a{color:var(--honey);font-weight:600}
+  .confianca{font-size:12.5px;color:var(--muted);text-align:center;margin-top:24px;line-height:1.6}
+  .confianca b{color:var(--ink);font-weight:600}
 </style>
 </head>
 <body>
 <div class="wrap">
-  <div class="brand"><b>🐝 Assessor.IA</b></div>
-  <span class="pill">MVP · em validação</span>
-  <h1>Sua vida organizada em 1 minuto 👋</h1>
-  <p class="lead">Comece por aqui. Depois é só conversar pelo WhatsApp — ele entende do seu jeito.</p>
+  <!-- Topo: marca à esquerda, Entrar à direita. É onde todo mundo procura o
+       login, e antes ele não existia aqui — só um cartão no meio da página. -->
+  <div class="topo">
+    <div class="brand"><b>🐝 Assessor.IA</b></div>
+    <a class="entrar" href="entrar.html">Entrar</a>
+  </div>
 
-  <a class="card destaque" href="cadastro-app.html">
-    <span class="em">✨</span>
-    <h2>Criar minha conta</h2>
-    <p>Nome, WhatsApp e um perfil pronto. Em 1 minuto o Assessor já reconhece você e começa a trabalhar.</p>
-    <span class="go">Começar →</span>
-  </a>
+  <h1>Seu assessor pessoal mora no seu WhatsApp.</h1>
+  <p class="lead">Você manda uma mensagem do seu jeito — até áudio — e ele organiza suas finanças, sua agenda e seus lembretes. Sem planilha, sem app novo pra aprender.</p>
 
-  <a class="card destaque" href="painel/">
-    <span class="em">🌅</span>
-    <h2>Abrir meu painel</h2>
-    <p>Já tem conta? Entre com o Google e veja finanças, rotina e metas sincronizadas — no celular e no computador.</p>
-    <span class="go">Entrar →</span>
-  </a>
+  <!-- Mostrar em vez de explicar: em três linhas a pessoa entende o produto. -->
+  <div class="exemplos">
+    <div class="ex"><b>almoço 30</b><i>lança o gasto na categoria certa</i></div>
+    <div class="ex"><b>reunião com a Ana amanhã 15h</b><i>entra na sua Agenda do Google</i></div>
+    <div class="ex"><b>lembrar de pagar o aluguel dia 5</b><i>vira tarefa com prazo</i></div>
+  </div>
 
-  <div class="sep">Ferramentas de configuração</div>
+  <!-- Uma ação primária. O resto é ponte, não concorrente. -->
+  <a class="cta" id="cta" href="entrar.html">Começar grátis</a>
+  <p class="sub-cta" id="subCta">Leva 1 minuto — entra com o Google e pronto.</p>
 
-  <a class="card" href="espelho.html">
-    <span class="em">🪞</span>
-    <h2>Espelho da minha semana</h2>
-    <p>Lê a agenda que você já usa e mostra como sua semana realmente está — depois refina, sem página em branco.</p>
-    <span class="go">Ver →</span>
-  </a>
+  <p class="confianca">🔒 Sua conta fica no <b>login Google</b> e seus dados sensíveis ficam <b>criptografados</b>. Verificação em duas etapas disponível.</p>
 
-  <a class="card" href="rotina-app.html">
-    <span class="em">🗓️</span>
-    <h2>Montar minha rotina do zero</h2>
-    <p>Agenda vazia? Monta sua semana em blocos com presets — vira eventos recorrentes.</p>
-    <span class="go">Começar →</span>
-  </a>
-
-  <a class="card" href="setup-app.html">
-    <span class="em">💰</span>
-    <h2>Montar minha planilha</h2>
-    <p>Onboarding financeiro anti-fadiga: categorias, metas e saldo inicial em poucos toques.</p>
-    <span class="go">Começar →</span>
-  </a>
-
-  <div class="foot">Feito pra rodar no celular · atualiza sozinho a cada melhoria</div>
+  <div class="foot">
+    <span class="pill">MVP · em validação</span><br>
+    <a href="privacidade.html">Privacidade</a>
+  </div>
 </div>
+
+<script>
+  /* Quem já está logado não pode ver "começar grátis" — para essa pessoa a
+     página é a porta do próprio app, não uma vitrine.
+
+     A checagem é feita lendo a sessão que o Supabase já guarda no navegador,
+     sem carregar o SDK (30 KB) numa página que tem 7 KB. Aqui não se decide
+     nada sensível: só qual palavra vai no botão. Quem manda de verdade é o
+     banco, quando a pessoa chega no painel. */
+  (function () {
+    try {
+      const chave = Object.keys(localStorage).find(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
+      if (!chave) return;
+      const s = JSON.parse(localStorage.getItem(chave) || 'null');
+      const validaAte = s && (s.expires_at || (s.currentSession && s.currentSession.expires_at));
+      if (!validaAte || validaAte * 1000 < Date.now()) return;   // sessão vencida
+      document.getElementById('cta').textContent = 'Abrir meu painel';
+      document.getElementById('cta').href = 'painel/';
+      document.getElementById('subCta').textContent = 'Você já está conectado.';
+      const topo = document.querySelector('.entrar');
+      topo.textContent = 'Meu painel';
+      topo.href = 'painel/';
+    } catch (e) { /* na dúvida, mostra a versão de visitante */ }
+  })();
+
+  /* As ferramentas de configuração (espelho, rotina, planilha) NÃO ficam aqui.
+     Elas são abertas por link que o próprio Assessor manda, com parâmetros na
+     URL (?webhook=...&token=...). Sem esses parâmetros elas caem em modo teste
+     e mostram JSON cru -- que era o que um visitante novo encontrava.
+     Continuam acessíveis pra mim com ?dev=1. */
+  if (new URLSearchParams(location.search).get('dev') === '1') {
+    const tools = [
+      ['espelho.html', '🪞', 'Espelho da minha semana'],
+      ['rotina-app.html', '🗓️', 'Montar minha rotina do zero'],
+      ['setup-app.html', '💰', 'Montar minha planilha'],
+    ];
+    const bloco = document.createElement('div');
+    bloco.innerHTML = '<div class="sep">Ferramentas (modo dev)</div>' +
+      tools.map(([href, em, titulo]) =>
+        '<a class="card" href="' + href + '"><span class="em">' + em + '</span>' +
+        '<h2>' + titulo + '</h2><span class="go">Abrir →</span></a>').join('');
+    document.querySelector('.foot').before(bloco);
+  }
+</script>
 </body>
 </html>

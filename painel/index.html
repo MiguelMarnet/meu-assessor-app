@@ -700,40 +700,10 @@
       supa.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: location.href.split('#')[0] } });
     };
   }
-  function telaVincular(session){
-    inner.innerHTML = `<div class="eyebrow"><i></i>02 — Quase lá</div>
-      <h1>Qual é o seu WhatsApp?</h1>
-      <p>Usamos esse número pra achar sua conta — é o mesmo que você usou no cadastro do Assessor.</p>
-      <input id="wLink" placeholder="61999999999" inputmode="numeric" autocomplete="tel">
-      <button class="primary" id="btnLink">Confirmar</button>
-      <p class="err" id="errLink"></p>
-      <button class="ghost" id="btnOutraConta">Entrar com outra conta Google</button>`;
-    document.getElementById('btnOutraConta').onclick = async () => { await supa.auth.signOut(); telaEntrar(); };
-    const campo = document.getElementById('wLink');
-    campo.focus();
-    campo.addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('btnLink').click(); });
-    document.getElementById('btnLink').onclick = async () => {
-      const userId = norm(document.getElementById('wLink').value);
-      const errEl = document.getElementById('errLink');
-      errEl.textContent = '';
-      if (!userId) { errEl.textContent = 'Confere o número.'; return; }
-      const { data: status } = await supa.rpc('check_link_status', { p_user_id: userId });
-      if (status === 'not_found') {
-        errEl.textContent = 'Não achei esse número cadastrado. Confere se você já fez o cadastro pelo link do Assessor, com esse mesmo número.';
-        return;
-      }
-      if (status === 'already_linked') {
-        errEl.textContent = 'Esse número já está ligado a outra conta Google. Se for a sua, entra com ela em vez dessa.';
-        return;
-      }
-      const { data, error } = await supa.from('users').update({ auth_uid: session.user.id }).eq('user_id', userId).is('auth_uid', null).select();
-      if (error || !data || !data.length) {
-        errEl.textContent = 'Não consegui ligar sua conta agora. Tenta de novo em instantes.';
-        return;
-      }
-      abrirApp(userId);
-    };
-  }
+  /* telaVincular() foi REMOVIDA em 2026-08-24. Ela pedia o WhatsApp "pra achar
+     sua conta" depois do login -- pedia que a pessoa fizesse o trabalho do
+     sistema, e gravava auth_uid direto na tabela, o que deixava assumir conta
+     sem dono. Hoje quem nao tem conta e mandado para o cadastro, ja logado. */
   async function abrirApp(userId){
     window.__uid = userId;
     if (window.syncPuxarDoServidor) await window.syncPuxarDoServidor();
@@ -743,13 +713,27 @@
 
   async function boot(){
     const { data: { session } } = await supa.auth.getSession();
-    if (!session) { telaEntrar(); return; }
+    /* Sem sessão, vai para a PÁGINA de login — uma só, com endereço próprio,
+       em vez de cada tela ter a sua. `next` traz a pessoa de volta pra cá
+       depois de entrar. A telaEntrar() antiga fica como rede: se o redirect
+       falhar (offline, por exemplo), ainda há um botão na tela. */
+    if (!session) {
+      const jaVoltando = new URLSearchParams(location.search).get('sem_redirect');
+      if (!jaVoltando) { location.replace('../entrar.html?next=painel/'); return; }
+      telaEntrar(); return;
+    }
     /* Porteiro: conta com 2FA ativo não entra só com o login do Google.
        Fica ANTES de qualquer leitura de dado — depois já seria tarde. */
     if (window.Seguranca && !(await window.Seguranca.exigirSegundoFator())) return;
     const { data: row } = await supa.from('users').select('user_id').eq('auth_uid', session.user.id).maybeSingle();
     if (row) { abrirApp(row.user_id); return; }
-    telaVincular(session);
+
+    /* Autenticado, mas ainda sem conta: CONTINUA o cadastro, já logado, só com
+       o que falta. A tela antiga pedia o número "pra achar sua conta" — pedia
+       que a pessoa fizesse o trabalho do sistema, logo depois de ela ter se
+       identificado, e ainda deixava assumir conta alheia (era o mesmo buraco
+       do link_my_account, por outro caminho). */
+    location.replace('../cadastro-app.html');
   }
   supa.auth.onAuthStateChange((_ev, _session) => boot());
   boot();
