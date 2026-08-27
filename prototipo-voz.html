@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#221913">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Mono:wght@400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="paleta-sereno.css">
+<title>Protótipo · voz no painel</title>
+<style>
+  /* PROTÓTIPO — não está ligado a nada do app. Serve para você sentir a coisa
+     antes de decidirmos se entra. */
+  :root{--card:var(--panel);--muted:var(--ink-soft);--r:18px}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:"Inter",system-ui,sans-serif;background:var(--bg);color:var(--ink);
+       line-height:1.5;-webkit-font-smoothing:antialiased}
+  .tela{min-height:100dvh;display:flex;flex-direction:column;align-items:center;justify-content:center;
+        padding:30px 20px;text-align:center}
+  .caixa{width:100%;max-width:400px}
+
+  /* --- O SOL ---------------------------------------------------------------
+     O mesmo objeto do núcleo 3D, em baixa fidelidade: usa os tokens
+     --nucleo-* (o degradê real do núcleo), luz vindo de cima, zero JS.
+     84px de CSS puro contra 35 KB de canvas. */
+  .sol{width:110px;height:110px;border-radius:50%;margin:0 auto 22px;position:relative;
+    background:
+      radial-gradient(circle at 50% 28%, var(--nucleo-topo), var(--nucleo-alto) 32%,
+                      var(--nucleo-meio) 58%, var(--nucleo-baixo) 82%, var(--nucleo-base));
+    box-shadow:0 20px 50px color-mix(in srgb, var(--nucleo-baixo) 34%, transparent),
+               0 0 70px color-mix(in srgb, var(--nucleo-alto) 22%, transparent);
+    transition:transform .35s ease, box-shadow .35s ease}
+  /* Estados: só animam quando algo ESTÁ acontecendo. Sol pulsando à toa
+     disputa atenção com o que a pessoa foi fazer ali. */
+  .sol.falando{animation:respira 2.2s ease-in-out infinite}
+  .sol.ouvindo{animation:ouve 1.1s ease-in-out infinite}
+  @keyframes respira{0%,100%{transform:scale(1)}50%{transform:scale(1.045)}}
+  @keyframes ouve{0%,100%{box-shadow:0 20px 50px color-mix(in srgb,var(--nucleo-baixo) 34%,transparent),0 0 0 0 color-mix(in srgb,var(--nucleo-alto) 45%,transparent)}
+                  70%{box-shadow:0 20px 50px color-mix(in srgb,var(--nucleo-baixo) 34%,transparent),0 0 0 26px transparent}}
+  @media (prefers-reduced-motion: reduce){ .sol.falando,.sol.ouvindo{animation:none} }
+
+  .eyebrow{font-family:"Space Mono",monospace;font-size:10px;letter-spacing:.18em;
+           text-transform:uppercase;color:var(--ink-faint);margin-bottom:6px}
+  h1{font-size:27px;font-weight:600;letter-spacing:-.02em;line-height:1.2;margin-bottom:8px}
+  h1 b{font-weight:700}
+  .sub{color:var(--muted);font-size:14px;margin-bottom:24px}
+
+  .botoes{display:flex;flex-direction:column;gap:10px}
+  button{font-family:inherit;font-size:15px;font-weight:600;border-radius:var(--r);
+         min-height:54px;cursor:pointer;transition:.15s;border:1.5px solid var(--line);
+         background:var(--card);color:var(--ink)}
+  button:hover{border-color:var(--acento)}
+  button:active{transform:scale(.99)}
+  button:disabled{opacity:.5;cursor:default}
+  button.principal{background:var(--acento-fw);color:#FBF6F0;border-color:transparent}
+  button.gravando{background:var(--alerta);color:#fff;border-color:transparent}
+
+  .conversa{margin-top:22px;text-align:left;display:flex;flex-direction:column;gap:8px}
+  .bolha{padding:11px 14px;border-radius:14px;font-size:14px;max-width:88%}
+  .bolha.eu{background:var(--acento-soft);align-self:flex-end}
+  .bolha.ela{background:var(--card);border:1px solid var(--line);align-self:flex-start}
+  .bolha .quem{display:block;font-size:10.5px;color:var(--muted);margin-bottom:3px}
+
+  .aviso{margin-top:20px;font-size:12.5px;color:var(--muted);line-height:1.6;
+         border-top:1px solid var(--line);padding-top:16px;text-align:left}
+  .aviso b{color:var(--ink)}
+  .nomeInput{width:100%;padding:12px 14px;border-radius:12px;border:1.5px solid var(--line);
+             background:var(--card);color:var(--ink);font-family:inherit;font-size:14px;margin-bottom:14px}
+</style>
+</head>
+<body>
+<main class="tela">
+  <div class="caixa">
+    <div class="sol" id="sol"></div>
+    <div class="eyebrow" id="eyebrow">Protótipo</div>
+    <h1 id="saudacao">Olá</h1>
+    <p class="sub" id="sub">Escreve um nome e toca em ouvir — é assim que soaria no primeiro acesso.</p>
+
+    <input class="nomeInput" id="nome" placeholder="Seu nome" value="Miguel">
+
+    <div class="botoes">
+      <button class="principal" id="btnOuvir">Ouvir as boas-vindas</button>
+      <button id="btnFalar">🎙️ Segurar para falar com o Assessor</button>
+    </div>
+
+    <div class="conversa" id="conversa"></div>
+
+    <div class="aviso" id="aviso"></div>
+  </div>
+</main>
+
+<script>
+const $ = id => document.getElementById(id);
+const sol = $('sol');
+
+/* ---------- Voz que fala (TTS) -----------------------------------------
+   Regra dura: no iPhone, falar só funciona DENTRO de um toque. Voz que
+   dispara sozinha ao abrir é descartada em silêncio pelo navegador — por
+   isso aqui é sempre um botão, nunca automático. */
+function falar(texto, aoTerminar) {
+  if (!('speechSynthesis' in window)) { aoTerminar && aoTerminar(); return; }
+  speechSynthesis.cancel();
+  const f = new SpeechSynthesisUtterance(texto);
+  f.lang = 'pt-BR';
+  f.rate = 0.98;   // um tico mais devagar soa mais calmo, menos robô
+  f.pitch = 1.0;
+  const vozes = speechSynthesis.getVoices();
+  const br = vozes.find(v => /pt[-_]BR/i.test(v.lang));
+  if (br) f.voice = br;
+  sol.classList.add('falando');
+  f.onend = () => { sol.classList.remove('falando'); aoTerminar && aoTerminar(); };
+  f.onerror = () => { sol.classList.remove('falando'); aoTerminar && aoTerminar(); };
+  speechSynthesis.speak(f);
+}
+
+function primeiroNome() {
+  return ($('nome').value || '').trim().split(' ')[0] || 'você';
+}
+
+/* Três versões do texto de boas-vindas, para você comparar o tom.
+   A do meio é a que eu recomendo — as outras estão aqui de propósito. */
+const TEXTOS = {
+  futuro: n => `Olá ${n}, seja bem-vindo ao futuro.`,
+  sereno: n => `Oi, ${n}. Que bom te ver por aqui. Eu sou seu assessor — pode falar comigo do seu jeito, por texto ou por voz, e eu cuido do resto.`,
+  direto: n => `${n}, tudo pronto. Me manda um gasto, um compromisso ou um lembrete e eu organizo.`
+};
+let versao = 'sereno';
+
+$('btnOuvir').onclick = () => {
+  const n = primeiroNome();
+  $('saudacao').innerHTML = 'Olá, <b>' + n + '</b>';
+  $('eyebrow').textContent = 'Primeiro acesso';
+  falar(TEXTOS[versao](n));
+};
+
+/* ---------- Voz que escuta (reconhecimento) ---------------------------- */
+const Rec = window.SpeechRecognition || window.webkitSpeechRecognition;
+let rec = null, ouvindo = false;
+
+function bolha(quem, texto, classe) {
+  const d = document.createElement('div');
+  d.className = 'bolha ' + classe;
+  d.innerHTML = '<span class="quem">' + quem + '</span>' + texto;
+  $('conversa').appendChild(d);
+  d.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+/* No protótipo a resposta é local, só para você sentir o ritmo.
+   No app de verdade este texto iria para o MESMO fluxo do n8n que já
+   entende suas mensagens do WhatsApp -- o cérebro já existe, não se
+   constrói outro. */
+function responder(texto) {
+  const t = texto.toLowerCase();
+  let r;
+  if (/gast|paguei|comprei|almoç|mercado|\d+\s*(reais|conto)/.test(t)) r = 'Anotei o gasto e já categorizei. Quer ver o resumo do mês?';
+  else if (/reuni|amanhã|hoje|segunda|terça|quarta|quinta|sexta|\d+h/.test(t)) r = 'Coloquei na sua agenda. Te aviso trinta minutos antes.';
+  else if (/lembr|pagar|vencimento|dia \d+/.test(t)) r = 'Virou tarefa com prazo. Não deixo passar.';
+  else if (/saldo|quanto|resumo|extrato/.test(t)) r = 'Neste mês você gastou menos que no anterior. Quer o detalhe por categoria?';
+  else r = 'Entendi. No app de verdade isso vai para o mesmo cérebro que já responde no seu WhatsApp.';
+  bolha('Assessor', r, 'ela');
+  falar(r);
+}
+
+function pararDeOuvir() {
+  ouvindo = false;
+  sol.classList.remove('ouvindo');
+  $('btnFalar').classList.remove('gravando');
+  $('btnFalar').textContent = '🎙️ Segurar para falar com o Assessor';
+  if (rec) { try { rec.stop(); } catch (e) {} }
+}
+
+function comecarAOuvir() {
+  if (!Rec) return;
+  rec = new Rec();
+  rec.lang = 'pt-BR';
+  rec.interimResults = true;
+  rec.continuous = false;
+  let ultimo = '';
+  rec.onresult = ev => {
+    ultimo = [...ev.results].map(r => r[0].transcript).join('');
+    $('sub').textContent = '“' + ultimo + '”';
+  };
+  rec.onerror = ev => {
+    pararDeOuvir();
+    $('sub').textContent = ev.error === 'not-allowed'
+      ? 'Você precisa permitir o microfone para testar.'
+      : 'Não consegui ouvir agora (' + ev.error + ').';
+  };
+  rec.onend = () => {
+    pararDeOuvir();
+    if (ultimo.trim()) { bolha('Você', ultimo, 'eu'); $('sub').textContent = ''; responder(ultimo); }
+  };
+  ouvindo = true;
+  sol.classList.add('ouvindo');
+  $('btnFalar').classList.add('gravando');
+  $('btnFalar').textContent = '● Ouvindo… solta pra enviar';
+  $('sub').textContent = 'Pode falar.';
+  rec.start();
+}
+
+const b = $('btnFalar');
+['mousedown', 'touchstart'].forEach(ev => b.addEventListener(ev, e => { e.preventDefault(); if (!ouvindo) comecarAOuvir(); }));
+['mouseup', 'mouseleave', 'touchend'].forEach(ev => b.addEventListener(ev, () => { if (ouvindo) pararDeOuvir(); }));
+
+/* ---------- O que este navegador aguenta ---------------------------- */
+(function diagnostico() {
+  const temTTS = 'speechSynthesis' in window;
+  const temRec = !!Rec;
+  const linhas = [];
+  linhas.push('<b>Neste navegador agora:</b>');
+  linhas.push((temTTS ? '✔' : '✕') + ' falar (voz do assessor)');
+  linhas.push((temRec ? '✔' : '✕') + ' ouvir (você falando)');
+  if (!temRec) linhas.push('<br>Reconhecimento de voz não existe no Firefox. Funciona em Chrome, Edge e Safari 14.5+ (iPhone incluído).');
+  linhas.push('<br><b>Por que o botão e não automático:</b> no iPhone a fala só sai dentro de um toque — voz disparada sozinha ao abrir é descartada em silêncio pelo navegador.');
+  $('aviso').innerHTML = linhas.join('<br>');
+  if (window.speechSynthesis) speechSynthesis.onvoiceschanged = () => {};
+})();
+</script>
+</body>
+</html>
