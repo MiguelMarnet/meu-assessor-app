@@ -25,12 +25,9 @@
     min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;
     -webkit-font-smoothing:antialiased}
   .card{max-width:340px;width:100%;display:flex;flex-direction:column;align-items:center;gap:12px;text-align:center}
-  .orb{width:84px;height:84px;border-radius:50%;
-    background:linear-gradient(180deg,var(--areia-300),var(--terra-300) 45%,var(--terra-900));
-    box-shadow:0 18px 42px color-mix(in srgb,var(--terra-700) 30%,transparent);
-    transition:opacity .4s ease}
-  .orb.carregando{animation:pulsa 1.4s ease-in-out infinite}
-  @keyframes pulsa{0%,100%{transform:scale(1);opacity:.75}50%{transform:scale(1.06);opacity:1}}
+  /* O sol agora vem da paleta (.sol), compartilhado com login e cadastro --
+     antes esta pagina tinha a propria bolinha, parecida por coincidencia e
+     nao por construcao: usava areia/terracota em vez dos tokens do nucleo. */
   .eyebrow{font-family:"Space Mono",ui-monospace,monospace;font-size:10px;letter-spacing:.18em;
     text-transform:uppercase;color:var(--ink-faint)}
   h1{font-size:22px;font-weight:400;letter-spacing:-.02em;line-height:1.2}
@@ -43,12 +40,12 @@
   a.btn{margin-top:10px;display:inline-block;text-decoration:none;background:var(--acento-fw);
     color:#FBF6F0;font-weight:600;font-size:14px;padding:13px 26px;border-radius:11px}
   .erro{color:var(--alerta);font-size:13px;line-height:1.55}
-  @media (prefers-reduced-motion: reduce){ .orb.carregando{animation:none} }
+  @media (prefers-reduced-motion: reduce){ .sol.pulsando{animation:none} }
 </style>
 </head>
 <body>
 <div class="card" id="card">
-  <div class="orb carregando"></div>
+  <div class="sol sol-p pulsando" style="margin:0 auto"></div>
   <div class="eyebrow">Conectando</div>
   <h1>Ligando sua Agenda…</h1>
   <p class="sub">Só um instante.</p>
@@ -68,14 +65,14 @@ const EXEMPLOS = `
   </div>`;
 
 function sucesso(){
-  $('card').innerHTML = `<div class="orb"></div>
+  $('card').innerHTML = `<div class="sol sol-p" style="margin:0 auto"></div>
     <div class="eyebrow">Agenda conectada</div>
     <h1>Pronto! Agora é só falar.</h1>
     ${EXEMPLOS}
     <a class="btn" href="./">Abrir o Assessor.IA</a>`;
 }
 function falha(msg){
-  $('card').innerHTML = `<div class="orb" style="opacity:.35"></div>
+  $('card').innerHTML = `<div class="sol sol-p" style="margin:0 auto;opacity:.35"></div>
     <div class="eyebrow">Não deu certo</div>
     <h1>Não consegui ligar sua Agenda.</h1>
     <p class="erro">${msg}</p>

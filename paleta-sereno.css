@@ -164,3 +164,51 @@
 
 /* Acento rebaixado: fundo de destaque, chip selecionado, realce sutil. */
 :root { --acento-soft: color-mix(in srgb, var(--terra-500) 14%, transparent); }
+
+/* ============================================================
+   O SOL — o núcleo em baixa fidelidade
+   ============================================================
+   O núcleo 3D do painel custa 35 KB de JavaScript, canvas e animação
+   contínua. Nas páginas leves — login, cadastro, "conectando" — isso é caro
+   pelo motivo errado: são as primeiras que um estranho carrega, muitas vezes
+   no 4G, e não podem depender de JS para ter rosto.
+
+   O sol é o MESMO objeto, visto de longe: usa os tokens --nucleo-*, que são o
+   degradê real do núcleo, com a luz vindo de cima. 100% CSS.
+
+   Uso:
+     <div class="sol"></div>                  tamanho padrão (110px)
+     <div class="sol sol-p"></div>            pequeno (72px)
+     <div class="sol sol-g"></div>            grande (150px)
+     <div class="sol pulsando"></div>         só enquanto algo ACONTECE
+
+   Regra: parado por padrão. Sol animando à toa disputa atenção com a ação da
+   página — e página de login tem uma ação só.
+   ============================================================ */
+.sol {
+  --sol-tam: 110px;
+  width: var(--sol-tam);
+  height: var(--sol-tam);
+  border-radius: 50%;
+  flex: none;
+  background:
+    radial-gradient(circle at 50% 28%,
+      var(--nucleo-topo), var(--nucleo-alto) 32%,
+      var(--nucleo-meio) 58%, var(--nucleo-baixo) 82%, var(--nucleo-base));
+  box-shadow:
+    0 20px 50px color-mix(in srgb, var(--nucleo-baixo) 34%, transparent),
+    0 0 70px color-mix(in srgb, var(--nucleo-alto) 22%, transparent);
+}
+.sol-p { --sol-tam: 72px; }
+.sol-g { --sol-tam: 150px; }
+
+.sol.pulsando { animation: sol-respira 2.2s ease-in-out infinite; }
+@keyframes sol-respira {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.045); }
+}
+
+/* Quem pediu menos movimento no sistema recebe menos movimento. */
+@media (prefers-reduced-motion: reduce) {
+  .sol.pulsando { animation: none; }
+}
