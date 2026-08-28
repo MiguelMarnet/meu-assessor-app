@@ -4,5 +4,6 @@
   "googleOAuthClientId": "1095588671154-p9saim15plmg7up12sgqa6mqb49f9k83.apps.googleusercontent.com",
   "googleOAuthCallbackUrl": "https://miguelmarnet.github.io/meu-assessor-app/google-conectado.html",
   "googleDisconnectWebhook": "https://disregard-zips-retreat.ngrok-free.dev/webhook/google-disconnect",
-  "googleOAuthWebhook": "https://disregard-zips-retreat.ngrok-free.dev/webhook/google-oauth-callback"
+  "googleOAuthWebhook": "https://disregard-zips-retreat.ngrok-free.dev/webhook/google-oauth-callback",
+  "chatWebhook": "https://disregard-zips-retreat.ngrok-free.dev/webhook/assessor-chat"
 }

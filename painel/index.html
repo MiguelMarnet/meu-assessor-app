@@ -160,6 +160,19 @@
   .bf-pergunta{display:block;margin-top:6px;font-size:12.5px;color:var(--ink-soft)}
   .bf-insight{margin-top:16px;font-size:13.5px;line-height:1.6;
               background:var(--acento-soft);border-radius:10px;padding:11px 13px}
+  /* --- Conversa no painel --- */
+  .cv{margin-top:18px;max-width:44ch}
+  .cv-log{display:flex;flex-direction:column;gap:7px;max-height:210px;overflow-y:auto;margin-bottom:10px}
+  .cv-bolha{padding:9px 12px;border-radius:13px;font-size:13.5px;line-height:1.5;max-width:92%}
+  .cv-bolha.eu{background:var(--acento-soft);align-self:flex-end}
+  .cv-bolha.ela{background:var(--panel);border:1px solid var(--line);align-self:flex-start}
+  .cv-bolha.cv-pensando{opacity:.6;font-style:italic}
+  .cv-quem{display:block;font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-faint);margin-bottom:3px}
+  .cv-barra{display:flex;gap:7px;align-items:center}
+  .cv-barra input{flex:1;min-width:0;padding:12px 14px;border-radius:12px;border:1.5px solid var(--line);background:var(--panel);color:var(--ink);font-family:inherit;font-size:14px}
+  .cv-barra button{min-height:44px;padding:0 14px;border-radius:12px;border:1.5px solid var(--line);background:var(--panel);color:var(--ink);font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;user-select:none}
+  .cv-barra button.cv-env{background:var(--acento-fw);color:#FBF6F0;border-color:transparent}
+  .cv-barra button.gravando{background:var(--alerta);color:#fff;border-color:transparent}
   .hero .col-meta{grid-column:10/13;align-self:center;text-align:right;font-family:var(--mono)}
   .hero .col-meta .mrow{display:flex;justify-content:space-between;border-top:1px solid var(--line);padding:7px 0;font-size:11px;gap:24px}
   .hero .col-meta .mrow span:last-child{color:var(--ink-soft)}
@@ -456,6 +469,16 @@
         <!-- O briefing do dia entra aqui quando há login. Sem login, fica o
              texto de sempre: é a mesma tela servindo visitante e dono. -->
         <div id="bfCard" class="bf" hidden></div>
+        <!-- Falar com o Assessor sem sair do painel. Vai para o MESMO cérebro
+             do WhatsApp. -->
+        <div id="cvCaixa" class="cv" hidden>
+          <div class="cv-log" id="cvLog"></div>
+          <div class="cv-barra">
+            <input id="cvTexto" placeholder="Fala comigo… ex.: almoço 30" autocomplete="off">
+            <button id="cvMic" title="Segurar para ditar">🎙️</button>
+            <button id="cvEnviar" class="cv-env">Enviar</button>
+          </div>
+        </div>
         <p id="heroTexto">Finanças, rotina, corpo e mente — um assessor de IA que organiza a sua vida em uma só direção.</p>
         <button class="cta" data-goto="1">▶ Explorar o índice</button>
       </div>
@@ -739,6 +762,14 @@
         }
       }
     } catch (e) { /* segue sem briefing */ }
+
+    /* A conversa só existe com login: sem sessão não há a quem responder. */
+    try {
+      if (window.Conversa) {
+        document.getElementById("cvCaixa").hidden = false;
+        await window.Conversa.ligar();
+      }
+    } catch (e) { /* painel segue sem a conversa */ }
     if (window.syncPuxarDoServidor) await window.syncPuxarDoServidor();
     gate.classList.add('hidden');
     if (window.__pararGate) window.__pararGate();   // canvas escondido não anima
@@ -1019,6 +1050,7 @@ window.__bumpLive();
 <script src="screens-wa.js"></script>
 <script src="seguranca.js"></script>
 <script src="briefing.js"></script>
+<script src="conversa.js"></script>
 
 <script type="importmap">
 { "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js", "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/" } }
