@@ -49,11 +49,23 @@ window.Briefing = (function () {
     const hojeISO = hoje.toISOString().slice(0, 10);
     const inicioMes = new Date(hoje.getFullYear(), hoje.getMonth(), 1).toISOString();
 
-    const nada = { data: [] };
+    /* O construtor de consulta do supabase-js tem `then`, mas NÃO tem `catch`
+       nem `finally` — é um thenable, não uma Promise. Chamar `.catch()` nele
+       estoura na hora e derruba o briefing inteiro.
+       `Promise.resolve(...)` transforma o thenable numa Promise de verdade e aí
+       o `.catch` existe. Uma tabela sem permissão não pode calar as outras. */
+    /* Guarda QUEM falhou. "Nenhuma tarefa" e "não consegui ler suas tarefas"
+       são coisas diferentes, e dizer a primeira quando é a segunda é mentir
+       com cara de tudo certo — o tipo de falha silenciosa que esconde bug. */
+    const nada = { data: [], falhou: true };
+    const seguro = q => Promise.resolve(q)
+      .then(r => (r && r.error) ? { data: [], falhou: true } : r)
+      .catch(() => nada);
+
     const [tarefas, financas, eventos] = await Promise.all([
-      S().from('tasks').select('title,due,status,project').eq('user_id', uid).catch(() => nada),
-      S().from('finance_transactions').select('type,value,category,occurred_at').eq('user_id', uid).gte('occurred_at', inicioMes).catch(() => nada),
-      S().from('events').select('type,payload,occurred_at').eq('user_id', uid).order('occurred_at', { ascending: false }).limit(50).catch(() => nada)
+      seguro(S().from('tasks').select('title,due,status,project').eq('user_id', uid)),
+      seguro(S().from('finance_transactions').select('type,value,category,occurred_at').eq('user_id', uid).gte('occurred_at', inicioMes)),
+      seguro(S().from('events').select('type,payload,occurred_at').eq('user_id', uid).order('occurred_at', { ascending: false }).limit(50))
     ]);
 
     const abertas = (tarefas.data || []).filter(t => t.status !== 'done' && t.status !== 'completed');
@@ -72,6 +84,7 @@ window.Briefing = (function () {
       .map(e => ({ hora: String(e.payload.start_time).slice(11, 16), titulo: e.payload.title || '(sem título)' }));
 
     return {
+      falhouTarefas: !!tarefas.falhou,
       abertas,
       vencidas: abertas.filter(t => t.due && t.due.slice(0, 10) < hojeISO),
       paraHoje: abertas.filter(t => t.due && t.due.slice(0, 10) === hojeISO),
@@ -130,7 +143,7 @@ window.Briefing = (function () {
         d.semPrazo.slice(-3).map(t => '<li>' + esc(String(t.title).replace(/\.$/, '')) + '</li>').join('') +
         '</ul><span class="bf-pergunta">Quer puxar alguma pra hoje?</span></div>');
     } else {
-      partes.push('<div class="bf-bloco"><span class="bf-rot">✅ ' + esc(FRASES.semTarefas) + '</span></div>');
+      partes.push('<div class="bf-bloco"><span class="bf-rot">' + (d.falhouTarefas ? '⚠️ Não consegui ler suas tarefas agora' : '✅ ' + esc(FRASES.semTarefas)) + '</span></div>');
     }
 
     if (d.total > 0) partes.push('<div class="bf-bloco"><span class="bf-rot">💰 ' + brl(d.total) + ' no mês</span></div>');
