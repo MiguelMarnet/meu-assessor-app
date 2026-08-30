@@ -22,8 +22,17 @@ window.Espelho = (function () {
     'nt_notas',     // notas
     'r_tasks',      // tarefas da rotina
     'r_habitos',    // hábitos
-    'fo_meta', 'fo_janelas', 'fo_apps', 'fo_rigor'   // foco
+    'fo_meta', 'fo_janelas', 'fo_apps', 'fo_rigor',  // foco
+    'fin_contas',   // contas/carteiras do financeiro
+    'saldo',        // saldo inicial declarado
+    'profile'       // nome e WhatsApp mostrados no app
   ];
+
+  /* DE PROPÓSITO fora desta lista:
+     - `tx` e `events` já sincronizam por outro caminho (as tabelas
+       finance_transactions e events, via syncPuxarDoServidor);
+     - `tema` é escolha DAQUELE aparelho — claro no trabalho, escuro em casa;
+     - `modo_pessoal` é decisão de mão única, não se propaga por sincronia. */
 
   let ligado = false;
   let uid = null;
