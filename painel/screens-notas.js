@@ -83,7 +83,7 @@
     if (tab === 'pastas') {
       return Object.keys(pastas).map(p => `<button class="nt-item ${false ? 'on' : ''}" data-pasta="${p}"><div class="tt">📁 ${p} <small>${pastas[p].length}</small></div></button>`).join('');
     }
-    return Object.keys(pastas).map(p => `<div class="nt-grp">${p} · ${pastas[p].length}</div>` + pastas[p].map(n => `<button class="nt-item ${ativa === n.id ? 'on' : ''}" data-nota="${n.id}"><div class="tt">${n.titulo}<small>${dataCurta(n.data)}</small></div><div class="pv">${(n.linhas[0] ? n.linhas[0].t : '—').replace(/<[^>]+>/g, '')}</div></button>`).join('')).join('');
+    return Object.keys(pastas).map(p => `<div class="nt-grp">${p} · ${pastas[p].length}</div>` + pastas[p].map(n => `<button class="nt-item ${ativa === n.id ? 'on' : ''}" data-nota="${n.id}"><div class="tt">${esc(n.titulo)}<small>${dataCurta(n.data)}</small></div><div class="pv">${(n.linhas[0] ? n.linhas[0].t : '—').replace(/<[^>]+>/g, '')}</div></button>`).join('')).join('');
   }
 
   function editor() {
@@ -91,10 +91,10 @@
     if (!n) return `<div class="nt-editor" style="place-content:center;text-align:center;color:var(--ink-soft)">Selecione uma nota, ou crie uma nova.</div>`;
     return `<div class="nt-editor">
       <div class="meta"><span>${n.pasta} · Editada agora · <span style="color:#607452">Salva</span></span><span class="cx clickable">🔗 Conexões ${n.link ? 1 : 0}</span></div>
-      <h2 contenteditable="true" id="nt_titulo">${n.titulo}</h2>
+      <h2 contenteditable="true" id="nt_titulo">${esc(n.titulo)}</h2>
       <div class="nt-lines">${n.linhas.map((l, i) => `<div class="nt-line ${l.done ? 'done' : ''}" data-i="${i}">
         ${l.check ? `<button class="bx clickable" data-check="${i}">${l.done ? '✓' : ''}</button>` : '<span style="width:18px"></span>'}
-        <span class="tx">${l.t}</span>${l.sys ? `<span class="sys">${l.sys}</span>` : ''}<button class="del clickable" data-delline="${i}">✕</button></div>`).join('')}</div>
+        <span class="tx">${esc(l.t)}</span>${l.sys ? `<span class="sys">${esc(l.sys)}</span>` : ''}<button class="del clickable" data-delline="${i}">✕</button></div>`).join('')}</div>
       <div class="nt-input-wrap"><div class="nt-pop" id="nt_pop" style="display:none"></div>
         <input class="nt-input" id="nt_in" placeholder="Escreva… ou digite / tarefa · @ hábito · [ vincular"></div>
       <div class="nt-hint">Comandos: <b>/</b> cria tarefa no sistema · <b>@</b> cria hábito · <b>[</b> vincula a uma meta</div>

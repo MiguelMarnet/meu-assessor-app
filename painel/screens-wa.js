@@ -57,7 +57,8 @@
 
   const body = () => scrim.querySelector('#wa_body');
   function scroll() { const b = body(); b.scrollTop = b.scrollHeight; }
-  function me(t) { const d = document.createElement('div'); d.className = 'wa-msg me'; d.innerHTML = t + `<div class="tm">${agora()} ✓✓</div>`; body().appendChild(d); scroll(); }
+  // o texto digitado nunca entra como HTML (esc): a bolha e montada com dado do usuario
+  function me(t) { const d = document.createElement('div'); d.className = 'wa-msg me'; d.innerHTML = esc(t) + `<div class="tm">${agora()} ✓✓</div>`; body().appendChild(d); scroll(); }
   function bot(t) { const d = document.createElement('div'); d.className = 'wa-msg bot'; d.innerHTML = t + `<div class="tm">${agora()}</div>`; body().appendChild(d); scroll(); }
   function card(html) { const d = document.createElement('div'); d.className = 'wa-card'; d.innerHTML = html; body().appendChild(d); scroll(); return d; }
 
