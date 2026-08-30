@@ -747,6 +747,12 @@
   async function abrirApp(userId){
     window.__uid = userId;
 
+    /* Espelho ANTES de tudo: as telas leem o Store ao montar. Se puxasse
+       depois, a pessoa veria os dados velhos e um "pulo" logo em seguida. */
+    try {
+      if (window.Espelho) { await window.Espelho.puxar(userId); window.Espelho.ligar(userId); }
+    } catch (e) { /* segue com o estado local */ }
+
     /* O briefing entra ANTES de qualquer outra coisa aparecer: e a primeira
        interacao do dia, nao um widget no meio da pagina. Se falhar, a tela
        segue com o texto padrao -- briefing nao pode derrubar o painel. */
@@ -770,6 +776,8 @@
         await window.Conversa.ligar();
       }
     } catch (e) { /* painel segue sem a conversa */ }
+
+    try { if (window.Numeros) await window.Numeros.atualizar(); } catch (e) {}
     if (window.syncPuxarDoServidor) await window.syncPuxarDoServidor();
     gate.classList.add('hidden');
     if (window.__pararGate) window.__pararGate();   // canvas escondido não anima
@@ -1051,6 +1059,8 @@ window.__bumpLive();
 <script src="seguranca.js"></script>
 <script src="briefing.js"></script>
 <script src="conversa.js"></script>
+<script src="espelho.js"></script>
+<script src="numeros.js"></script>
 
 <script type="importmap">
 { "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js", "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/" } }

@@ -43,6 +43,35 @@ window.Briefing = (function () {
     return FRASES.motivacional[dia % FRASES.motivacional.length];
   }
 
+  /* Devolve os compromissos de hoje, ou null se não deu para saber.
+     null e [] são coisas diferentes: "não consegui ler" não é "agenda livre". */
+  async function agendaDoGoogle() {
+    let url = '';
+    try {
+      const c = await (await fetch('../config.json', { cache: 'no-store' })).json();
+      url = c.agendaWebhook || '';
+    } catch (e) { return null; }
+    if (!url) return null;
+
+    let token = '';
+    try {
+      const { data: { session } } = await S().auth.getSession();
+      token = session ? session.access_token : '';
+    } catch (e) { return null; }
+    if (!token) return null;
+
+    try {
+      const r = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'ngrok-skip-browser-warning': '1' },
+        body: JSON.stringify({ access_token: token })
+      });
+      if (!r.ok) return null;
+      const j = JSON.parse(await r.text());
+      return Array.isArray(j.eventos) ? j.eventos : null;
+    } catch (e) { return null; }
+  }
+
   /* ---- Coleta ---------------------------------------------------------- */
   async function coletar(uid) {
     const hoje = new Date();
@@ -75,13 +104,17 @@ window.Briefing = (function () {
     const porCat = {};
     gastos.forEach(t => { const c = t.category || 'sem categoria'; porCat[c] = (porCat[c] || 0) + Number(t.value || 0); });
 
-    /* Agenda: por enquanto, só o que o Assessor registrou. A agenda completa do
-       Google exige o segredo do OAuth, que não pode viver no navegador — vem de
-       um webhook do n8n num passo seguinte. */
-    const agenda = (eventos.data || [])
-      .filter(e => e.type === 'calendar' && e.payload && e.payload.start_time)
-      .filter(e => String(e.payload.start_time).slice(0, 10) === hojeISO)
-      .map(e => ({ hora: String(e.payload.start_time).slice(11, 16), titulo: e.payload.title || '(sem título)' }));
+    /* Agenda COMPLETA do Google, via n8n. O segredo do OAuth não pode viver no
+       navegador, então o painel pede e o n8n busca. Se falhar (n8n fora,
+       Google sem conexão), cai no que o próprio Assessor registrou — pior,
+       mas honesto: é o que a gente sabe. */
+    let agenda = await agendaDoGoogle();
+    if (agenda === null) {
+      agenda = (eventos.data || [])
+        .filter(e => e.type === 'calendar' && e.payload && e.payload.start_time)
+        .filter(e => String(e.payload.start_time).slice(0, 10) === hojeISO)
+        .map(e => ({ hora: String(e.payload.start_time).slice(11, 16), titulo: e.payload.title || '(sem título)' }));
+    }
 
     return {
       falhouTarefas: !!tarefas.falhou,
