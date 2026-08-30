@@ -82,10 +82,34 @@
       <p class="ms-sub" style="margin-top:14px">Blocos em que a distração fica trancada — proteja suas manhãs e o sono. Foco e Projetos conversam: o tempo protegido vira avanço nas metas.</p></div>`;
   }
 
-  const TABS = [['hoje', 'Hoje'], ['limites', 'Limites'], ['protecao', 'Proteção']];
+  /* A ponte com o bloqueio REAL do aparelho. O app web não bloqueia nada —
+     quem bloqueia é o Tempo de Uso (iPhone) ou o Bem-estar Digital (Android).
+     Aqui a gente decide QUANDO, dispara onde dá, e registra pra cobrar depois. */
+  function vAparelho() {
+    const P = window.FocoPonte;
+    if (!P) return `<div class="fcard"><div class="fct">📱 No celular</div><p class="ms-sub">Indisponível agora.</p></div>`;
+    const sis = P.sistema();
+    const cfg = P.comoConfigurar();
+    const podeDisparar = sis === "ios";
+    return `<div class="fcard"><div class="fct">📱 Bloqueio no aparelho <span style="text-transform:none">quem tranca é o seu celular</span></div>
+      <p class="ms-sub" style="margin-bottom:14px">Nenhum site consegue bloquear app — nem este. O bloqueio de verdade é do seu celular; eu decido a hora e cobro depois.</p>
+      <div style="border-left:2px solid var(--line);padding-left:12px;margin-bottom:14px">
+        <b style="font-size:13.5px">${cfg.titulo}</b>
+        <ol style="margin:8px 0 0 16px;font-size:13px;line-height:1.7;color:var(--ink-soft)">${cfg.passos.map(x => `<li>${x}</li>`).join("")}</ol>
+        <p class="ms-sub" style="margin-top:10px;font-size:12px">${cfg.nota}</p>
+      </div>
+      ${podeDisparar ? `<button class="btn2 primary clickable" id="fo_ligar" style="width:100%;min-height:48px">Ligar o foco agora</button>` : ""}
+      <div style="display:flex;gap:8px;margin-top:10px;align-items:center">
+        <input id="fo_min" type="number" inputmode="numeric" value="50" style="width:82px;padding:11px;border-radius:10px;border:1.5px solid var(--line);background:var(--panel);color:var(--ink);font-family:inherit">
+        <span class="ms-sub" style="font-size:12.5px">minutos</span>
+        <button class="btn2 clickable" id="fo_reg" style="margin-left:auto">Registrar sessão</button>
+      </div>
+      <p class="ms-sub" style="margin-top:8px;font-size:12px">Registrar é o que faz o Assessor lembrar: amanhã ele sabe se você cumpriu.</p></div>`;
+  }
+  const TABS = [['hoje', 'Hoje'], ['limites', 'Limites'], ['protecao', 'Proteção'], ['aparelho', 'No celular']];
   function render() {
     if (!el) return;
-    const body = tab === 'limites' ? vLimites() : tab === 'protecao' ? vProtecao() : vHoje();
+    const body = tab === 'limites' ? vLimites() : tab === 'protecao' ? vProtecao() : tab === 'aparelho' ? vAparelho() : vHoje();
     el.innerHTML = `<div class="ms-wrap">
       <div class="ms-top"><span class="ms-num" style="color:#d07a3c">◦ MÓDULO 05 · FOCO DIGITAL</span><button class="ms-close clickable" id="fo_close">✕ Voltar ao índice</button></div>
       <h1 class="ms-h1">Foco Digital</h1>
@@ -95,6 +119,15 @@
     document.getElementById('fo_close').onclick = () => fecharFn && fecharFn();
     el.querySelectorAll('[data-tab]').forEach(b => b.onclick = () => { tab = b.dataset.tab; render(); });
     el.querySelectorAll('[data-rig]').forEach(b => b.onclick = () => { const app = b.closest('[data-app]').dataset.app; const r = S().get('fo_rigor', {}); r[app] = b.dataset.rig; S().set('fo_rigor', r); render(); window.toast('Rigor de ' + app + ': ' + b.textContent); });
+    const bLigar = document.getElementById("fo_ligar");
+    if (bLigar) bLigar.onclick = () => { window.FocoPonte.ligarNoAparelho(); window.toast("Abrindo o Atalho…"); };
+    const bReg = document.getElementById("fo_reg");
+    if (bReg) bReg.onclick = async () => {
+      const min = Math.max(1, parseInt(document.getElementById("fo_min").value, 10) || 0);
+      const r = await window.FocoPonte.registrar(min, "Foco Digital");
+      window.toast(r.ok ? ("Sessão de " + min + " min registrada 🎯") : "Não consegui registrar agora.");
+      if (r.ok) B().emit("focus", { minutos: min }, min);
+    };
     el.querySelectorAll('[data-jan]').forEach(b => b.onclick = () => { const jan = S().get('fo_janelas', []); jan[+b.dataset.jan].on = jan[+b.dataset.jan].on ? 0 : 1; S().set('fo_janelas', jan); render(); B().emit('focus', {}, 1); });
   }
   window.Screens = window.Screens || {};
