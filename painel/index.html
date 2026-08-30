@@ -753,6 +753,9 @@
       if (window.Espelho) { await window.Espelho.puxar(userId); window.Espelho.ligar(userId); }
     } catch (e) { /* segue com o estado local */ }
 
+    /* Traz notas e metas que vieram do WhatsApp, ANTES de as telas montarem. */
+    try { if (window.Colecoes) await window.Colecoes.puxar(userId); } catch (e) {}
+
     /* O briefing entra ANTES de qualquer outra coisa aparecer: e a primeira
        interacao do dia, nao um widget no meio da pagina. Se falhar, a tela
        segue com o texto padrao -- briefing nao pode derrubar o painel. */
@@ -1061,6 +1064,7 @@ window.__bumpLive();
 <script src="conversa.js"></script>
 <script src="espelho.js"></script>
 <script src="numeros.js"></script>
+<script src="colecoes.js"></script>
 
 <script type="importmap">
 { "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js", "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/" } }
