@@ -208,7 +208,6 @@ async function carregarConfig(){
     const r = await fetch('config.json', {cache:'no-store'});
     const c = await r.json();
     if (!CFG.WEBHOOK_URL) CFG.WEBHOOK_URL = c.cadastroWebhook || "";
-    if (!CFG.TOKEN) CFG.TOKEN = c.cadastroToken || "";
     CFG.GOOGLE_CLIENT_ID = c.googleOAuthClientId || "";
     CFG.GOOGLE_CALLBACK_URL = c.googleOAuthCallbackUrl || "";
     CFG.GOOGLE_DISCONNECT_WEBHOOK = c.googleDisconnectWebhook || "";
@@ -286,14 +285,29 @@ function ligarCampoWhats(){
   el.addEventListener('input', pintar);
   el.addEventListener('paste', () => setTimeout(pintar, 0));
 }
-function conectarGoogle(){
+async function conectarGoogle(){
   const errEl = $('errGoogle'); errEl.style.display='none';
   const raw = $('whats').value.replace(/\D/g,'');
   if(!raw){errEl.textContent='Confere seu WhatsApp lá no passo 1 antes de conectar o Google.';errEl.style.display='block';return}
-  const digits = normWhats(raw);
   if(!CFG.GOOGLE_CLIENT_ID || !CFG.GOOGLE_CALLBACK_URL){
     errEl.textContent='Conexão com Google ainda não está disponível — pode criar sua conta sem ela e conectar depois.';
     errEl.style.display='block';
+    return;
+  }
+  // O `state` do OAuth precisa ser IMPREVISÍVEL: é ele que amarra o callback
+  // à pessoa que começou o fluxo. Aqui ia o número de WhatsApp -- adivinhável,
+  // e por isso dava para montar o link com o número de outra pessoa, autorizar
+  // com a MINHA conta Google e plantar o meu token na conta dela.
+  // Agora o banco emite um nonce de 256 bits, de uso único, que expira em
+  // 10 min (create_oauth_state / consume_oauth_state em seguranca-webhooks.sql).
+  let nonce;
+  try {
+    const { data, error } = await window.Supa.rpc('create_oauth_state');
+    if (error || !data) throw error || new Error('sem nonce');
+    nonce = data;
+  } catch (e) {
+    errEl.textContent = 'Não consegui iniciar a conexão com o Google agora. Tenta de novo em instantes — sua conta já está criada.';
+    errEl.style.display = 'block';
     return;
   }
   const scope = 'https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/tasks';
@@ -304,7 +318,7 @@ function conectarGoogle(){
     access_type: 'offline',
     prompt: 'consent',
     scope: scope,
-    state: digits
+    state: nonce
   });
   location.href = 'https://accounts.google.com/o/oauth2/v2/auth?' + params.toString();
 }
@@ -360,7 +374,6 @@ function payload(){
      nasceria sem dono e seria reivindicável por quem soubesse o telefone. */
   const sessao = window.__sessao || {};
   return {
-    token: CFG.TOKEN,
     access_token: sessao.access_token || '',
     nome: $('nome').value.trim(),
     whatsapp: $('whats').value.trim(),
@@ -396,7 +409,12 @@ async function salvar(){
   try{
     /* 'ngrok-skip-browser-warning' evita a tela de aviso do ngrok gratuito.
        Inofensivo em qualquer outro provedor -- é só um cabeçalho a mais. */
-    const r=await fetch(CFG.WEBHOOK_URL,{method:'POST',headers:{'Content-Type':'application/json','ngrok-skip-browser-warning':'1'},body:JSON.stringify(data)});
+    /* A sessão vai no cabeçalho Authorization, que é onde o n8n confere
+       (GET /auth/v1/user). O corpo NÃO diz mais quem é o usuário: o
+       user_id é derivado do JWT no servidor. Antes ia um token
+       compartilhado, igual para todo mundo e visível neste arquivo —
+       qualquer pessoa o lia e agia no nome de outra. */
+    const r=await fetch(CFG.WEBHOOK_URL,{method:'POST',headers:{'Content-Type':'application/json','ngrok-skip-browser-warning':'1','Authorization':'Bearer '+data.access_token},body:JSON.stringify(data)});
     if(!r.ok)throw 0;
     /* Não é mais preciso "amarrar" a conta depois: o n8n valida a sessão do
        Google e já grava o auth_uid na criação. Amarrar pelo navegador era
