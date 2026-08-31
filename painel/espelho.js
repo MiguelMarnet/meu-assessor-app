@@ -63,8 +63,19 @@ window.Espelho = (function () {
 
   /* Empurra com atraso: quem digita uma nota dispara Store.set a cada tecla.
      Sem isso seria uma escrita por caractere. */
+  /* Dado de demonstração NUNCA sai do aparelho. Enquanto o painel está em modo
+     vitrine (persona Marina), qualquer subida gravaria a agenda de uma
+     confeiteira fictícia na conta de uma pessoa real — e dado falso no banco
+     não se desfaz sozinho. */
+  function ehDemonstracao() {
+    try {
+      return !!localStorage.getItem('ma1:persona_v1') && !localStorage.getItem('ma1:modo_pessoal');
+    } catch (e) { return false; }
+  }
+
   function agendar(chave, valor) {
     if (!ligado || !uid || !CHAVES.includes(chave)) return;
+    if (ehDemonstracao()) return;
     pendentes.set(chave, valor);
     clearTimeout(timer);
     timer = setTimeout(empurrar, 900);

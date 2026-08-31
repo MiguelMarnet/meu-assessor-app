@@ -12,6 +12,39 @@
      "Apagar tudo". Checada ANTES da flag de persona, e de propósito
      não é removida pelo Store.wipe() (ver index.html). */
   if (S.get('modo_pessoal')) return;
+
+  /* Ninguém com conta recebe persona de demonstração.
+     A Marina existe para mostrar o produto a quem ainda não entrou — encher a
+     conta de uma pessoa real com a agenda de uma confeiteira fictícia é o
+     oposto de um assessor. E com o espelho ligado isso viajaria para o banco
+     dela, virando dado falso permanente em vez de vitrine. */
+  const temSessao = (function () {
+    try {
+      const k = Object.keys(localStorage).find(x => x.startsWith('sb-') && x.endsWith('-auth-token'));
+      if (!k) return false;
+      const s = JSON.parse(localStorage.getItem(k) || 'null');
+      const ate = s && (s.expires_at || (s.currentSession && s.currentSession.expires_at));
+      return !!ate && ate * 1000 > Date.now();
+    } catch (e) { return false; }
+  })();
+  if (temSessao) {
+    /* Se a demonstração JÁ estava neste aparelho (caso de quem usou o painel
+       antes de ter conta), apagamos os dados dela antes de marcar modo pessoal.
+       Sem isto, marcar a flag liberaria o espelho e a agenda da Marina subiria
+       para a conta real — dado falso no banco não se desfaz sozinho.
+       São só as chaves que a própria persona escreveu; nada que a pessoa tenha
+       criado passa por aqui, porque com sessão a persona nunca semeou. */
+    if (S.get('persona_v1')) {
+      const DA_PERSONA = ['es_intencao','es_praticas','es_reflexoes','fin_agendadas','fin_budgets',
+        'fin_contas','fin_seed','fo_apps','fo_janelas','fo_meta','fo_rigor','mt_metas','nt_notas',
+        'profile','r_contas','r_habitos','r_listas','r_tasks','sa_exames','sa_meals','sa_meta',
+        'sa_treinos','saldo','tl_marcos','tx','persona_v1'];
+      DA_PERSONA.forEach(k => { try { localStorage.removeItem('ma1:' + k); } catch (e) {} });
+    }
+    S.set('modo_pessoal', 1);
+    return;
+  }
+
   if (S.get('persona_v1')) return;   // já carregada
   S.set('persona_v1', 1);
 

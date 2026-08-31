@@ -146,6 +146,13 @@
     font-family:var(--mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;padding:11px 18px;border-radius:40px;border:none;transition:transform .25s,box-shadow .25s}
   .cta:hover{transform:scale(1.05);box-shadow:0 10px 34px rgba(0,0,0,.24)}
   .cta:active{transform:scale(.96)}
+  /* --- Ajustes: grupos com nome, destrutivo por último ------------------ */
+  .cf-grupo{font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;
+            color:var(--ink-faint);margin:20px 0 8px;padding-top:14px;border-top:1px solid var(--line)}
+  .cf-grupo:first-of-type{padding-top:0;border-top:none;margin-top:14px}
+  .cf-grupo.cf-risco{color:var(--alerta)}
+  .cf-nota{display:block;font-size:12px;color:var(--ink-soft);margin-top:8px;line-height:1.5}
+
   /* --- Briefing do dia (companheiro matinal) --------------------------- */
   .bf{margin-top:18px;max-width:44ch}
   .bf-ola{font-size:clamp(20px,2.4vw,28px);font-weight:400;letter-spacing:-.02em;margin-bottom:6px}
@@ -975,8 +982,10 @@ const App = {
     Modal.open(`<h3>Ajustes</h3><p class="msub">Seu Assessor, do seu jeito. ${esc(statusConta)}</p>
       <label class="f">Seu nome</label><input type="text" id="cf_nome" value="${esc(p.nome)}">
       <label class="f">WhatsApp do Assessor (com DDI)</label><input type="text" id="cf_whats" value="${esc(p.whats)}" placeholder="5561999...">
-      <div class="mactions" style="flex-wrap:wrap">${(window.ModoPessoal && !Store.get('modo_pessoal')) ? '<button class="btn2 clickable" id="cf_realmode" style="border-color:var(--gold);color:var(--gold)">Começar com meus dados reais</button>' : ''}<button class="btn2 clickable" id="cf_boasvindas">Rever as boas-vindas</button>${dev ? '<button class="btn2 clickable" id="cf_n8n">Conectar ao n8n</button>' : ''}<button class="btn2 clickable" id="cf_export">Exportar dados</button>${window.__uid ? '<button class="btn2 clickable" id="cf_2fa">Verificação em duas etapas</button><button class="btn2 clickable" id="cf_google">Desconectar Google Agenda</button><button class="btn2 clickable" id="cf_sair">Sair da conta</button>' : ''}<button class="btn2 clickable" id="cf_wipe">Apagar tudo</button><button class="btn2 primary clickable" id="cf_save">Salvar</button></div>`);
+      <div class="cf-grupo">Sua conta</div><div class="mactions" style="flex-wrap:wrap">${window.__uid ? `<button class="btn2 clickable" id="cf_2fa">Verificação em duas etapas</button><button class="btn2 clickable" id="cf_google">Desconectar Google Agenda</button>` : `<span class="cf-nota">Entre com o Google para sincronizar entre aparelhos.</span>`}</div><div class="cf-grupo">O app</div><div class="mactions" style="flex-wrap:wrap"><button class="btn2 clickable" id="cf_baixar">📱 Baixar o app Android</button><button class="btn2 clickable" id="cf_boasvindas">Rever as boas-vindas</button></div><span class="cf-nota">O app faz o que o navegador não faz: bloquear aplicativos durante o foco.</span><div class="cf-grupo">Seus dados</div><div class="mactions" style="flex-wrap:wrap"><button class="btn2 clickable" id="cf_export">Exportar tudo</button>${dev ? `<button class="btn2 clickable" id="cf_n8n">Conectar ao n8n</button>` : ""}${(window.ModoPessoal && !Store.get("modo_pessoal")) ? `<button class="btn2 clickable" id="cf_realmode" style="border-color:var(--gold);color:var(--gold)">Limpar a demonstração e usar meus dados</button>` : ""}</div><div class="cf-grupo cf-risco">Zona de risco</div><div class="mactions" style="flex-wrap:wrap">${window.__uid ? `<button class="btn2 clickable" id="cf_sair">Sair da conta</button>` : ""}<button class="btn2 clickable" id="cf_wipe" style="border-color:var(--alerta);color:var(--alerta)">Apagar tudo deste aparelho</button></div><div class="mactions" style="margin-top:18px"><button class="btn2 primary clickable" id="cf_save" style="width:100%">Salvar</button></div>`);
     /* Só aparecem com login: sem conta não há o que desconectar nem de onde sair. */
+    const bBaixar = document.getElementById("cf_baixar");
+    if (bBaixar) bBaixar.onclick = () => window.open("https://github.com/MiguelMarnet/assessor-android/releases/latest", "_blank", "noopener");
     const b2fa = document.getElementById('cf_2fa');
     if (b2fa) b2fa.onclick = () => window.Seguranca.abrir();
     const bGoogle = document.getElementById('cf_google');
