@@ -1,0 +1,8 @@
+{
+  "versionCode": 4,
+  "versionName": "1.4",
+  "apk": "https://miguelmarnet.github.io/meu-assessor-app/app/assessor-foco.apk",
+  "tamanho": "1611 KB",
+  "notas": "Login funciona pelo app (o Google recusa login dentro de WebView).\nAtualizacao por dentro do app.\nCorrecoes de visual no celular.",
+  "publicado": "2026-08-31"
+}
