@@ -146,6 +146,48 @@
     font-family:var(--mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;padding:11px 18px;border-radius:40px;border:none;transition:transform .25s,box-shadow .25s}
   .cta:hover{transform:scale(1.05);box-shadow:0 10px 34px rgba(0,0,0,.24)}
   .cta:active{transform:scale(.96)}
+
+  /* ===== CORREÇÕES DE CELULAR (medidas em 375px) =====
+     Três colisões que só apareciam aqui:
+
+     1. O núcleo 3D é fixo e ocupa a tela inteira. No computador o texto fica
+        na coluna da esquerda e sobra espaço; no celular o texto ocupa a
+        largura toda e o núcleo passava POR CIMA do título.
+     2. A barra de cima não cabe em 375px: marca + capítulo + dois botões.
+        O capítulo ("01 — NÚCLEO") é enfeite; sai primeiro.
+     3. A barra de baixo tinha quatro indicadores lado a lado num espaço de
+        dois — o terceiro e o quarto ficavam cortados na borda. */
+  @media (max-width: 600px){
+    /* 1. o núcleo recua para trás do texto e sobe, saindo da faixa do título */
+    #nucleo, .stage > canvas, body > canvas{
+      opacity:.42; transform:translateY(-16vh) scale(.72); transform-origin:center 30%;
+    }
+    .hero .col-txt{position:relative; z-index:2}
+    .hero h1{text-shadow:0 2px 18px var(--bg)}
+
+    /* 2. o capítulo sai; a marca e os botões cabem */
+    .topbar .seclabel{display:none}          /* enfeite; some primeiro */
+    .topbar .controls{gap:6px;flex-wrap:nowrap}
+    .topbar .controls .btn{padding:8px 12px;font-size:10.5px}
+    .topbar{gap:8px}
+    .topbar .brand{font-size:13px;letter-spacing:.14em}
+
+    /* 3. dois indicadores por vez, e a barra rola se precisar */
+    .livebar{overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+    .livebar::-webkit-scrollbar{display:none}
+    .livebar .grp{gap:18px;flex:0 0 auto}
+    .livebar .s{flex:0 0 auto;min-width:0}
+    .livebar .s:nth-child(n+3){display:flex}   /* volta: agora rola em vez de sumir */
+    .livebar .s .n{font-size:19px}
+    .livebar .s .l{font-size:9.5px;white-space:nowrap}
+
+    /* o botão do WhatsApp cobria os indicadores da barra de baixo */
+    .wa-fab{bottom:104px !important;right:16px !important}
+
+    /* alvos de toque: 44px é o mínimo que um dedo acerta */
+    .modscreen .ms-tabs button, .mactions .btn2{min-height:44px}
+  }
+
   /* --- Ajustes: grupos com nome, destrutivo por último ------------------ */
   .cf-grupo{font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;
             color:var(--ink-faint);margin:20px 0 8px;padding-top:14px;border-top:1px solid var(--line)}
@@ -454,10 +496,10 @@
   <div class="rail" id="rail"><div class="dot on"></div><div class="dot"></div></div>
   <div class="livebar" id="livebar">
     <div class="grp">
-      <div class="s"><div class="n">21<small>d</small></div><div class="l">sequência</div></div>
-      <div class="s"><div class="n" id="lb-saldo">R$ 4.820</div><div class="l">saldo do mês</div></div>
-      <div class="s"><div class="n">8.2</div><div class="l">humor médio</div></div>
-      <div class="s"><div class="n" id="liveev">142</div><div class="l">eventos hoje</div></div>
+      <div class="s"><div class="n" id="lb-seq">—</div><div class="l">sequência</div></div>
+      <div class="s"><div class="n" id="lb-saldo">—</div><div class="l">gasto no mês</div></div>
+      <div class="s"><div class="n" id="lb-tarefas">—</div><div class="l">tarefas abertas</div></div>
+      <div class="s"><div class="n" id="liveev">—</div><div class="l">eventos hoje</div></div>
     </div>
     <div style="display:flex;align-items:center;gap:18px">
       <div class="eq" id="eq"></div>
@@ -824,6 +866,19 @@
        do link_my_account, por outro caminho). */
     location.replace('../cadastro-app.html');
   }
+  /* Ponte para o app Android. O Google recusa login dentro de WebView desde
+     2021 (disallowed_useragent), então o app abre o login numa aba do Chrome
+     e devolve os tokens por deep link. Aqui a sessão é montada com a API
+     oficial em vez de escrever no localStorage na unha. */
+  window.__entrarComTokens = async (access_token, refresh_token) => {
+    try {
+      const { error } = await supa.auth.setSession({ access_token, refresh_token });
+      if (error) return false;
+      boot();
+      return true;
+    } catch (e) { return false; }
+  };
+
   supa.auth.onAuthStateChange((_ev, _session) => boot());
   boot();
 </script>
@@ -971,7 +1026,16 @@ window.openAction = function(id){
     if(a.fields.length) toast('Registrado ✔ — o Cérebro já cruzou isso.');
   };
 };
-window.__bumpLive = function(){ const el=document.getElementById('liveev'); if(el) el.textContent=142+Bus.todayCount(); const sb=document.getElementById('lb-saldo'); if(sb) sb.textContent=brl(Store.get('saldo',4820)); };
+/* Sem conta, a barra mostra o que este aparelho registrou — e nada mais.
+   Antes somava 142 eventos e um saldo de 4.820 que nunca existiram: números
+   de vitrine que sobreviviam dentro da conta de gente real. Com conta, quem
+   manda é numeros.js, que lê do banco. */
+window.__bumpLive = function(){
+  if (window.__uid) return;   // logado: os números vêm do banco
+  const el=document.getElementById("liveev"); if(el) el.textContent=String(Bus.todayCount());
+  const sb=document.getElementById("lb-saldo");
+  if(sb){ const v=Store.get("saldo",null); sb.textContent = v==null ? "—" : brl(v); }
+};
 
 const App = {
   exportAll(){ const dump={exportadoEm:new Date().toISOString(),app:'Assessor.IA',dados:{}}; Store.keys().forEach(k=>dump.dados[k]=Store.get(k));

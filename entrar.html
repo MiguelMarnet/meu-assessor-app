@@ -138,7 +138,18 @@
        não tem    -> CONTINUA o cadastro, já autenticada, só com o que falta
 
      Nunca uma página dizendo "criar conta" para quem acabou de se autenticar. */
+  /* Aberto pelo app Android (?app=1): em vez de seguir para o painel web,
+     devolve a sessão para o app por deep link. O app não consegue ler o
+     login feito no navegador — os tokens precisam atravessar explicitamente. */
+  const paraOApp = new URLSearchParams(location.search).get("app") === "1";
+
   async function seguirDepoisDoLogin(session) {
+    if (paraOApp && session) {
+      const s = session;
+      location.replace("assessorfoco://login?at=" + encodeURIComponent(s.access_token) +
+        "&rt=" + encodeURIComponent(s.refresh_token || ""));
+      return;
+    }
     try {
       const { data } = await supa
         .from('users').select('user_id')

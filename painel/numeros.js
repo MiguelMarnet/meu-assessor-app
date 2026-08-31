@@ -20,6 +20,8 @@ window.Numeros = (function () {
     const d = Array.isArray(r.data) ? r.data[0] : r.data;
     if (!d) return marcarIndisponivel();
 
+    barra(d);
+
     const linhas = document.querySelectorAll('.hero .col-meta .mrow');
     if (!linhas.length) return;
 
@@ -43,6 +45,16 @@ window.Numeros = (function () {
       const spans = linha.querySelectorAll('span');
       if (spans[1]) spans[1].textContent = '—';
     });
+  }
+
+  /* A barra de baixo repetia os mesmos números inventados. Agora bebe da
+     mesma fonte do topo — um lugar só decide o que é verdade. */
+  function barra(d) {
+    const põe = (id, txt) => { const e = document.getElementById(id); if (e) e.textContent = txt; };
+    põe("lb-seq", d.sequencia_dias == null ? "—" : d.sequencia_dias + "d");
+    põe("lb-saldo", d.gasto_mes == null ? "—" : brl(d.gasto_mes));
+    põe("lb-tarefas", d.tarefas_abertas == null ? "—" : String(d.tarefas_abertas));
+    põe("liveev", d.eventos_hoje == null ? "—" : String(d.eventos_hoje));
   }
 
   return { atualizar };
