@@ -449,6 +449,7 @@
         <button class="ms-close clickable" id="sc_close">✕ Voltar ao índice</button></div>
       <h1 class="ms-h1">Rotina</h1>
       <p class="ms-sub">${DIAS_N[hoje.getDay()][0].toUpperCase() + DIAS_N[hoje.getDay()].slice(1)}, ${hoje.getDate()} · o seu dia em blocos — registre aqui ou mande no WhatsApp.</p>
+      ${window.__briefingHTML ? '<div class="bf bf-mod">' + window.__briefingHTML + '</div>' : ''}
       <div class="ms-tabs">${TABS.map(([k, n]) => `<button class="${tab === k ? 'on' : ''}" data-tab="${k}">${n}</button>`).join('')}</div>
       ${body}</div>`;
     bind();

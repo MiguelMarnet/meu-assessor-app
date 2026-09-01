@@ -123,7 +123,13 @@
     }
   }
   function fechar() { scrim.classList.remove('on'); }
-  fab.onclick = abrir;
+  /* Com sessao, este botao abre a conversa DE VERDADE — o mesmo cerebro do
+     WhatsApp. O simulador abaixo continua existindo para quem ainda nao
+     entrou: e a demonstracao da vitrine, nao a conversa do dono. */
+  fab.onclick = () => {
+    if (window.__chatReal && window.abrirChat) { window.abrirChat(); return; }
+    abrir();
+  };
   scrim.querySelector('#wa_x').onclick = fechar;
   scrim.querySelector('#wa_send').onclick = () => enviar();
   scrim.querySelector('#wa_in').addEventListener('keydown', e => { if (e.key === 'Enter') enviar(); });

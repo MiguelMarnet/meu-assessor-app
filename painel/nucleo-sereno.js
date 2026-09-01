@@ -701,7 +701,17 @@ export class NucleoSereno {
        ficava em y 277-358px enquanto a faixa transparente da tela de
        módulo acaba em 180px. Ou seja, o companheiro existia e ficava
        escondido atrás do fundo opaco. */
-    this.camera.lookAt(0, c * 0.60, 0);
+    /* No celular o orbe e o titulo disputavam o mesmo pedaco de tela: uma
+       coluna so, os dois centrados, o texto lido por cima da esfera.
+       As minhas tentativas anteriores mexiam no CANVAS — opacidade, mascara,
+       escala. Todas estragaram o 3D: escalar mostra a borda da cena como um
+       retangulo mais claro, e esticar deforma a esfera (a camera nao reajusta
+       o aspecto sozinha).
+       O certo e mover a CAMERA, nao a imagem: olhar mais para baixo joga o
+       orbe para o alto do quadro sem tocar em um pixel do render. Qualidade
+       intacta, sem borda, sem deformacao. */
+    const subir = innerWidth <= 600 ? -1.7 : 0;
+    this.camera.lookAt(0, c * 0.60 + subir, 0);
 
     this.renderer.render(this.cena, this.camera);
   }

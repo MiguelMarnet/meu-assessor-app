@@ -228,7 +228,10 @@
      3. A barra de baixo tinha quatro indicadores lado a lado num espaço de
         dois — o terceiro e o quarto ficavam cortados na borda. */
   @media (max-width: 600px){
-    /* 1. o núcleo recua para trás do texto e sobe, saindo da faixa do título */
+    /* 1. o nucleo ocupa o alto da tela e o texto vem abaixo dele — duas
+          faixas, nao duas coisas empilhadas no mesmo lugar. Quem sobe e a
+          CAMERA (nucleo-sereno.js); aqui so se abre o espaco para ela. */
+    .hero .col-txt{margin-top:25vh}
     /* O nucleo fica INTACTO: sem escala, sem mascara, sem opacidade. Toda
        tentativa minha de "acomodar" o 3D estragou o 3D. O que ele precisava
        era de espaco, e o espaco voltou quando o briefing e a conversa sairam
@@ -238,22 +241,26 @@
 
     /* 2. o capítulo sai; a marca e os botões cabem */
     .topbar .seclabel{display:none}          /* enfeite; some primeiro */
+    .topbar .brand sup{display:none}             /* idem: media 339px de barra para 311px de conteudo */
     .topbar .controls{gap:6px;flex-wrap:nowrap}
     .topbar .controls .btn{padding:8px 12px;font-size:10.5px}
     .topbar{gap:8px}
     .topbar .brand{font-size:13px;letter-spacing:.14em}
 
     /* 3. dois indicadores por vez, e a barra rola se precisar */
-    .livebar{overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
-    .livebar::-webkit-scrollbar{display:none}
-    .livebar .grp{gap:18px;flex:0 0 auto}
-    .livebar .s{flex:0 0 auto;min-width:0}
-    .livebar .s:nth-child(n+3){display:flex}   /* volta: agora rola em vez de sumir */
+    .livebar{flex-wrap:wrap;gap:10px 0;bottom:14px}
+    .livebar .grp{display:grid;grid-template-columns:1fr 1fr;gap:12px 14px;flex:1 1 100%;min-width:0}
+    .livebar .s{min-width:0}
+    .livebar .s .n{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .livebar .eq{display:none}                 /* enfeite: cede o lugar aos numeros */
+    .livebar .clk{flex:1 1 100%;text-align:right}
     .livebar .s .n{font-size:19px}
     .livebar .s .l{font-size:9.5px;white-space:nowrap}
 
     /* o botão do WhatsApp cobria os indicadores da barra de baixo */
-    .wa-fab{bottom:104px !important;right:16px !important}
+    /* A barra de indicadores virou duas linhas; o botao sobe para nao cobrir
+       o numero do gasto. Medido: a barra comeca em y 651 de 812. */
+    .wa-fab{bottom:174px !important;right:16px !important}
 
     /* alvos de toque: 44px é o mínimo que um dedo acerta */
     .modscreen .ms-tabs button, .mactions .btn2{min-height:44px}
@@ -268,6 +275,9 @@
 
   /* --- Briefing do dia (companheiro matinal) --------------------------- */
   .bf{margin-top:18px;max-width:44ch}
+  /* Dentro do modulo o briefing nao e um cartao flutuando num hero: e o topo
+     do dia, na largura do conteudo. */
+  .bf-mod{margin:2px 0 18px;max-width:70ch;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 18px}
   .bf-ola{font-size:clamp(20px,2.4vw,28px);font-weight:400;letter-spacing:-.02em;margin-bottom:6px}
   .bf-frase{font-size:13.5px;color:var(--ink-soft);font-style:italic;margin-bottom:14px}
   .bf-bloco{margin-top:12px;padding-left:12px;border-left:2px solid var(--line)}
@@ -276,22 +286,55 @@
           text-transform:uppercase;color:var(--ink-faint);margin-bottom:5px}
   .bf ul{list-style:none;margin:0;padding:0}
   .bf li{font-size:13.5px;line-height:1.65}
-  .bf li b{font-family:var(--mono);color:var(--gold,var(--acento));margin-right:6px}
+  .bf li b{font-family:var(--mono);color:var(--gold);margin-right:6px}
   .bf-pergunta{display:block;margin-top:6px;font-size:12.5px;color:var(--ink-soft)}
   .bf-insight{margin-top:16px;font-size:13.5px;line-height:1.6;
-              background:var(--acento-soft);border-radius:10px;padding:11px 13px}
+              background:var(--gold-soft);border-radius:10px;padding:11px 13px}
+
+  /* ===== A GAVETA DA CONVERSA =====
+     No computador ela encosta na direita; no celular sobe do rodape e ocupa a
+     tela quase toda, que e como todo aplicativo de mensagem se comporta.
+     Nao existe versao "no meio da pagina": a tela principal e do nucleo. */
+  /* A paleta deste painel e uma COPIA que so define --gold*; --acento* vive
+     em paleta-sereno.css e nunca chegou aqui. Toda regra minha que usava
+     --acento saia transparente — botao Enviar sem fundo, bolha sem cor.
+     Aqui se usa o token que existe nesta casa. */
+  .cvd{position:fixed;inset:0;z-index:90;background:rgba(0,0,0,.45);
+       display:flex;justify-content:flex-end;align-items:stretch}
+  .cvd[hidden]{display:none}
+  .cvd-cx{width:min(420px,100%);background:var(--bg);border-left:1px solid var(--line);
+          display:flex;flex-direction:column;box-shadow:-24px 0 60px rgba(0,0,0,.35);
+          animation:cvdEntra .22s ease-out}
+  @keyframes cvdEntra{from{transform:translateX(24px);opacity:.6}to{transform:none;opacity:1}}
+  .cvd-top{display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid var(--line)}
+  .cvd-av{width:34px;height:34px;border-radius:50%;background:var(--gold-soft);
+          display:grid;place-items:center;font-size:17px}
+  .cvd-nm{font-weight:600;font-size:15px;display:flex;flex-direction:column;line-height:1.25}
+  .cvd-nm span{font-size:11.5px;font-weight:400;color:var(--ink-soft)}
+  .cvd-x{margin-left:auto;background:none;border:none;color:var(--ink-soft);
+         font-size:17px;cursor:pointer;width:44px;height:44px;border-radius:10px}
+  .cvd-x:hover{background:var(--panel)}
+  .cvd .cv{margin:0;max-width:none;flex:1;display:flex;flex-direction:column;padding:14px 16px 18px}
+  .cvd .cv-log{flex:1;max-height:none}
+  @media (max-width:600px){
+    .cvd{align-items:flex-end}
+    .cvd-cx{width:100%;height:92dvh;border-left:none;border-top-left-radius:18px;border-top-right-radius:18px;
+            animation:cvdSobe .24s ease-out}
+    @keyframes cvdSobe{from{transform:translateY(28px)}to{transform:none}}
+  }
+
   /* --- Conversa no painel --- */
   .cv{margin-top:18px;max-width:44ch}
   .cv-log{display:flex;flex-direction:column;gap:7px;max-height:210px;overflow-y:auto;margin-bottom:10px}
   .cv-bolha{padding:9px 12px;border-radius:13px;font-size:13.5px;line-height:1.5;max-width:92%}
-  .cv-bolha.eu{background:var(--acento-soft);align-self:flex-end}
+  .cv-bolha.eu{background:var(--gold-soft);align-self:flex-end}
   .cv-bolha.ela{background:var(--panel);border:1px solid var(--line);align-self:flex-start}
   .cv-bolha.cv-pensando{opacity:.6;font-style:italic}
   .cv-quem{display:block;font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-faint);margin-bottom:3px}
   .cv-barra{display:flex;gap:7px;align-items:center}
   .cv-barra input{flex:1;min-width:0;padding:12px 14px;border-radius:12px;border:1.5px solid var(--line);background:var(--panel);color:var(--ink);font-family:inherit;font-size:14px}
   .cv-barra button{min-height:44px;padding:0 14px;border-radius:12px;border:1.5px solid var(--line);background:var(--panel);color:var(--ink);font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;user-select:none}
-  .cv-barra button.cv-env{background:var(--acento-fw);color:#FBF6F0;border-color:transparent}
+  .cv-barra button.cv-env{background:var(--gold-forte);color:#FBF6F0;border-color:transparent}
   .cv-barra button.gravando{background:var(--alerta);color:#fff;border-color:transparent}
   .hero .col-meta{grid-column:10/13;align-self:center;text-align:right;font-family:var(--mono)}
   .hero .col-meta .mrow{display:flex;justify-content:space-between;border-top:1px solid var(--line);padding:7px 0;font-size:11px;gap:24px}
@@ -534,7 +577,6 @@
     .vsa .col-txt{grid-column:1/13}
     .vsa .col-radar{display:none}
     .livebar .grp{gap:16px}
-    .livebar .s:nth-child(n+3){display:none}
     .rail{display:none}
     .drawer{width:100vw;top:auto;height:82vh;border-left:none;border-top:1px solid var(--line);border-radius:18px 18px 0 0;transform:translateY(100%)}
     .drawer.open{transform:translateY(0)}
@@ -1200,7 +1242,7 @@ import * as THREE from 'three';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 /* o GLSL do núcleo mora em nucleo.js — fonte única, compartilhada
    com o mini-app. Antes era uma cópia inline aqui embaixo. */
-import { NucleoSereno } from './nucleo-sereno.js';
+import { NucleoSereno } from './nucleo-sereno.js?v=6';
 
 history.scrollRestoration = 'manual'; scrollTo(0, 0);
 const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -1403,11 +1445,30 @@ function setSection(idx){
    variável e sumia ao recarregar — e o mini-app não tinha como herdar. */
 let userTheme = (()=>{ const v=Store.get('tema',null); return v==null?null:!!v; })();
 const root=document.documentElement, themeBtn=document.getElementById('themeBtn');
-function applyTheme(dark){ const is=root.getAttribute('data-theme')==='dark'; if(dark===is)return;
-  if(dark){root.setAttribute('data-theme','dark');themeBtn.textContent='CLARO';}else{root.removeAttribute('data-theme');themeBtn.textContent='ESCURO';} syncColors(); }
-function autoTheme(t){ if(userTheme!==null)return; applyTheme(t>2.5); }
-themeBtn.addEventListener('click', () => { userTheme = root.getAttribute('data-theme')!=='dark'; Store.set('tema', userTheme?1:0); applyTheme(userTheme); });
-if(userTheme!==null) applyTheme(userTheme);
+/* O tema tem que ser UMA verdade so. Aqui havia duas: o CSS seguia o sistema
+   (prefers-color-scheme) e o JS seguia so a escolha guardada. Quem estava com
+   o celular no escuro e nunca tocou no botao pegava o pior dos dois: fundo
+   escuro no CSS, cena 3D clara, e os numeros da barra de baixo em branco por
+   cima de um fundo claro — invisiveis. Era isso o "no PC ta lindo, no celular
+   ta feio".
+   Agora "claro" tambem e uma escolha ESCRITA (data-theme="light"), senao ela
+   nao vence a media query; e sem escolha, quem manda e o sistema. */
+const sistemaEscuro = matchMedia('(prefers-color-scheme: dark)');
+let temaEscuro = null;   // o estado de verdade, nao adivinhado do DOM
+function applyTheme(dark){
+  dark = !!dark;
+  if (dark === temaEscuro) return;
+  temaEscuro = dark;
+  root.setAttribute('data-theme', dark ? 'dark' : 'light');
+  themeBtn.textContent = dark ? 'CLARO' : 'ESCURO';
+  syncColors();
+}
+function autoTheme(t){ if(userTheme!==null)return; applyTheme(t>2.5 || sistemaEscuro.matches); }
+themeBtn.addEventListener('click', () => { userTheme = !temaEscuro; Store.set('tema', userTheme?1:0); applyTheme(userTheme); });
+applyTheme(userTheme !== null ? userTheme : sistemaEscuro.matches);
+/* Trocar o tema do aparelho com o app aberto tambem vale — enquanto a pessoa
+   nao tiver escolhido na mao. */
+sistemaEscuro.addEventListener('change', e => { if (userTheme === null) applyTheme(e.matches); });
 function syncColors(){ if(nucleo) nucleo.definirTema(root.getAttribute('data-theme')==='dark'); }
 
 /* A dissolução do núcleo em fio de arame e pontos conforme o scroll
@@ -1813,6 +1874,37 @@ document.addEventListener('mouseout', e => { if(e.target.closest('button,a,.modc
       </div>
     </div>
   </div>
+<script>
+/* A conversa se abre pelo botao do canto (screens-wa.js) e por window.abrirChat.
+   Fecha no X, no fundo escuro e no Esc — as tres saidas que todo mundo tenta. */
+(function(){
+  const g=document.getElementById('cvDrawer');
+  if(!g) return;
+  let saudou=false;
+  function abrir(){
+    g.hidden=false;
+    /* Uma caixa vazia nao diz o que ela faz. Uma linha basta — e so na
+       primeira abertura, para nao repetir sobre a conversa ja existente. */
+    if(!saudou){
+      saudou=true;
+      const log=document.getElementById('cvLog');
+      if(log && !log.children.length){
+        const d=document.createElement('div');
+        d.className='cv-bolha ela';
+        d.innerHTML='<span class="cv-quem">Assessor</span>Fala comigo como você falaria no WhatsApp: “almoço 30”, “humor 8”, “ligar pro contador amanhã 10h”. Eu registro no módulo certo.';
+        log.appendChild(d);
+      }
+    }
+    const i=document.getElementById('cvTexto'); if(i) setTimeout(()=>i.focus(),80);
+  }
+  function fechar(){ g.hidden=true; }
+  document.getElementById('cvFechar').onclick=fechar;
+  g.addEventListener('click',e=>{ if(e.target===g) fechar(); });
+  addEventListener('keydown',e=>{ if(e.key==='Escape'&&!g.hidden) fechar(); });
+  window.abrirChat=abrir;
+})();
+</script>
+
 <script>
 /* PWA — instala no celular e roda offline. Só em contexto seguro
    (https ou localhost); aberto direto do disco (file://) fica inerte
