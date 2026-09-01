@@ -229,18 +229,10 @@
         dois — o terceiro e o quarto ficavam cortados na borda. */
   @media (max-width: 600px){
     /* 1. o núcleo recua para trás do texto e sobe, saindo da faixa do título */
-    /* NÃO escalar o canvas. Ele é pintado com a cena inteira — chão, luz,
-       fundo — então encolher expõe as bordas como um retângulo mais claro no
-       meio da tela. Foi o que a minha primeira correção causou, e no modo
-       escuro ficava gritante.
-       Em vez disso: sobe um pouco, clareia, e desaparece nas beiradas por
-       máscara — assim não existe borda para aparecer. */
-    #nucleo, .stage > canvas, body > canvas{
-      opacity:.45;
-      transform:translateY(-19vh);   /* acima da faixa do titulo */
-      -webkit-mask-image:radial-gradient(circle at 50% 34%, #000 38%, transparent 68%);
-      mask-image:radial-gradient(circle at 50% 34%, #000 38%, transparent 68%);
-    }
+    /* O nucleo fica INTACTO: sem escala, sem mascara, sem opacidade. Toda
+       tentativa minha de "acomodar" o 3D estragou o 3D. O que ele precisava
+       era de espaco, e o espaco voltou quando o briefing e a conversa sairam
+       da tela principal. */
     .hero .col-txt{position:relative; z-index:2}
     .hero h1{text-shadow:0 2px 18px var(--bg)}
 
@@ -594,19 +586,6 @@
       <div class="col-txt">
         <div class="kicker mono">◦ 01 — Núcleo</div>
         <h1 class="rotator"><span id="rot"></span></h1>
-        <!-- O briefing do dia entra aqui quando há login. Sem login, fica o
-             texto de sempre: é a mesma tela servindo visitante e dono. -->
-        <div id="bfCard" class="bf" hidden></div>
-        <!-- Falar com o Assessor sem sair do painel. Vai para o MESMO cérebro
-             do WhatsApp. -->
-        <div id="cvCaixa" class="cv" hidden>
-          <div class="cv-log" id="cvLog"></div>
-          <div class="cv-barra">
-            <input id="cvTexto" placeholder="Fala comigo… ex.: almoço 30" autocomplete="off">
-            <button id="cvMic" title="Segurar para ditar">🎙️</button>
-            <button id="cvEnviar" class="cv-env">Enviar</button>
-          </div>
-        </div>
         <p id="heroTexto">Finanças, rotina, corpo e mente — um assessor de IA que organiza a sua vida em uma só direção.</p>
         <button class="cta" data-goto="1">▶ Explorar o índice</button>
       </div>
@@ -884,27 +863,20 @@
     /* Traz notas e metas que vieram do WhatsApp, ANTES de as telas montarem. */
     try { if (window.Colecoes) await window.Colecoes.puxar(userId); } catch (e) {}
 
-    /* O briefing entra ANTES de qualquer outra coisa aparecer: e a primeira
-       interacao do dia, nao um widget no meio da pagina. Se falhar, a tela
-       segue com o texto padrao -- briefing nao pode derrubar o painel. */
+    /* O dia e assunto do modulo de Rotina, nao da tela de entrada: a tela
+       principal e o nucleo e os indicadores. O briefing fica pronto aqui e o
+       modulo o consome quando a pessoa entra nele. */
     try {
       if (window.Briefing) {
-        const html = await window.Briefing.montar(userId, window.__primeiroNome || "");
-        if (html) {
-          const card = document.getElementById("bfCard");
-          card.innerHTML = html;
-          card.hidden = false;
-          const t = document.getElementById("heroTexto");
-          if (t) t.hidden = true;   // o generico sai quando ha o real
-        }
+        window.__briefingHTML = await window.Briefing.montar(userId, window.__primeiroNome || "");
       }
     } catch (e) { /* segue sem briefing */ }
 
     /* A conversa só existe com login: sem sessão não há a quem responder. */
     try {
       if (window.Conversa) {
-        document.getElementById("cvCaixa").hidden = false;
         await window.Conversa.ligar();
+        window.__chatReal = true;   // o botao do canto passa a abrir ESTA conversa
       }
     } catch (e) { /* painel segue sem a conversa */ }
 
@@ -1001,6 +973,7 @@ Store.set = function(k, v){
 async function syncTxUpstream(tx){
   const last = tx[tx.length - 1];
   if (!last || last._synced) return;
+  if (last._demo) return;   // linha de exemplo nunca vira dado real no banco
   const { error } = await window.Supa.from('finance_transactions').insert({
     user_id: window.__uid, type: last.tipo === 'receita' ? 'income' : 'expense',
     occurred_at: last.data, value: last.valor, description: last.desc, category: last.cat
@@ -1823,6 +1796,23 @@ document.addEventListener('mouseover', e => { if(e.target.closest('button,a,.mod
 document.addEventListener('mouseout', e => { if(e.target.closest('button,a,.modcard,.conta')) cring.classList.remove('hot'); });
 </script>
 
+  <!-- A conversa mora aqui: fora da tela principal, atras do botao verde do
+       canto. Os ids sao os mesmos que conversa.js conhece. -->
+  <div id="cvDrawer" class="cvd" hidden>
+    <div class="cvd-cx">
+      <div class="cvd-top"><span class="cvd-av">🐝</span>
+        <span class="cvd-nm">Assessor<span>responde na hora</span></span>
+        <button class="cvd-x" id="cvFechar" aria-label="Fechar">✕</button></div>
+      <div id="cvCaixa" class="cv">
+        <div class="cv-log" id="cvLog"></div>
+        <div class="cv-barra">
+          <input id="cvTexto" placeholder="Fala comigo… ex.: almoço 30" autocomplete="off">
+          <button id="cvMic" title="Segurar para ditar">🎙️</button>
+          <button id="cvEnviar" class="cv-env">Enviar</button>
+        </div>
+      </div>
+    </div>
+  </div>
 <script>
 /* PWA — instala no celular e roda offline. Só em contexto seguro
    (https ou localhost); aberto direto do disco (file://) fica inerte

@@ -75,8 +75,17 @@
   };
   const cor = c => CATS[c] || '#9A8A4A';
 
+  /* Etiqueta de lancamento ficticio: sem ela, um salario inventado parece
+     dado real de outra pessoa -- o pior susto possivel num app financeiro. */
+  const tagDemo = () => "<span style=\"font-family:var(--mono);font-size:9px;letter-spacing:.1em;color:var(--ink-soft);border:1px solid var(--line);border-radius:99px;padding:1px 6px;margin-left:7px;vertical-align:middle;font-weight:400\">EXEMPLO</span>";
+
   function seed() {
     if (S().get('fin_seed')) return;
+    // Quem entrou com a propria conta NUNCA ve dado inventado. Antes a
+    // semeadura rodava para todo mundo, e a ultima transacao falsa subia
+    // para o Supabase como se fosse lancamento de verdade -- dado fantasma
+    // permanente na conta da pessoa, sem etiqueta nenhuma.
+    if (window.__uid) { S().set('fin_seed', 1); return; }
     S().set('fin_seed', 1);
     const m = mesAtual();
     const T = [
@@ -96,7 +105,7 @@
       ['Cinema', 'Lazer', 90, 'despesa', 'Inter', 'À vista', 12],
       ['Presente da mãe', 'Lazer', 250, 'despesa', 'Sicredi', 'Parcela 1/2', 8],
     ];
-    S().set('tx', T.map(x => ({ id: uid(), data: `${m}-${pad(x[6])}`, desc: x[0], cat: x[1], valor: x[2], tipo: x[3], conta: x[4], natureza: x[5], status: 'Concluída' })));
+    S().set('tx', T.map(x => ({ id: uid(), data: `${m}-${pad(x[6])}`, desc: x[0], cat: x[1], valor: x[2], tipo: x[3], conta: x[4], natureza: x[5], status: 'Concluída', _demo: 1 })));
     S().set('fin_contas', [
       { nome: 'Nubank', tipo: 'Cartão de crédito', saldo: -1833.75, limite: 5000, ic: '💳' },
       { nome: 'Sicredi', tipo: 'Cartão de crédito', saldo: -1040, limite: 25000, ic: '💳', fecha: 22 },
@@ -218,7 +227,7 @@
       </div>
     </div>
     <div class="fx-card" style="margin-top:14px"><div class="fx-ct"><span>🕘 Transações recentes</span><button class="msbtn clickable" data-tab="transacoes">ver todas →</button></div>
-      ${recent.map(x => `<div class="fx-row"><div class="av">${x.tipo === 'receita' ? '💵' : '💸'}</div><div class="desc"><b>${esc(x.desc)}</b><span>${x.data.slice(8)}/${x.data.slice(5, 7)} · ${esc(x.conta)} · ${esc(x.cat)}</span></div><div class="val" style="color:${x.tipo === 'receita' ? '#607452' : 'var(--ink)'}">${x.tipo === 'receita' ? '+' : '−'} ${brl(x.valor)}</div></div>`).join('')}
+      ${recent.map(x => `<div class="fx-row"><div class="av">${x.tipo === 'receita' ? '💵' : '💸'}</div><div class="desc"><b>${esc(x.desc)}${x._demo ? tagDemo() : String()}</b><span>${x.data.slice(8)}/${x.data.slice(5, 7)} · ${esc(x.conta)} · ${esc(x.cat)}</span></div><div class="val" style="color:${x.tipo === 'receita' ? '#607452' : 'var(--ink)'}">${x.tipo === 'receita' ? '+' : '−'} ${brl(x.valor)}</div></div>`).join('')}
     </div>`;
   }
 
@@ -230,7 +239,7 @@
       </tbody></table></div>`;
   }
   function rowTx(x) {
-    return `<tr data-id="${x.id}"><td><b>${x.tipo === 'receita' ? '↙ ' : '↗ '}${esc(x.desc)}</b></td><td>${esc(x.natureza || 'À vista')}</td><td><span class="fx-status"><i></i>${esc(x.status || 'Concluída')}</span></td><td>${esc(x.conta || '—')}</td><td><span class="fx-chip" style="color:${cor(x.cat)};border-color:${cor(x.cat)}55">${esc(x.cat)}</span></td><td>${x.data.slice(8)}/${x.data.slice(5, 7)}</td><td style="text-align:right;color:${x.tipo === 'receita' ? '#607452' : 'var(--ink)'};font-family:var(--mono);font-weight:700">${x.tipo === 'receita' ? '+' : '−'} ${brl(x.valor)}</td><td><button class="del clickable" data-del="${x.id}" style="background:none;border:none;color:var(--ink-soft);cursor:pointer">✕</button></td></tr>`;
+    return `<tr data-id="${x.id}"><td><b>${x.tipo === 'receita' ? '↙ ' : '↗ '}${esc(x.desc)}${x._demo ? tagDemo() : String()}</b></td><td>${esc(x.natureza || 'À vista')}</td><td><span class="fx-status"><i></i>${esc(x.status || 'Concluída')}</span></td><td>${esc(x.conta || '—')}</td><td><span class="fx-chip" style="color:${cor(x.cat)};border-color:${cor(x.cat)}55">${esc(x.cat)}</span></td><td>${x.data.slice(8)}/${x.data.slice(5, 7)}</td><td style="text-align:right;color:${x.tipo === 'receita' ? '#607452' : 'var(--ink)'};font-family:var(--mono);font-weight:700">${x.tipo === 'receita' ? '+' : '−'} ${brl(x.valor)}</td><td><button class="del clickable" data-del="${x.id}" style="background:none;border:none;color:var(--ink-soft);cursor:pointer">✕</button></td></tr>`;
   }
 
   function vCategorias() {
