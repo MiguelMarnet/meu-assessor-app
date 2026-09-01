@@ -289,9 +289,18 @@ async function conectarGoogle(){
   const errEl = $('errGoogle'); errEl.style.display='none';
   const raw = $('whats').value.replace(/\D/g,'');
   if(!raw){errEl.textContent='Confere seu WhatsApp lá no passo 1 antes de conectar o Google.';errEl.style.display='block';return}
+  return irParaGoogle(errEl);
+}
+
+/* O miolo, sem depender de nenhum campo da tela de cadastro: quem já tem conta
+   também precisa conectar a Agenda, e lá não existe campo de WhatsApp. O nonce
+   já identifica a pessoa pela sessão, então o número não faz falta aqui. */
+async function irParaGoogle(errEl){
+  const falhar = (msg) => {
+    if (errEl) { errEl.textContent = msg; errEl.style.display = 'block'; }
+  };
   if(!CFG.GOOGLE_CLIENT_ID || !CFG.GOOGLE_CALLBACK_URL){
-    errEl.textContent='Conexão com Google ainda não está disponível — pode criar sua conta sem ela e conectar depois.';
-    errEl.style.display='block';
+    falhar('Conexão com Google ainda não está disponível — dá pra usar tudo pelo WhatsApp e conectar depois.');
     return;
   }
   // O `state` do OAuth precisa ser IMPREVISÍVEL: é ele que amarra o callback
@@ -306,8 +315,7 @@ async function conectarGoogle(){
     if (error || !data) throw error || new Error('sem nonce');
     nonce = data;
   } catch (e) {
-    errEl.textContent = 'Não consegui iniciar a conexão com o Google agora. Tenta de novo em instantes — sua conta já está criada.';
-    errEl.style.display = 'block';
+    falhar('Não consegui iniciar a conexão com o Google agora. Tenta de novo em instantes — sua conta continua salva.');
     return;
   }
   const scope = 'https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/tasks';
@@ -531,6 +539,33 @@ window.__aplicarSessao = async function(){
   mostrarDados(true, primeiro);
 };
 
+/* Quem já tem conta e nunca conectou a Agenda não tinha por onde fazer isso:
+   o botão de conectar só existia no meio do cadastro, e cadastro só acontece
+   uma vez. Ficava a escolha absurda de apagar a conta para reconectar. */
+async function pintarAgenda(){
+  const alvo = $('jtc_agenda'); if (!alvo) return;
+  let ligada = false;
+  try {
+    const { data } = await window.Supa.rpc('my_google_status');
+    const s = Array.isArray(data) ? data[0] : data;
+    ligada = !!(s && (s === true || s.conectado || s.connected || s.connected_at || s.expires_at));
+  } catch (e) { /* sem resposta: trata como não conectada, o botão só reconecta */ }
+
+  if (ligada) {
+    alvo.innerHTML = `<div class="howto" style="margin-top:16px">
+      <b>Agenda do Google conectada ✓</b>
+      <p class="sub" style="margin:4px 0 0;font-size:12.5px">Quando você pedir um compromisso no WhatsApp, ele entra direto na sua agenda.</p>
+    </div>`;
+    return;
+  }
+  alvo.innerHTML = `<div class="howto" style="margin-top:16px">
+    <b>Quer ligar sua Agenda do Google?</b>
+    <p class="sub" style="margin:4px 0 10px;font-size:12.5px">É opcional. Sem ela o Assessor funciona igual pelo WhatsApp — só não cria o compromisso na sua agenda automaticamente.</p>
+    <button class="btn" style="width:100%" id="jtc_agora">Conectar minha Agenda</button>
+  </div>`;
+  $('jtc_agora').onclick = () => irParaGoogle($('errAgenda'));
+}
+
 /* Quem já tem conta não precisa de cadastro — precisa de porta. */
 function telaJaTemConta(conta, primeiro){
   entrou = true;
@@ -542,9 +577,12 @@ function telaJaTemConta(conta, primeiro){
       <h2 style="font-size:20px">Bem-vindo de volta${primeiro ? ', ' + esc(primeiro) : ''}!</h2></div>
     <p class="sub" style="text-align:center">Esta conta Google já tem um Assessor — não precisa criar de novo.</p>
     <p class="sub" style="text-align:center;margin-top:6px">WhatsApp desta conta: <b>${esc(bonitoDoUserId(conta.user_id))}</b></p>
+    <div id="jtc_agenda"></div>
+    <div id="errAgenda" style="color:var(--alerta);display:none;text-align:center;margin-top:8px"></div>
     <button class="btn primary" style="width:100%;margin-top:16px" id="jtc_painel">Abrir meu painel</button>
     <button class="btn" style="width:100%;margin-top:10px" id="jtc_trocar">Entrar com outra conta Google</button>`;
   show();
+  pintarAgenda();
   $('jtc_painel').onclick = () => { location.href = 'painel/'; };
   $('jtc_trocar').onclick = async () => {
     await window.Supa.auth.signOut();
