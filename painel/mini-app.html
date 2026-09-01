@@ -19,6 +19,15 @@
     --ink:#F7F1EA; --ink-soft:#C0AB99; --line:rgba(247,241,234,0.16);
     --gold:#E39C7A; --gold-soft:rgba(212,164,55,0.14);
   }
+
+  /* Mesma falta do painel: sem esta media, celular no automatico abria claro. */
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+    --bg:#1A1310; --bg-2:#241A15; --panel:#2E211B;
+    --ink:#F7F1EA; --ink-soft:#C0AB99; --line:rgba(247,241,234,0.16);
+    --gold:#E39C7A; --gold-soft:rgba(212,164,55,0.14);    }
+  }
+
   *{margin:0;padding:0;box-sizing:border-box}
   html,body{height:100%}
   body{background:var(--bg);color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased;overflow:hidden;cursor:none}
