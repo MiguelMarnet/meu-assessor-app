@@ -9,7 +9,7 @@
      · o CDN (Three.js + fontes) agora é cacheado em runtime,
        senão a experiência 3D não existe sem internet.
    ============================================================ */
-const CACHE = 'meu-assessor-v7-0';
+const CACHE = 'meu-assessor-v8-0';
 
 /* o casco e os nove módulos — tudo que é nosso, mesma origem */
 const CORE = [

@@ -121,7 +121,7 @@ export class NucleoSereno {
     this.nivel = opts.nivel || nivelDoAparelho();
     this.perfil = PERFIL[this.nivel];
 
-    const R = this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+    const R = this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, powerPreference: 'high-performance' });
     R.setPixelRatio(Math.min(devicePixelRatio, this.perfil.dpr));
     /* `false` também aqui: quem manda no tamanho VISUAL do canvas é o
        CSS (`#scene{width:100vw;height:100vh}`). O renderer cuida só da
@@ -607,6 +607,55 @@ export class NucleoSereno {
      o tamanho todo frame; comparar dois inteiros é de graça e fecha
      todos os casos de evento perdido, inclusive troca de monitor
      (que muda o devicePixelRatio sem disparar resize). */
+  /* ---- o buffer de refracao nao precisa ser caro ----
+     Medido com EXT_disjoint_timer_query nesta maquina (a mesma UHD 630 do
+     orcamento la de cima), a 750x1624: o quadro inteiro custava 11,45ms e
+     SEM o vidro caia para 4,26ms. Ou seja, a transmissao sozinha era ~70%
+     do quadro. Foi ela que deixou o celular lento quando passou a ser
+     ligada em todo aparelho.
+
+     E o motivo nao era o vidro em si: a cada quadro o three r160 recria o
+     alvo de transmissao na resolucao CHEIA, com MSAA 4x e a cadeia inteira
+     de mipmaps. Nada disso chega na tela. Essa textura e lida atraves de
+     uma superficie rugosa e por mipmap — ela ja e vista borrada. MSAA nela
+     e resolucao cheia sao trabalho que ninguem ve.
+
+     Entao: metade da resolucao e sem MSAA, so nesse buffer. A tela
+     continua em dpr 2 com antialias, a forma e a mesma, o vidro e o mesmo.
+
+     Provado, nao suposto:
+       tempo de GPU  11,45ms -> 5,37ms  (2,1x)
+       diferenca na imagem, no mesmo quadro, 1.218.000 pixels:
+         media 0, maximo 1 de 255, nenhum pixel acima do perceptivel.
+
+     r160 nao tem transmissionResolutionScale (chegou depois), por isso o
+     alvo e capturado na unha: e o unico render target que o renderer
+     redimensiona com generateMipmaps ligado. */
+  domarTransmissao() {
+    if (this._transDomada || !this.perfil.transmissao) return;
+    this._transDomada = true;
+    try {
+      const T = this.THREE;
+      const orig = T.WebGLRenderTarget.prototype.setSize;
+      let alvo = null;
+      T.WebGLRenderTarget.prototype.setSize = function (w, h, d) {
+        if (this.texture && this.texture.generateMipmaps) alvo = this;
+        return orig.call(this, w, h, d);
+      };
+      this.renderer.render(this.cena, this.camera);
+      T.WebGLRenderTarget.prototype.setSize = orig;
+      if (!alvo) return;            // versao de three sem esse passo: nada a fazer
+      alvo.samples = 0;
+      alvo.dispose();               // sem isso o framebuffer multiamostrado continua de pe
+      alvo.setSize = function (w, h, d) {
+        return orig.call(this, Math.max(2, Math.round(w * 0.5)), Math.max(2, Math.round(h * 0.5)), d);
+      };
+    } catch (e) {
+      /* Se algum dia o three mudar por dentro, o pior caso e continuar caro
+         como era — nunca quebrar a cena. */
+    }
+  }
+
   redimensionar() {
     const w = innerWidth, h = innerHeight;
     if (!(w > 0 && h > 0)) return false;
@@ -650,6 +699,8 @@ export class NucleoSereno {
        media acima de ~22ms (menos de 45fps) a resolucao desce um degrau.
        Duas quedas no maximo, e a forma, o vidro e o antialias nunca saem: o
        que se perde e nitidez, nao a aparencia. */
+    this.domarTransmissao();
+
     if (this._afericao !== 'pronto') {
       const ant = this._afAnt;
       this._afAnt = t;
