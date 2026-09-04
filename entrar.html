@@ -96,10 +96,9 @@
 
 <script type="module">
   import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-  const supa = createClient(
-    "https://uyxowxpmzlfjqbumkeae.supabase.co",
-    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV5eG93eHBtemxmanFidW1rZWFlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUzNzMyNzUsImV4cCI6MjEwMDk0OTI3NX0.I5sNg70BHUG8XZVnaEvNjdygAR8-cQN93xibC4VhYfc"
-  );
+  const SUPA_URL = "https://uyxowxpmzlfjqbumkeae.supabase.co";
+  const SUPA_CHAVE = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV5eG93eHBtemxmanFidW1rZWFlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUzNzMyNzUsImV4cCI6MjEwMDk0OTI3NX0.I5sNg70BHUG8XZVnaEvNjdygAR8-cQN93xibC4VhYfc";
+  const supa = createClient(SUPA_URL, SUPA_CHAVE);
 
   /* Para onde ir depois de entrar. Quem chegou aqui redirecionado do painel
      volta para o painel — ninguém deve ter que se reencontrar depois do login.
@@ -120,6 +119,27 @@
   /* O Google devolve falha pela própria URL. Sem ler isso, a pessoa volta e vê
      a mesma tela, como se nada tivesse acontecido — e conclui que está quebrado. */
   const p = new URLSearchParams(location.search.slice(1) + "&" + location.hash.slice(1));
+
+  /* ---- a volta direta ao app se auto-desliga se nao for permitida ----
+     Quem decide se "assessorfoco://login" pode ser um endereco de retorno e a
+     lista de enderecos permitidos do Supabase, e o navegador nao tem como
+     perguntar isso antes: o pedido sai daqui e a recusa acontece no servidor.
+     Sem esta parte, um endereco nao liberado faria TODO login do app falhar,
+     sempre — trocar um problema por um pior.
+     Entao: marca-se a tentativa antes de sair; se a volta trouxer erro, o
+     caminho direto e desligado neste aparelho e a pagina volta a usar o
+     caminho web, que funciona. No maximo um login falha, uma vez. */
+  const TENTOU = "assessor:tentou_volta_direta";
+  const DESLIGA = "assessor:volta_direta_indisponivel";
+  const tentouAntes = (() => { try { return localStorage.getItem(TENTOU) === "1"; } catch (e) { return false; } })();
+  try { localStorage.removeItem(TENTOU); } catch (e) {}
+  if (p.get("error") && tentouAntes) {
+    try { localStorage.setItem(DESLIGA, "1"); } catch (e) {}
+  }
+  const voltaDiretaLiberada = (() => {
+    try { return localStorage.getItem(DESLIGA) !== "1"; } catch (e) { return false; }
+  })();
+
   if (p.get("error")) {
     const desc = (p.get("error_description") || "").split("+").join(" ");
     mostrarErro(desc
@@ -196,6 +216,46 @@
   btn.onclick = async () => {
     btn.disabled = true;
     btnTexto.textContent = "Abrindo o Google…";
+
+    /* ---- Quando quem abriu foi o app, o Google volta DIRETO para o app ----
+       Medido no Chrome: um "location.replace('assessorfoco://…')" feito por
+       script, sem toque da pessoa, e descartado em silencio — sem erro, sem
+       navegacao. Nao e bug do app nem do link: e a politica do navegador para
+       abrir outro aplicativo. Por isso o login terminava numa pagina web.
+
+       O jeito certo, que e o que toda biblioteca OAuth nativa faz, e nao
+       depender de script nenhum: o proprio servidor de login responde com um
+       redirecionamento para "assessorfoco://login". Redirecionamento de
+       servidor o navegador ENTREGA ao aplicativo, sem exigir toque.
+
+       Isso exige o fluxo "implicit" (o token vem na propria URL de volta); o
+       padrao PKCE devolveria um codigo que so o navegador saberia trocar.
+       Por isso um cliente separado so para este caminho.
+
+       Se o endereco "assessorfoco://login" ainda nao estiver liberado no
+       painel do Supabase, o pedido volta com erro e a pagina segue pelo
+       caminho antigo — que continua funcionando, com o botao "Voltar para o
+       app". Nada quebra enquanto isso nao for feito. */
+    if (paraOApp && voltaDiretaLiberada) {
+      try {
+        try { localStorage.setItem(TENTOU, "1"); } catch (e) {}
+        const supaApp = createClient(SUPA_URL, SUPA_CHAVE, {
+          auth: { flowType: "implicit", detectSessionInUrl: false, persistSession: false }
+        });
+        const { error: e1 } = await supaApp.auth.signInWithOAuth({
+          provider: "google",
+          options: { redirectTo: "assessorfoco://login" }
+        });
+        if (!e1) return;                 // saiu daqui: o Google devolve no app
+        try { localStorage.removeItem(TENTOU); } catch (e2) {}
+        console.warn("volta direta ao app indisponivel, seguindo pela web:", e1.message);
+      } catch (e) {
+        try { localStorage.removeItem(TENTOU); } catch (e2) {}
+        console.warn("volta direta ao app falhou, seguindo pela web:", e && e.message);
+      }
+      btnTexto.textContent = "Abrindo o Google…";
+    }
+
     /* O "app=1" TEM que sobreviver à ida ao Google. Sem ele, a pessoa fazia
        o login, o Google devolvia para cá, esta página não sabia mais que
        quem tinha aberto era o app — e seguia para o painel WEB. Era isso o
