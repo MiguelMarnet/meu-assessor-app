@@ -1,8 +1,8 @@
 {
-  "versionCode": 4,
-  "versionName": "1.4",
+  "versionCode": 5,
+  "versionName": "1.5",
   "apk": "https://miguelmarnet.github.io/meu-assessor-app/app/assessor-foco.apk",
   "tamanho": "1611 KB",
-  "notas": "Login funciona pelo app (o Google recusa login dentro de WebView).\nAtualizacao por dentro do app.\nCorrecoes de visual no celular.",
-  "publicado": "2026-08-31"
+  "notas": "O login volta pro app sozinho: a sessao chega pelo redirecionamento do servidor, que e o unico que o navegador entrega ao aplicativo sem exigir toque.\nNucleo 3D 2x mais leve, sem perder nada da imagem.\nMesma qualidade visual no celular e no computador.",
+  "publicado": "2026-09-04"
 }
