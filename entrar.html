@@ -141,13 +141,41 @@
   /* Aberto pelo app Android (?app=1): em vez de seguir para o painel web,
      devolve a sessão para o app por deep link. O app não consegue ler o
      login feito no navegador — os tokens precisam atravessar explicitamente. */
-  const paraOApp = new URLSearchParams(location.search).get("app") === "1";
+  /* "Veio do app" precisa ATRAVESSAR a ida ao Google. Era exatamente isso que
+     faltava: o parametro se perdia na volta, esta pagina achava que era um
+     login web comum e mandava a pessoa pro painel do navegador em vez de
+     devolver a sessao pro aplicativo.
+
+     Guardo no sessionStorage, nao so na URL: o retorno cai na MESMA aba, entao
+     o dado sobrevive; e assim a correcao nao depende de a URL de retorno com
+     "&app=1" estar na lista de enderecos permitidos do Supabase — mexer nessa
+     lista quebraria o login de todo mundo se eu errasse. A URL leva o mesmo
+     recado como reforco, para o caso de a aba ser recriada. */
+  const CHAVE_APP = "assessor:veio_do_app";
+  const paraOApp = (() => {
+    if (new URLSearchParams(location.search).get("app") === "1") {
+      try { sessionStorage.setItem(CHAVE_APP, "1"); } catch (e) {}
+      return true;
+    }
+    try { return sessionStorage.getItem(CHAVE_APP) === "1"; } catch (e) { return false; }
+  })();
 
   async function seguirDepoisDoLogin(session) {
     if (paraOApp && session) {
-      const s = session;
-      location.replace("assessorfoco://login?at=" + encodeURIComponent(s.access_token) +
-        "&rt=" + encodeURIComponent(s.refresh_token || ""));
+      try { sessionStorage.removeItem(CHAVE_APP); } catch (e) {}
+      const link = "assessorfoco://login?at=" + encodeURIComponent(session.access_token) +
+        "&rt=" + encodeURIComponent(session.refresh_token || "");
+      location.replace(link);
+      /* Se em 1,2s ainda estamos aqui, o deep link não pegou (aba sem gesto
+         recente, app reinstalado, outro navegador). Em vez de deixar a pessoa
+         numa página branca sem saber o que fazer, dá o botão na mão — o mesmo
+         link, agora com um toque dela, que é o que o Android nunca recusa. */
+      setTimeout(() => {
+        btnTexto.textContent = "Voltar para o app";
+        btn.disabled = false;
+        btn.onclick = () => { location.href = link; };
+        mostrarErro('Login feito. Se o app não abriu sozinho, toca em <b>Voltar para o app</b>.');
+      }, 1200);
       return;
     }
     try {
@@ -168,7 +196,12 @@
   btn.onclick = async () => {
     btn.disabled = true;
     btnTexto.textContent = "Abrindo o Google…";
-    const volta = location.origin + location.pathname + "?next=" + encodeURIComponent(destino);
+    /* O "app=1" TEM que sobreviver à ida ao Google. Sem ele, a pessoa fazia
+       o login, o Google devolvia para cá, esta página não sabia mais que
+       quem tinha aberto era o app — e seguia para o painel WEB. Era isso o
+       "faço login e caio numa página, preciso voltar pro app". */
+    const volta = location.origin + location.pathname + "?next=" + encodeURIComponent(destino) +
+                  (paraOApp ? "&app=1" : "");
     const { error } = await supa.auth.signInWithOAuth({ provider: "google", options: { redirectTo: volta } });
     if (error) {
       btn.disabled = false;

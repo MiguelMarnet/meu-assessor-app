@@ -40,12 +40,22 @@ export const SERENO = {
   contato:0xC99B7E,
 };
 
+/* Aqui morava a diferenca de qualidade entre o PC e o celular, e ela nao era
+   um bug de desenho: era esta regra. Ter tela de TOQUE ja rebaixava o aparelho
+   — no melhor caso para o nivel 2, e para o nivel 1 se ele dissesse ter 4GB ou
+   4 nucleos. Acontece que o Chrome do Android TETO o deviceMemory em 8 e um
+   monte de celular bom reporta exatamente 4: o teste reprovava justamente os
+   aparelhos que passariam. O resultado era o que se via — malha mais grossa,
+   sem antialias, e no nivel 1 sem transmissao nenhuma, que e o vidro da esfera.
+
+   Agora o padrao e a qualidade cheia em todo lugar, e so cai quem der prova
+   de que nao aguenta: quem declara MESMO pouca coisa (2GB / 2 nucleos), e
+   quem entregar quadros lentos de verdade depois de rodando (ver a afericao
+   de quadros em quadro()). Medir em vez de presumir. */
 export function nivelDoAparelho() {
   const mem = navigator.deviceMemory || 4;
   const cpu = navigator.hardwareConcurrency || 4;
-  const toque = matchMedia('(hover: none)').matches;
-  if (toque && (mem <= 4 || cpu <= 4)) return 1;
-  if (toque) return 2;
+  if (mem <= 2 || cpu <= 2) return 1;
   return 3;
 }
 
@@ -62,7 +72,10 @@ export function nivelDoAparelho() {
 const PERFIL = {
   1: { corpo: 20, fio: 12, pontos: 16, anelR: 70,  anelA: 40, transmissao: false, dpr: 1.25 },
   2: { corpo: 26, fio: 14, pontos: 18, anelR: 96,  anelA: 52, transmissao: true,  dpr: 1.5  },
-  3: { corpo: 32, fio: 18, pontos: 24, anelR: 128, anelA: 64, transmissao: true,  dpr: 1.75 },
+  /* dpr 2 e o ponto de parada honesto: acima disso o custo quadruplica e a
+     tela do celular nao mostra a diferenca — o que se via de pior no celular
+     era estar ABAIXO do monitor, nao a falta de um teto maior. */
+  3: { corpo: 32, fio: 18, pontos: 24, anelR: 128, anelA: 64, transmissao: true,  dpr: 2 },
 };
 
 /* ---------- a forma ----------
@@ -108,7 +121,7 @@ export class NucleoSereno {
     this.nivel = opts.nivel || nivelDoAparelho();
     this.perfil = PERFIL[this.nivel];
 
-    const R = this.renderer = new THREE.WebGLRenderer({ canvas, antialias: this.nivel >= 2, alpha: true });
+    const R = this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
     R.setPixelRatio(Math.min(devicePixelRatio, this.perfil.dpr));
     /* `false` também aqui: quem manda no tamanho VISUAL do canvas é o
        CSS (`#scene{width:100vw;height:100vh}`). O renderer cuida só da
@@ -597,7 +610,7 @@ export class NucleoSereno {
   redimensionar() {
     const w = innerWidth, h = innerHeight;
     if (!(w > 0 && h > 0)) return false;
-    const dpr = Math.min(devicePixelRatio, this.perfil.dpr);
+    const dpr = Math.min(devicePixelRatio, this._tetoDpr || this.perfil.dpr);
     const at = this.renderer.getSize(this._tam || (this._tam = new this.THREE.Vector2()));
     if (Math.round(at.x) === w && Math.round(at.y) === h && this.renderer.getPixelRatio() === dpr) return false;
     this.renderer.setPixelRatio(dpr);
@@ -622,6 +635,41 @@ export class NucleoSereno {
     const T = this.THREE;
     const { alvoZ = 8.2, parX = 0, parY = 0 } = ctx || {};
     this._tempo = t;
+
+    /* ---- a qualidade e cheia ate o aparelho provar o contrario ----
+       Antes, quem decidia era um palpite feito ANTES de desenhar o primeiro
+       quadro: "tem tela de toque, entao e fraco". Palpite reprova aparelho
+       bom e nao pega aparelho ruim.
+       Aqui a conta e a real, e ela mede INTERVALO ENTRE QUADROS, nao tempo
+       de relogio dividido por quadros. A diferenca importa: a primeira
+       versao disto, medida, reprovaria qualquer aparelho que tivesse ficado
+       com a aba escondida ou o loop pausado — o relogio anda, os quadros
+       nao, e a media daria "lentissimo" num celular que estava so parado.
+       Agora todo intervalo acima de 100ms e DESCARTADO: isso e uma parada,
+       nao um aparelho devagar. So se 40 quadros seguidos e legitimos derem
+       media acima de ~22ms (menos de 45fps) a resolucao desce um degrau.
+       Duas quedas no maximo, e a forma, o vidro e o antialias nunca saem: o
+       que se perde e nitidez, nao a aparencia. */
+    if (this._afericao !== 'pronto') {
+      const ant = this._afAnt;
+      this._afAnt = t;
+      const d = ant === undefined ? -1 : (t - ant) * 1000;
+      /* o primeiro segundo e aquecimento: shader compilando, textura subindo */
+      if (t > 1 && d > 0 && d < 100) {
+        this._afSoma = (this._afSoma || 0) + d;
+        this._afN = (this._afN || 0) + 1;
+        if (this._afN >= 40) {
+          const msPorQuadro = this._afSoma / this._afN;
+          if (msPorQuadro > 22 && (this._quedas || 0) < 2) {
+            this._quedas = (this._quedas || 0) + 1;
+            this._tetoDpr = Math.max(1, (this._tetoDpr || this.perfil.dpr) - 0.5);
+            this._afSoma = 0; this._afN = 0;      // mede de novo no teto novo
+          } else {
+            this._afericao = 'pronto';
+          }
+        }
+      }
+    }
 
     /* rede de segurança: se o canvas destoar da janela, corrige aqui
        mesmo que nenhum evento `resize` tenha chegado */
