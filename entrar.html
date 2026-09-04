@@ -130,11 +130,25 @@
      caminho direto e desligado neste aparelho e a pagina volta a usar o
      caminho web, que funciona. No maximo um login falha, uma vez. */
   const TENTOU = "assessor:tentou_volta_direta";
+  const FALHAS = "assessor:volta_direta_falhas";
   const DESLIGA = "assessor:volta_direta_indisponivel";
   const tentouAntes = (() => { try { return localStorage.getItem(TENTOU) === "1"; } catch (e) { return false; } })();
   try { localStorage.removeItem(TENTOU); } catch (e) {}
-  if (p.get("error") && tentouAntes) {
-    try { localStorage.setItem(DESLIGA, "1"); } catch (e) {}
+
+  /* Se a volta direta tivesse dado certo, esta pagina nao estaria aberta — a
+     pessoa estaria no app. Entao voltar para ca com a tentativa ainda marcada
+     JA E a falha, com ou sem "error" na URL. Isso importa porque o Supabase
+     pode devolver a recusa no endereco principal do site, e ai o erro nunca
+     chegaria aqui: sem esta regra, o caminho direto tentaria de novo a cada
+     login, para sempre.
+     Duas falhas, e nao uma, porque voltar tambem pode ser a pessoa apertando
+     "voltar" na tela do Google — isso nao e o endereco ser proibido. */
+  if (tentouAntes) {
+    let n = 0;
+    try { n = (parseInt(localStorage.getItem(FALHAS) || "0", 10) || 0) + 1; localStorage.setItem(FALHAS, String(n)); } catch (e) {}
+    if (n >= 2 || p.get("error")) {
+      try { localStorage.setItem(DESLIGA, "1"); } catch (e) {}
+    }
   }
   const voltaDiretaLiberada = (() => {
     try { return localStorage.getItem(DESLIGA) !== "1"; } catch (e) { return false; }
@@ -182,6 +196,40 @@
 
   async function seguirDepoisDoLogin(session) {
     if (paraOApp && session) {
+      /* ---- AQUI ESTAVA O ERRO ----
+         Esta pagina abre no Chrome, e o Chrome GUARDA a sessao do site. Quem
+         ja tinha entrado uma vez pela web chegava aqui com sessao pronta: a
+         linha "if (session) seguirDepoisDoLogin(session)" la embaixo disparava
+         na hora e a pessoa NUNCA chegava a tocar no botao. Ou seja, o caminho
+         bom — o redirecionamento vindo do servidor — nunca era usado. Sobrava
+         justamente o salto por script, que o navegador descarta calado.
+         Era esse o "testei e ficou na web": nao era o Supabase, era isto.
+
+         Entao, com sessao ja pronta, a pagina refaz o login pelo caminho do
+         servidor. Nao ha nova tela de Google: a conta ja esta escolhida e o
+         acesso ja foi consentido, entao o Google so devolve — e a volta cai
+         no app, sem toque nenhum. */
+      if (voltaDiretaLiberada && !window.__jaTentouDireto) {
+        window.__jaTentouDireto = true;
+        try {
+          try { localStorage.setItem(TENTOU, "1"); } catch (e2) {}
+          const supaApp = createClient(SUPA_URL, SUPA_CHAVE, {
+            auth: { flowType: "implicit", detectSessionInUrl: false, persistSession: false }
+          });
+          const { error: eDir } = await supaApp.auth.signInWithOAuth({
+            provider: "google",
+            options: { redirectTo: "assessorfoco://login" }
+          });
+          if (!eDir) return;                       // saiu: a volta cai no app
+          try { localStorage.removeItem(TENTOU); } catch (e2) {}
+        } catch (e) {
+          try { localStorage.removeItem(TENTOU); } catch (e2) {}
+        }
+      }
+
+      /* Sem o caminho do servidor, so resta o salto por script — que o
+         navegador so aceita com um toque. Por isso o botao aparece rapido:
+         ele nao e um erro, e a unica forma que o navegador permite. */
       try { sessionStorage.removeItem(CHAVE_APP); } catch (e) {}
       const link = "assessorfoco://login?at=" + encodeURIComponent(session.access_token) +
         "&rt=" + encodeURIComponent(session.refresh_token || "");
@@ -191,11 +239,11 @@
          numa página branca sem saber o que fazer, dá o botão na mão — o mesmo
          link, agora com um toque dela, que é o que o Android nunca recusa. */
       setTimeout(() => {
-        btnTexto.textContent = "Voltar para o app";
+        btnTexto.textContent = "Abrir no app";
         btn.disabled = false;
         btn.onclick = () => { location.href = link; };
-        mostrarErro('Login feito. Se o app não abriu sozinho, toca em <b>Voltar para o app</b>.');
-      }, 1200);
+        mostrarErro('Login feito. Toca em <b>Abrir no app</b> para continuar.');
+      }, 700);
       return;
     }
     try {
