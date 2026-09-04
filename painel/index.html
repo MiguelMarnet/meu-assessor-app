@@ -1146,18 +1146,57 @@ const App = {
     if (bBaixar) bBaixar.onclick = () => window.open("../app/assessor-foco.apk", "_blank", "noopener");
     const b2fa = document.getElementById('cf_2fa');
     if (b2fa) b2fa.onclick = () => window.Seguranca.abrir();
+    /* Este botão era só "Desconectar". Quem nunca tinha conectado — ou quem
+       desconectou — ficava sem caminho nenhum de volta: o botão de conectar
+       existia só no meio do cadastro, e cadastro acontece uma vez. Agora ele
+       pergunta ao banco em que estado está e vira um ou outro. */
     const bGoogle = document.getElementById('cf_google');
-    if (bGoogle) bGoogle.onclick = async () => {
-      const { data: temGoogle } = await window.Supa.rpc('my_google_status');
-      if (!temGoogle) { toast('Você não tem o Google conectado.'); return; }
-      Modal.open(`<h3>Desconectar o Google?</h3><p class="msub">O Assessor para de criar eventos na sua Agenda e tarefas no seu Google Tasks. Seus lançamentos e histórico não são apagados, e dá pra conectar de novo quando quiser.</p><p class="msub">Pra tirar a permissão também do lado do Google, remova o app em <b>myaccount.google.com → Segurança → Apps conectados</b>.</p><div class="mactions"><button class="btn2 clickable" id="g_no">Voltar</button><button class="btn2 primary clickable" id="g_sim">Desconectar</button></div>`);
-      document.getElementById('g_no').onclick = App.settings;
-      document.getElementById('g_sim').onclick = async () => {
-        const { error } = await window.Supa.rpc('disconnect_my_google');
-        Modal.close();
-        toast(error ? 'Não consegui desconectar agora.' : 'Google desconectado.');
+    if (bGoogle) (async () => {
+      let ligado = false;
+      try {
+        const { data } = await window.Supa.rpc('my_google_status');
+        const s = Array.isArray(data) ? data[0] : data;
+        ligado = !!(s && (s === true || s.conectado || s.connected || s.connected_at || s.expires_at));
+      } catch (e) { /* sem resposta: trata como desligado, o botão só conecta */ }
+
+      bGoogle.textContent = ligado ? 'Desconectar Google Agenda' : 'Conectar Google Agenda';
+
+      bGoogle.onclick = ligado ? () => {
+        Modal.open(`<h3>Desconectar o Google?</h3><p class="msub">O Assessor para de criar eventos na sua Agenda e tarefas no seu Google Tasks. Seus lançamentos e histórico não são apagados, e dá pra conectar de novo quando quiser.</p><p class="msub">Pra tirar a permissão também do lado do Google, remova o app em <b>myaccount.google.com → Segurança → Apps conectados</b>.</p><div class="mactions"><button class="btn2 clickable" id="g_no">Voltar</button><button class="btn2 primary clickable" id="g_sim">Desconectar</button></div>`);
+        document.getElementById('g_no').onclick = App.settings;
+        document.getElementById('g_sim').onclick = async () => {
+          const { error } = await window.Supa.rpc('disconnect_my_google');
+          Modal.close();
+          toast(error ? 'Não consegui desconectar agora.' : 'Google desconectado.');
+        };
+      } : async () => {
+        let cfg;
+        try { cfg = await (await fetch('../config.json', { cache: 'no-store' })).json(); }
+        catch (e) { toast('Não consegui ler a configuração agora.'); return; }
+        if (!cfg.googleOAuthClientId || !cfg.googleOAuthCallbackUrl) {
+          toast('Conexão com o Google indisponível agora.'); return;
+        }
+        /* O `state` do OAuth precisa ser IMPREVISÍVEL: é ele que amarra o
+           callback a quem começou o fluxo. O banco emite um nonce de 256 bits,
+           de uso único, que expira em 10 minutos. */
+        let nonce;
+        try {
+          const { data, error } = await window.Supa.rpc('create_oauth_state');
+          if (error || !data) throw error || new Error('sem nonce');
+          nonce = data;
+        } catch (e) { toast('Não consegui iniciar a conexão. Tenta de novo em instantes.'); return; }
+
+        location.href = 'https://accounts.google.com/o/oauth2/v2/auth?' + new URLSearchParams({
+          client_id: cfg.googleOAuthClientId,
+          redirect_uri: cfg.googleOAuthCallbackUrl,
+          response_type: 'code',
+          access_type: 'offline',
+          prompt: 'consent',
+          scope: 'https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/tasks',
+          state: nonce
+        }).toString();
       };
-    };
+    })();
     const bSair = document.getElementById('cf_sair');
     if (bSair) bSair.onclick = () => {
       Modal.open(`<h3>Sair da conta?</h3><p class="msub">Você volta pra tela de entrar. Seus dados sincronizados continuam salvos na sua conta — é só entrar de novo com o mesmo Google.</p><div class="mactions"><button class="btn2 clickable" id="s_no">Voltar</button><button class="btn2 primary clickable" id="s_sim">Sair</button></div>`);
