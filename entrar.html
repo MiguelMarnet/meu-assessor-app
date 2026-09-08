@@ -91,6 +91,10 @@
     </p>
 
     <p class="rodape"><a href="privacidade.html">Privacidade</a></p>
+    <!-- Só aparece quando quem abriu foi o app. Existe porque eu passei tres
+         rodadas adivinhando entre tres causas diferentes para o mesmo sintoma
+         ("continua na web"), e adivinhar nao estava resolvendo. -->
+    <p id="diag" class="rodape" style="display:none;opacity:.55;font-size:11px;line-height:1.5"></p>
   </div>
 </main>
 
@@ -108,6 +112,20 @@
   const destino = /^[a-z0-9\-._/]+$/i.test(bruto) && !bruto.startsWith("//") ? bruto : "painel/";
 
   const btn = document.getElementById("btnEntrar");
+  const diag = document.getElementById("diag");
+  /* Mostra, em uma linha, qual caminho esta valendo AGORA e por que. Toca e
+     zera as travas — se algo daqui ficou preso, sai daqui mesmo. */
+  function mostrarDiag(estado) {
+    if (!diag || !paraOApp) return;
+    diag.style.display = "block";
+    diag.textContent = estado + " · toque para destravar";
+    diag.style.cursor = "pointer";
+    diag.onclick = () => {
+      try { Object.keys(localStorage).filter(k => k.startsWith("assessor:")).forEach(k => localStorage.removeItem(k)); } catch (e) {}
+      try { sessionStorage.clear(); } catch (e) {}
+      location.href = location.pathname + "?app=1";
+    };
+  }
   const btnTexto = document.getElementById("btnTexto");
   const erro = document.getElementById("erro");
 
@@ -129,30 +147,39 @@
      Entao: marca-se a tentativa antes de sair; se a volta trouxer erro, o
      caminho direto e desligado neste aparelho e a pagina volta a usar o
      caminho web, que funciona. No maximo um login falha, uma vez. */
-  const TENTOU = "assessor:tentou_volta_direta";
-  const FALHAS = "assessor:volta_direta_falhas";
-  const DESLIGA = "assessor:volta_direta_indisponivel";
-  const tentouAntes = (() => { try { return localStorage.getItem(TENTOU) === "1"; } catch (e) { return false; } })();
-  try { localStorage.removeItem(TENTOU); } catch (e) {}
+  /* ---- a trava de seguranca virou o problema ----
+     Eu tinha posto uma regra: "voltar para esta pagina com a tentativa ainda
+     marcada conta como falha; duas falhas desligam a volta direta". A ideia era
+     proteger contra um endereco nao autorizado. Mas eu agora TESTEI o servidor
+     direto, e ele aceita:
 
-  /* Se a volta direta tivesse dado certo, esta pagina nao estaria aberta — a
-     pessoa estaria no app. Entao voltar para ca com a tentativa ainda marcada
-     JA E a falha, com ou sem "error" na URL. Isso importa porque o Supabase
-     pode devolver a recusa no endereco principal do site, e ai o erro nunca
-     chegaria aqui: sem esta regra, o caminho direto tentaria de novo a cada
-     login, para sempre.
-     Duas falhas, e nao uma, porque voltar tambem pode ser a pessoa apertando
-     "voltar" na tela do Google — isso nao e o endereco ser proibido. */
-  if (tentouAntes) {
-    let n = 0;
-    try { n = (parseInt(localStorage.getItem(FALHAS) || "0", 10) || 0) + 1; localStorage.setItem(FALHAS, String(n)); } catch (e) {}
-    if (n >= 2 || p.get("error")) {
-      try { localStorage.setItem(DESLIGA, "1"); } catch (e) {}
-    }
-  }
-  const voltaDiretaLiberada = (() => {
-    try { return localStorage.getItem(DESLIGA) !== "1"; } catch (e) { return false; }
+       GET /auth/v1/authorize?...&redirect_to=assessorfoco://login
+       -> depois, no callback:  302 Location: assessorfoco://login#...
+
+     Ou seja, a suposicao que justificava a trava era falsa. E como a trava
+     ficava gravada para sempre e sem aparecer em lugar nenhum, ela podia
+     desligar o caminho bom no aparelho e ninguem descobriria — inclusive
+     depois de eu ja ter consertado a causa real.
+
+     Agora: so desliga com um erro EXPLICITO do servidor sobre o endereco, e
+     mesmo assim por 24h, nao para sempre. Voltar para ca sem erro nenhum nao
+     e mais motivo para desistir. */
+  const DESLIGA = "assessor:volta_direta_ate";
+  const desligadaAte = (() => {
+    try { return parseInt(localStorage.getItem(DESLIGA) || "0", 10) || 0; } catch (e) { return 0; }
   })();
+  const erroTexto = ((p.get("error_description") || "") + " " + (p.get("error") || "")).toLowerCase();
+  if (erroTexto.includes("redirect") || erroTexto.includes("not allowed") || erroTexto.includes("invalid request")) {
+    try { localStorage.setItem(DESLIGA, String(Date.now() + 24 * 3600 * 1000)); } catch (e) {}
+  }
+  const voltaDiretaLiberada = Date.now() > desligadaAte;
+
+  /* Limpa a trava antiga, da versao que desligava para sempre. */
+  try {
+    localStorage.removeItem("assessor:volta_direta_indisponivel");
+    localStorage.removeItem("assessor:volta_direta_falhas");
+    localStorage.removeItem("assessor:tentou_volta_direta");
+  } catch (e) {}
 
   if (p.get("error")) {
     const desc = (p.get("error_description") || "").split("+").join(" ");
@@ -209,10 +236,12 @@
          servidor. Nao ha nova tela de Google: a conta ja esta escolhida e o
          acesso ja foi consentido, entao o Google so devolve — e a volta cai
          no app, sem toque nenhum. */
+      mostrarDiag(voltaDiretaLiberada
+        ? "sessão pronta · indo pelo servidor"
+        : "sessão pronta · volta direta travada aqui");
       if (voltaDiretaLiberada && !window.__jaTentouDireto) {
         window.__jaTentouDireto = true;
         try {
-          try { localStorage.setItem(TENTOU, "1"); } catch (e2) {}
           const supaApp = createClient(SUPA_URL, SUPA_CHAVE, {
             auth: { flowType: "implicit", detectSessionInUrl: false, persistSession: false }
           });
@@ -221,9 +250,7 @@
             options: { redirectTo: "assessorfoco://login" }
           });
           if (!eDir) return;                       // saiu: a volta cai no app
-          try { localStorage.removeItem(TENTOU); } catch (e2) {}
         } catch (e) {
-          try { localStorage.removeItem(TENTOU); } catch (e2) {}
         }
       }
 
@@ -260,6 +287,7 @@
 
   const { data: { session } } = await supa.auth.getSession();
   if (session) seguirDepoisDoLogin(session);
+  else mostrarDiag(voltaDiretaLiberada ? "sem sessão · vai pelo servidor" : "sem sessão · volta direta travada aqui");
 
   btn.onclick = async () => {
     btn.disabled = true;
@@ -286,7 +314,6 @@
        app". Nada quebra enquanto isso nao for feito. */
     if (paraOApp && voltaDiretaLiberada) {
       try {
-        try { localStorage.setItem(TENTOU, "1"); } catch (e) {}
         const supaApp = createClient(SUPA_URL, SUPA_CHAVE, {
           auth: { flowType: "implicit", detectSessionInUrl: false, persistSession: false }
         });
@@ -295,10 +322,8 @@
           options: { redirectTo: "assessorfoco://login" }
         });
         if (!e1) return;                 // saiu daqui: o Google devolve no app
-        try { localStorage.removeItem(TENTOU); } catch (e2) {}
         console.warn("volta direta ao app indisponivel, seguindo pela web:", e1.message);
       } catch (e) {
-        try { localStorage.removeItem(TENTOU); } catch (e2) {}
         console.warn("volta direta ao app falhou, seguindo pela web:", e && e.message);
       }
       btnTexto.textContent = "Abrindo o Google…";
