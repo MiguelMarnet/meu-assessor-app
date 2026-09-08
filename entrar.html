@@ -234,7 +234,27 @@
     try { return sessionStorage.getItem(CHAVE_APP) === "1"; } catch (e) { return false; }
   })();
 
+  /* ---- ESTA FUNCAO SO PODE RODAR UMA VEZ ----
+     Ela tem dois gatilhos: o getSession() da carga e o onAuthStateChange, que
+     dispara "INITIAL_SESSION" logo em seguida. Ou seja, ela rodava DUAS vezes.
+
+     E as duas execucoes brigavam. A primeira comecava a ida ao servidor (a
+     navegacao para o Google). A segunda, achando que a ida ja tinha sido
+     tentada, caia direto no plano B: "location.replace('assessorfoco://…')".
+     Esse salto o navegador nao executa — mas ele CANCELA a navegacao que
+     estava em curso. Resultado: a ida ao Google morria no meio, a pagina
+     ficava parada e aparecia o botao.
+
+     Era isso. Nao era o Supabase, nao era o intent-filter, nao era a versao do
+     app: era o meu plano B matando o meu plano A, meio segundo depois.
+
+     Medido: com sessao injetada e ?app=1, a pagina ficava em entrar.html
+     depois de 4s; chamando o mesmo signInWithOAuth na mao, ela vai para o
+     Google na hora. A unica diferenca era a segunda chamada. */
+  let entregaEmCurso = false;
   async function seguirDepoisDoLogin(session) {
+    if (entregaEmCurso) return;
+    entregaEmCurso = true;
     if (paraOApp && session) {
       /* ---- AQUI ESTAVA O ERRO ----
          Esta pagina abre no Chrome, e o Chrome GUARDA a sessao do site. Quem
@@ -263,7 +283,9 @@
             options: { redirectTo: "assessorfoco://login" }
           });
           if (!eDir) return;                       // saiu: a volta cai no app
+          mostrarDiag("servidor recusou: " + (eDir.message || eDir.name));
         } catch (e) {
+          mostrarDiag("falha ao pedir a volta: " + (e && e.message));
         }
       }
 
