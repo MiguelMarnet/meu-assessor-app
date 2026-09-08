@@ -886,6 +886,15 @@
       <button class="primary" id="btnGoogleLogin">${G_SVG}Entrar com Google</button>
       <div class="rodape">Finanças · Rotina · Corpo · Mente</div>`;
     document.getElementById('btnGoogleLogin').onclick = () => {
+      /* Dentro do app o login NAO pode acontecer nesta WebView: o Google recusa
+         OAuth em WebView desde 2021, e com razao -- o dono da WebView leria
+         cada tecla. Aqui a gente so pede a pagina de login; o app reconhece o
+         endereco, ve que houve toque, e abre a aba do sistema. */
+      // sem expressao regular de proposito: escapar barra invertida atraves de
+      // tres camadas de ferramenta ja me deu regex quebrada duas vezes aqui.
+      const marca = navigator.userAgent.split("AssessorApp/")[1];
+      const dentroDoApp = marca ? (parseInt(marca, 10) || 0) : 0;
+      if (dentroDoApp) { location.href = '../entrar.html?app=1&v=' + dentroDoApp; return; }
       supa.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: location.href.split('#')[0] } });
     };
   }
@@ -928,7 +937,62 @@
     if (window.__pararGate) window.__pararGate();   // canvas escondido não anima
   }
 
+  /* Mostra o que houve EM VEZ de mandar para o navegador. Toda falha de
+     entrega de sessao virava "foi pra web", porque sem sessao o boot manda
+     para a pagina de login e o app transforma isso em aba do Chrome. Cinco
+     causas diferentes produziram esse mesmo sintoma, e nenhuma delas era
+     visivel. Agora falha aparece escrita. */
+  function avisoNaTela(txt){
+    let c = document.getElementById('avisoEntrega');
+    if (!c) {
+      c = document.createElement('div');
+      c.id = 'avisoEntrega';
+      c.style.cssText = 'position:fixed;left:12px;right:12px;bottom:12px;z-index:999;'
+        + 'background:var(--panel,#372921);color:var(--ink,#F7F1EA);border:1px solid var(--line,#4a382d);'
+        + 'border-radius:12px;padding:12px 14px;font:13px/1.5 system-ui,sans-serif';
+      document.body.appendChild(c);
+    }
+    c.textContent = txt;
+  }
+
+  /* A sessao vinda do app chega no ENDERECO, nao por injecao de script.
+     Antes o app chamava window.__entrarComTokens() de fora, o que so funciona
+     se a pagina ja estiver carregada e a funcao ja existir — duas condicoes
+     que dependiam de tempo, e quando falhavam nao diziam nada. Pelo endereco
+     nao ha corrida: o dado ja esta aqui quando a pagina comeca. */
+  /* O estado da entrega e do MODULO, nao da chamada. boot() tem tres
+     gatilhos (a carga, o onAuthStateChange e a propria entrega), e a segunda
+     chamada nao sabia o que a primeira tinha descoberto: o endereco ja tinha
+     sido limpo, ela via "sem sessao" e mandava para o navegador — apagando o
+     aviso que a primeira acabara de escrever.
+     Foi exatamente esse tipo de corrida que escondeu o bug do login por
+     cinco rodadas. Uma vez que a entrega falhou, ninguem mais rebota. */
+  let entregaFalhou = false;
+
+  async function sessaoDoEndereco(){
+    const h = location.hash || '';
+    if (h.indexOf('at=') < 0) return null;
+    const q = new URLSearchParams(h.slice(1));
+    const at = q.get('at'), rt = q.get('rt') || '';
+    if (!at) return null;
+    /* tira da barra de endereco: token nao fica no historico */
+    try { history.replaceState(null, '', location.pathname + location.search); } catch (e) {}
+    try {
+      const { data, error } = await supa.auth.setSession({ access_token: at, refresh_token: rt });
+      if (error) { entregaFalhou = true; avisoNaTela('Nao consegui abrir a sessao no app: ' + error.message); return 'falhou'; }
+      if (!data || !data.session) { entregaFalhou = true; avisoNaTela('O login voltou sem sessao valida. Tenta entrar de novo.'); return 'falhou'; }
+      return data.session || null;
+    } catch (e) {
+      entregaFalhou = true;
+      avisoNaTela('Nao consegui abrir a sessao no app: ' + (e && e.message));
+      return 'falhou';
+    }
+  }
+
   async function boot(){
+    if (entregaFalhou) return;           // o aviso ja esta na tela; nao apagar com um redirect
+    const vinda = await sessaoDoEndereco();
+    if (vinda === 'falhou') return;      // ja esta escrito na tela; nao rebota pro navegador
     const { data: { session } } = await supa.auth.getSession();
     /* Sem sessão, vai para a PÁGINA de login — uma só, com endereço próprio,
        em vez de cada tela ter a sua. `next` traz a pessoa de volta pra cá
