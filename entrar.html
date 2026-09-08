@@ -115,10 +115,23 @@
   const diag = document.getElementById("diag");
   /* Mostra, em uma linha, qual caminho esta valendo AGORA e por que. Toca e
      zera as travas — se algo daqui ficou preso, sai daqui mesmo. */
+  /* A versao do app chega pela URL (o app a envia). Quando nao vier, e porque
+     a casca e antiga demais para envia-la — e essa ausencia ja e a resposta:
+     versoes anteriores a 6 nao sabem ler a sessao que o servidor devolve. */
+  const versaoApp = (() => {
+    const v = parseInt(new URLSearchParams(location.search).get("v") || "0", 10) || 0;
+    if (v) { try { sessionStorage.setItem("assessor:versao_app", String(v)); } catch (e) {} return v; }
+    try { return parseInt(sessionStorage.getItem("assessor:versao_app") || "0", 10) || 0; } catch (e) { return 0; }
+  })();
+
   function mostrarDiag(estado) {
     if (!diag || !paraOApp) return;
+    const vTxt = versaoApp
+      ? "app v" + versaoApp
+      : "app antigo (v5 ou menos) — precisa atualizar";
+    const erroVolta = p.get("error") ? " · erro: " + p.get("error") : "";
     diag.style.display = "block";
-    diag.textContent = estado + " · toque para destravar";
+    diag.textContent = vTxt + " · " + estado + erroVolta + " · toque para destravar";
     diag.style.cursor = "pointer";
     diag.onclick = () => {
       try { Object.keys(localStorage).filter(k => k.startsWith("assessor:")).forEach(k => localStorage.removeItem(k)); } catch (e) {}
