@@ -1,8 +1,8 @@
 {
-  "versionCode": 8,
-  "versionName": "1.8",
+  "versionCode": 9,
+  "versionName": "1.9",
   "apk": "https://miguelmarnet.github.io/meu-assessor-app/app/assessor-foco.apk",
-  "tamanho": "1612 KB",
-  "notas": "A sessao do login chega pelo endereco da pagina, sem depender de tempo.\nSe algo falhar, o motivo aparece ESCRITO na tela em vez de te mandar pro navegador.\nO app so abre o navegador quando voce toca.",
-  "publicado": "2026-09-08"
+  "tamanho": "2522 KB",
+  "notas": "Login do Google agora e NATIVO: nao abre navegador nenhum.\nO caminho antigo (aba do Chrome) nao tinha conserto para quem ja esta logado no Google -- o Chrome bloqueia a volta ao app quando o redirect e automatico.\nSe o nativo nao estiver configurado ainda, o app avisa na tela e cai no caminho antigo.",
+  "publicado": "2026-09-09"
 }
