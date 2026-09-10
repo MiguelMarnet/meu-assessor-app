@@ -880,23 +880,93 @@
   const G_SVG = `<svg viewBox="0 0 48 48" aria-hidden="true"><path fill="#FFC107" d="M43.6 20.1H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34.05 6.05 29.3 4 24 4 12.95 4 4 12.95 4 24s8.95 20 20 20 20-8.95 20-20c0-1.3-.15-2.7-.4-3.9z"/><path fill="#FF3D00" d="m6.3 14.7 6.6 4.8C14.65 15.1 18.95 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34.05 6.05 29.3 4 24 4 16.3 4 9.65 8.35 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.85-1.95 13.4-5.2l-6.2-5.2C29.15 35.15 26.7 36 24 36c-5.15 0-9.65-3.3-11.25-7.9l-6.55 5.05C9.5 39.55 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.1H42V20H24v8h11.3c-.75 2.15-2.15 4-3.9 5.35l6.2 5.2C37.15 39.2 44 34 44 24c0-1.3-.15-2.7-.4-3.9z"/></svg>`;
 
   function telaEntrar(){
+    /* Dentro do app o login e por CODIGO no e-mail -- como a maioria dos apps.
+       Motivo: o login do Google no app dependia de sair para o navegador e
+       voltar, e o Chrome bloqueia essa volta para quem ja esta logado no
+       Google (Chrome 72+, AppAuth-Android #448). Codigo por e-mail nao sai do
+       app: e so digitar.
+       shouldCreateUser: false -- o app NUNCA cria conta. Conta nova continua
+       nascendo pelo Google, no site, que e a regra do produto. */
+    const marca = navigator.userAgent.split("AssessorApp/")[1];
+    const dentroDoApp = marca ? (parseInt(marca, 10) || 0) : 0;
+    if (dentroDoApp) { telaCodigo(); return; }
+
     inner.innerHTML = `<div class="eyebrow"><i></i>01 — Entrar</div>
       <h1>O assessor que mora no seu bolso.</h1>
       <p>Entra com sua conta Google e seus lançamentos, rotina e metas aparecem aqui — no celular, no computador, onde você abrir.</p>
       <button class="primary" id="btnGoogleLogin">${G_SVG}Entrar com Google</button>
       <div class="rodape">Finanças · Rotina · Corpo · Mente</div>`;
     document.getElementById('btnGoogleLogin').onclick = () => {
-      /* Dentro do app o login NAO pode acontecer nesta WebView: o Google recusa
-         OAuth em WebView desde 2021, e com razao -- o dono da WebView leria
-         cada tecla. Aqui a gente so pede a pagina de login; o app reconhece o
-         endereco, ve que houve toque, e abre a aba do sistema. */
-      // sem expressao regular de proposito: escapar barra invertida atraves de
-      // tres camadas de ferramenta ja me deu regex quebrada duas vezes aqui.
-      const marca = navigator.userAgent.split("AssessorApp/")[1];
-      const dentroDoApp = marca ? (parseInt(marca, 10) || 0) : 0;
-      if (dentroDoApp) { location.href = '../entrar.html?app=1&v=' + dentroDoApp; return; }
       supa.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: location.href.split('#')[0] } });
     };
+  }
+
+  function telaCodigo(){
+    inner.innerHTML = `<div class="eyebrow"><i></i>01 — Entrar</div>
+      <h1>Entrar com código</h1>
+      <p id="cdTxt">Digite o e-mail da sua conta. Mandamos um código de 6 dígitos.</p>
+      <input id="cdEmail" type="email" inputmode="email" autocomplete="email" placeholder="seu@email.com"
+        style="width:100%;max-width:340px;padding:14px 16px;border-radius:12px;border:1.5px solid var(--line);background:var(--panel);color:var(--ink);font:inherit;font-size:16px;margin:4px 0 12px">
+      <input id="cdCodigo" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="código de 6 dígitos" hidden
+        style="width:100%;max-width:340px;padding:14px 16px;border-radius:12px;border:1.5px solid var(--line);background:var(--panel);color:var(--ink);font:inherit;font-size:22px;letter-spacing:.3em;text-align:center;margin:4px 0 12px">
+      <button class="primary" id="cdBotao">Enviar código</button>
+      <p id="cdMsg" style="min-height:1.4em;margin-top:12px;font-size:14px"></p>
+      <button id="cdTrocar" hidden style="background:none;border:none;color:var(--ink-soft);text-decoration:underline;font:inherit;cursor:pointer;padding:10px">usar outro e-mail</button>`;
+
+    const email = document.getElementById('cdEmail');
+    const codigo = document.getElementById('cdCodigo');
+    const botao = document.getElementById('cdBotao');
+    const msg = document.getElementById('cdMsg');
+    const txt = document.getElementById('cdTxt');
+    const trocar = document.getElementById('cdTrocar');
+    let etapa = 'email';
+
+    function aviso(t, ruim){ msg.textContent = t; msg.style.color = ruim ? 'var(--alerta)' : 'var(--ink-soft)'; }
+
+    async function enviar(){
+      const e = email.value.trim().toLowerCase();
+      if (!e || e.indexOf('@') < 1) { aviso('Digite um e-mail válido.', true); return; }
+      botao.disabled = true; aviso('Enviando…');
+      const { error } = await supa.auth.signInWithOtp({ email: e, options: { shouldCreateUser: false } });
+      botao.disabled = false;
+      if (error) {
+        /* "Signups not allowed for otp" = esse e-mail nao tem conta. Dizer isso
+           com clareza, e dizer o que fazer -- nao mostrar o texto cru. */
+        if (/signups not allowed|not found|otp_disabled/i.test(error.message + ' ' + (error.code || '')))
+          aviso('Esse e-mail ainda não tem conta. Crie pelo site com o Google primeiro.', true);
+        else if (/rate|seconds|too many/i.test(error.message))
+          aviso('Muitos pedidos seguidos. Espere um minuto e tente de novo.', true);
+        else aviso('Não consegui enviar: ' + error.message, true);
+        return;
+      }
+      etapa = 'codigo';
+      email.hidden = true; codigo.hidden = false; trocar.hidden = false;
+      txt.textContent = 'Mandamos um código para ' + e + '. Confira também o spam.';
+      botao.textContent = 'Entrar';
+      aviso('');
+      codigo.focus();
+    }
+
+    async function verificar(){
+      const t = codigo.value.replace(/[^0-9]/g, '');
+      if (t.length !== 6) { aviso('O código tem 6 dígitos.', true); return; }
+      botao.disabled = true; aviso('Conferindo…');
+      const { error } = await supa.auth.verifyOtp({ email: email.value.trim().toLowerCase(), token: t, type: 'email' });
+      botao.disabled = false;
+      if (error) {
+        if (/expired|invalid/i.test(error.message)) aviso('Código errado ou vencido. Confira ou peça outro.', true);
+        else aviso('Não consegui entrar: ' + error.message, true);
+        return;
+      }
+      aviso('Entrando…');
+      /* onAuthStateChange chama boot(), que abre o painel */
+    }
+
+    botao.onclick = () => (etapa === 'email' ? enviar() : verificar());
+    email.addEventListener('keydown', ev => { if (ev.key === 'Enter') enviar(); });
+    codigo.addEventListener('keydown', ev => { if (ev.key === 'Enter') verificar(); });
+    codigo.addEventListener('input', () => { if (codigo.value.replace(/[^0-9]/g,'').length === 6) verificar(); });
+    trocar.onclick = () => telaCodigo();
   }
   /* telaVincular() foi REMOVIDA em 2026-08-24. Ela pedia o WhatsApp "pra achar
      sua conta" depois do login -- pedia que a pessoa fizesse o trabalho do
