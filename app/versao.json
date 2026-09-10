@@ -1,8 +1,8 @@
 {
-  "versionCode": 13,
-  "versionName": "1.13",
+  "versionCode": 14,
+  "versionName": "1.14",
   "apk": "https://miguelmarnet.github.io/meu-assessor-app/app/assessor-foco.apk",
   "tamanho": "2524 KB",
-  "notas": "O app agora registra cada passo do login no log do sistema, para diagnostico por USB.\nA falha continua aparecendo numa caixa com botao Copiar.",
-  "publicado": "2026-09-09"
+  "notas": "Login com Google: quando nao ha conta salva, abre a lista de contas do aparelho.",
+  "publicado": "2026-09-10"
 }
