@@ -887,32 +887,21 @@
        app: e so digitar.
        shouldCreateUser: false -- o app NUNCA cria conta. Conta nova continua
        nascendo pelo Google, no site, que e a regra do produto. */
-    /* Onde o painel esta rodando. Existem DOIS "apps" possiveis no celular:
-       a APK (casca Android, manda "AssessorApp/N" no User-Agent) e o atalho
-       instalado pelo proprio site (PWA, abre em modo "standalone"). Os dois
-       sofrem do mesmo problema com o login do Google -- a volta do navegador
-       nao cai de novo dentro deles. Durante duas semanas eu consertei so a
-       APK, sem saber qual dos dois ele abria. Agora os dois usam codigo. */
     const marca = navigator.userAgent.split("AssessorApp/")[1];
-    const versaoApk = marca ? (parseInt(marca, 10) || 0) : 0;
-    const pwa = (window.matchMedia && matchMedia('(display-mode: standalone)').matches) || navigator.standalone === true;
-    const ondeEstou = versaoApk ? ('app Android, versão ' + versaoApk) : (pwa ? 'app instalado pelo site' : 'navegador');
-    if (versaoApk || pwa) { telaCodigo(ondeEstou); return; }
+    const dentroDoApp = marca ? (parseInt(marca, 10) || 0) : 0;
+    if (dentroDoApp) { telaCodigo(); return; }
 
     inner.innerHTML = `<div class="eyebrow"><i></i>01 — Entrar</div>
       <h1>O assessor que mora no seu bolso.</h1>
       <p>Entra com sua conta Google e seus lançamentos, rotina e metas aparecem aqui — no celular, no computador, onde você abrir.</p>
       <button class="primary" id="btnGoogleLogin">${G_SVG}Entrar com Google</button>
-      <button id="btnUsarCodigo" style="background:none;border:none;color:var(--ink-soft);text-decoration:underline;font:inherit;cursor:pointer;padding:12px">ou entrar com código por e-mail</button>
-      <div class="rodape">Finanças · Rotina · Corpo · Mente</div>
-      <div style="opacity:.45;font-size:11px;margin-top:10px">você está no: ${ondeEstou}</div>`;
+      <div class="rodape">Finanças · Rotina · Corpo · Mente</div>`;
     document.getElementById('btnGoogleLogin').onclick = () => {
       supa.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: location.href.split('#')[0] } });
     };
-    document.getElementById('btnUsarCodigo').onclick = () => telaCodigo(ondeEstou);
   }
 
-  function telaCodigo(ondeEstou){
+  function telaCodigo(){
     inner.innerHTML = `<div class="eyebrow"><i></i>01 — Entrar</div>
       <h1>Entrar com código</h1>
       <p id="cdTxt">Digite o e-mail da sua conta. Mandamos um código de 6 dígitos.</p>
@@ -922,8 +911,7 @@
         style="width:100%;max-width:340px;padding:14px 16px;border-radius:12px;border:1.5px solid var(--line);background:var(--panel);color:var(--ink);font:inherit;font-size:22px;letter-spacing:.3em;text-align:center;margin:4px 0 12px">
       <button class="primary" id="cdBotao">Enviar código</button>
       <p id="cdMsg" style="min-height:1.4em;margin-top:12px;font-size:14px"></p>
-      <button id="cdTrocar" hidden style="background:none;border:none;color:var(--ink-soft);text-decoration:underline;font:inherit;cursor:pointer;padding:10px">usar outro e-mail</button>
-      <div style="opacity:.45;font-size:11px;margin-top:14px">você está no: ${ondeEstou || '?'}</div>`;
+      <button id="cdTrocar" hidden style="background:none;border:none;color:var(--ink-soft);text-decoration:underline;font:inherit;cursor:pointer;padding:10px">usar outro e-mail</button>`;
 
     const email = document.getElementById('cdEmail');
     const codigo = document.getElementById('cdCodigo');
@@ -978,7 +966,7 @@
     email.addEventListener('keydown', ev => { if (ev.key === 'Enter') enviar(); });
     codigo.addEventListener('keydown', ev => { if (ev.key === 'Enter') verificar(); });
     codigo.addEventListener('input', () => { if (codigo.value.replace(/[^0-9]/g,'').length === 6) verificar(); });
-    trocar.onclick = () => telaCodigo(ondeEstou);
+    trocar.onclick = () => telaCodigo();
   }
   /* telaVincular() foi REMOVIDA em 2026-08-24. Ela pedia o WhatsApp "pra achar
      sua conta" depois do login -- pedia que a pessoa fizesse o trabalho do
