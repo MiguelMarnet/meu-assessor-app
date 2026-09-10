@@ -918,8 +918,8 @@
       <p id="cdTxt">Digite o e-mail da sua conta. Mandamos um código de 6 dígitos.</p>
       <input id="cdEmail" type="email" inputmode="email" autocomplete="email" placeholder="seu@email.com"
         style="width:100%;max-width:340px;padding:14px 16px;border-radius:12px;border:1.5px solid var(--line);background:var(--panel);color:var(--ink);font:inherit;font-size:16px;margin:4px 0 12px">
-      <input id="cdCodigo" type="text" autocomplete="one-time-code" placeholder="código ou link do e-mail" hidden
-        style="width:100%;max-width:340px;padding:14px 16px;border-radius:12px;border:1.5px solid var(--line);background:var(--panel);color:var(--ink);font:inherit;font-size:18px;text-align:center;margin:4px 0 12px">
+      <input id="cdCodigo" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="código de 6 dígitos" hidden
+        style="width:100%;max-width:340px;padding:14px 16px;border-radius:12px;border:1.5px solid var(--line);background:var(--panel);color:var(--ink);font:inherit;font-size:22px;letter-spacing:.3em;text-align:center;margin:4px 0 12px">
       <button class="primary" id="cdBotao">Enviar código</button>
       <p id="cdMsg" style="min-height:1.4em;margin-top:12px;font-size:14px"></p>
       <button id="cdTrocar" hidden style="background:none;border:none;color:var(--ink-soft);text-decoration:underline;font:inherit;cursor:pointer;padding:10px">usar outro e-mail</button>
@@ -953,47 +953,17 @@
       }
       etapa = 'codigo';
       email.hidden = true; codigo.hidden = false; trocar.hidden = false;
-      txt.textContent = 'Mandamos um e-mail para ' + e + ' (confira o spam). Se vier um código, digite aqui. Se vier um link, segure o link no e-mail, copie, e cole aqui.';
+      txt.textContent = 'Mandamos um código para ' + e + '. Confira também o spam.';
       botao.textContent = 'Entrar';
       aviso('');
       codigo.focus();
     }
 
-    /* O e-mail do Supabase pode vir com CODIGO ou com LINK -- depende do
-       modelo configurado no painel, que o app nao controla. O padrao manda
-       link. Em vez de depender de alguem mexer no painel, o app aceita os
-       dois: o link traz "token=" (o resumo do codigo), e o Supabase aceita
-       esse resumo na mesma verificacao, como token_hash.
-       Assim o login funciona com o e-mail do jeito que ele estiver. */
-    function lerLink(texto){
-      const t = texto.trim();
-      if (t.indexOf('token=') < 0) return null;
-      try {
-        const u = new URL(t);
-        const h = u.searchParams.get('token') || u.searchParams.get('token_hash');
-        if (h) return { hash: h, tipo: u.searchParams.get('type') || 'magiclink' };
-      } catch (e) {}
-      /* sem URL valida: recorta na mao, sem expressao regular */
-      const ini = t.indexOf('token=') + 6;
-      let fim = t.indexOf('&', ini); if (fim < 0) fim = t.length;
-      const h = t.slice(ini, fim);
-      return h ? { hash: h, tipo: 'magiclink' } : null;
-    }
-
     async function verificar(){
-      const bruto = codigo.value;
-      const link = lerLink(bruto);
-      let resp;
-      if (link) {
-        botao.disabled = true; aviso('Conferindo o link…');
-        resp = await supa.auth.verifyOtp({ token_hash: link.hash, type: link.tipo });
-      } else {
-        const t = bruto.split('').filter(ch => ch >= '0' && ch <= '9').join('');
-        if (t.length !== 6) { aviso('Digite o código de 6 dígitos, ou cole o link do e-mail.', true); return; }
-        botao.disabled = true; aviso('Conferindo…');
-        resp = await supa.auth.verifyOtp({ email: email.value.trim().toLowerCase(), token: t, type: 'email' });
-      }
-      const { error } = resp;
+      const t = codigo.value.replace(/[^0-9]/g, '');
+      if (t.length !== 6) { aviso('O código tem 6 dígitos.', true); return; }
+      botao.disabled = true; aviso('Conferindo…');
+      const { error } = await supa.auth.verifyOtp({ email: email.value.trim().toLowerCase(), token: t, type: 'email' });
       botao.disabled = false;
       if (error) {
         if (/expired|invalid/i.test(error.message)) aviso('Código errado ou vencido. Confira ou peça outro.', true);
@@ -1007,11 +977,7 @@
     botao.onclick = () => (etapa === 'email' ? enviar() : verificar());
     email.addEventListener('keydown', ev => { if (ev.key === 'Enter') enviar(); });
     codigo.addEventListener('keydown', ev => { if (ev.key === 'Enter') verificar(); });
-    codigo.addEventListener('input', () => {
-      const v = codigo.value.trim();
-      const soDigitos = v.length === 6 && v.split('').every(ch => ch >= '0' && ch <= '9');
-      if (soDigitos || lerLink(v)) verificar();
-    });
+    codigo.addEventListener('input', () => { if (codigo.value.replace(/[^0-9]/g,'').length === 6) verificar(); });
     trocar.onclick = () => telaCodigo(ondeEstou);
   }
   /* telaVincular() foi REMOVIDA em 2026-08-24. Ela pedia o WhatsApp "pra achar
