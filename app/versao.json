@@ -1,8 +1,8 @@
 {
-  "versionCode": 14,
-  "versionName": "1.14",
+  "versionCode": 15,
+  "versionName": "1.15",
   "apk": "https://miguelmarnet.github.io/meu-assessor-app/app/assessor-foco.apk",
-  "tamanho": "2524 KB",
-  "notas": "Login com Google: quando nao ha conta salva, abre a lista de contas do aparelho.",
-  "publicado": "2026-09-10"
+  "tamanho": "2455 KB",
+  "notas": "Remove o login antigo do app e publica a APK no site sozinho",
+  "publicado": "2026-09-11"
 }
