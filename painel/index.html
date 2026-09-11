@@ -1023,18 +1023,6 @@
        do link_my_account, por outro caminho). */
     location.replace('../cadastro-app.html');
   }
-  /* Ponte para o app Android. O Google recusa login dentro de WebView desde
-     2021 (disallowed_useragent), então o app abre o login numa aba do Chrome
-     e devolve os tokens por deep link. Aqui a sessão é montada com a API
-     oficial em vez de escrever no localStorage na unha. */
-  window.__entrarComTokens = async (access_token, refresh_token) => {
-    try {
-      const { error } = await supa.auth.setSession({ access_token, refresh_token });
-      if (error) return false;
-      boot();
-      return true;
-    } catch (e) { return false; }
-  };
 
   supa.auth.onAuthStateChange((_ev, _session) => boot());
   boot();

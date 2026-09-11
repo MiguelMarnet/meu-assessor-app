@@ -91,294 +91,75 @@
     </p>
 
     <p class="rodape"><a href="privacidade.html">Privacidade</a></p>
-    <!-- Só aparece quando quem abriu foi o app. Existe porque eu passei tres
-         rodadas adivinhando entre tres causas diferentes para o mesmo sintoma
-         ("continua na web"), e adivinhar nao estava resolvendo. -->
-    <p id="diag" class="rodape" style="display:none;opacity:.55;font-size:11px;line-height:1.5"></p>
+
   </div>
 </main>
 
 <script type="module">
   import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-  const SUPA_URL = "https://uyxowxpmzlfjqbumkeae.supabase.co";
-  const SUPA_CHAVE = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV5eG93eHBtemxmanFidW1rZWFlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUzNzMyNzUsImV4cCI6MjEwMDk0OTI3NX0.I5sNg70BHUG8XZVnaEvNjdygAR8-cQN93xibC4VhYfc";
-  const supa = createClient(SUPA_URL, SUPA_CHAVE);
+  const supa = createClient(
+    "https://uyxowxpmzlfjqbumkeae.supabase.co",
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV5eG93eHBtemxmanFidW1rZWFlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUzNzMyNzUsImV4cCI6MjEwMDk0OTI3NX0.I5sNg70BHUG8XZVnaEvNjdygAR8-cQN93xibC4VhYfc"
+  );
 
-  /* Para onde ir depois de entrar. Quem chegou aqui redirecionado do painel
-     volta para o painel — ninguém deve ter que se reencontrar depois do login.
-     Só aceito destino RELATIVO: assim um link de fora não consegue usar esta
-     página para jogar alguém autenticado num site que ele escolheu. */
+  /* Esta página é o login do NAVEGADOR. O app Android não passa por aqui: ele
+     intercepta "entrar.html" e faz o login nativo (Credential Manager). O
+     caminho antigo — abrir esta página numa aba do Chrome e voltar ao app por
+     deep link — foi removido em 2026-09-11: o Chrome descarta a volta de quem
+     já está logado no Google (Chrome 72+, AppAuth-Android #448). */
+
+  /* Para onde ir depois de entrar. Só destino RELATIVO: um link de fora não
+     consegue usar esta página para mandar alguém autenticado para outro site. */
   const bruto = new URLSearchParams(location.search).get("next") || "painel/";
-  const destino = /^[a-z0-9\-._/]+$/i.test(bruto) && !bruto.startsWith("//") ? bruto : "painel/";
+  const destino = /^[a-z0-9._/-]+$/i.test(bruto) && !bruto.startsWith("//") ? bruto : "painel/";
 
   const btn = document.getElementById("btnEntrar");
-  const diag = document.getElementById("diag");
-  /* Mostra, em uma linha, qual caminho esta valendo AGORA e por que. Toca e
-     zera as travas — se algo daqui ficou preso, sai daqui mesmo. */
-  /* A versao do app chega pela URL (o app a envia). Quando nao vier, e porque
-     a casca e antiga demais para envia-la — e essa ausencia ja e a resposta:
-     versoes anteriores a 6 nao sabem ler a sessao que o servidor devolve. */
-  const versaoApp = (() => {
-    const v = parseInt(new URLSearchParams(location.search).get("v") || "0", 10) || 0;
-    if (v) { try { sessionStorage.setItem("assessor:versao_app", String(v)); } catch (e) {} return v; }
-    try { return parseInt(sessionStorage.getItem("assessor:versao_app") || "0", 10) || 0; } catch (e) { return 0; }
-  })();
-
-  function mostrarDiag(estado) {
-    if (!diag || !paraOApp) return;
-    const vTxt = versaoApp
-      ? "app v" + versaoApp
-      : "app antigo (v5 ou menos) — precisa atualizar";
-    const erroVolta = p.get("error") ? " · erro: " + p.get("error") : "";
-    diag.style.display = "block";
-    diag.textContent = vTxt + " · " + estado + erroVolta + " · toque para destravar";
-    diag.style.cursor = "pointer";
-    diag.onclick = () => {
-      try { Object.keys(localStorage).filter(k => k.startsWith("assessor:")).forEach(k => localStorage.removeItem(k)); } catch (e) {}
-      try { sessionStorage.clear(); } catch (e) {}
-      location.href = location.pathname + "?app=1";
-    };
-  }
   const btnTexto = document.getElementById("btnTexto");
   const erro = document.getElementById("erro");
+  function mostrarErro(msg) { erro.textContent = msg; erro.style.display = "block"; }
 
-  function mostrarErro(msg) {
-    erro.innerHTML = msg;
-    erro.style.display = "block";
-  }
-
-  /* O Google devolve falha pela própria URL. Sem ler isso, a pessoa volta e vê
-     a mesma tela, como se nada tivesse acontecido — e conclui que está quebrado. */
+  /* O Google devolve falha pela própria URL; sem ler isso a pessoa volta para
+     a mesma tela e acha que nada aconteceu. */
   const p = new URLSearchParams(location.search.slice(1) + "&" + location.hash.slice(1));
-
-  /* ---- a volta direta ao app se auto-desliga se nao for permitida ----
-     Quem decide se "assessorfoco://login" pode ser um endereco de retorno e a
-     lista de enderecos permitidos do Supabase, e o navegador nao tem como
-     perguntar isso antes: o pedido sai daqui e a recusa acontece no servidor.
-     Sem esta parte, um endereco nao liberado faria TODO login do app falhar,
-     sempre — trocar um problema por um pior.
-     Entao: marca-se a tentativa antes de sair; se a volta trouxer erro, o
-     caminho direto e desligado neste aparelho e a pagina volta a usar o
-     caminho web, que funciona. No maximo um login falha, uma vez. */
-  /* ---- a trava de seguranca virou o problema ----
-     Eu tinha posto uma regra: "voltar para esta pagina com a tentativa ainda
-     marcada conta como falha; duas falhas desligam a volta direta". A ideia era
-     proteger contra um endereco nao autorizado. Mas eu agora TESTEI o servidor
-     direto, e ele aceita:
-
-       GET /auth/v1/authorize?...&redirect_to=assessorfoco://login
-       -> depois, no callback:  302 Location: assessorfoco://login#...
-
-     Ou seja, a suposicao que justificava a trava era falsa. E como a trava
-     ficava gravada para sempre e sem aparecer em lugar nenhum, ela podia
-     desligar o caminho bom no aparelho e ninguem descobriria — inclusive
-     depois de eu ja ter consertado a causa real.
-
-     Agora: so desliga com um erro EXPLICITO do servidor sobre o endereco, e
-     mesmo assim por 24h, nao para sempre. Voltar para ca sem erro nenhum nao
-     e mais motivo para desistir. */
-  const DESLIGA = "assessor:volta_direta_ate";
-  const desligadaAte = (() => {
-    try { return parseInt(localStorage.getItem(DESLIGA) || "0", 10) || 0; } catch (e) { return 0; }
-  })();
-  const erroTexto = ((p.get("error_description") || "") + " " + (p.get("error") || "")).toLowerCase();
-  if (erroTexto.includes("redirect") || erroTexto.includes("not allowed") || erroTexto.includes("invalid request")) {
-    try { localStorage.setItem(DESLIGA, String(Date.now() + 24 * 3600 * 1000)); } catch (e) {}
-  }
-  const voltaDiretaLiberada = Date.now() > desligadaAte;
-
-  /* Limpa a trava antiga, da versao que desligava para sempre. */
-  try {
-    localStorage.removeItem("assessor:volta_direta_indisponivel");
-    localStorage.removeItem("assessor:volta_direta_falhas");
-    localStorage.removeItem("assessor:tentou_volta_direta");
-  } catch (e) {}
-
   if (p.get("error")) {
     const desc = (p.get("error_description") || "").split("+").join(" ");
-    mostrarErro(desc
-      ? "Não consegui entrar: " + desc + " — tenta de novo."
-      : "Não consegui entrar com o Google agora. Tenta de novo em instantes.");
+    mostrarErro(desc ? "Não consegui entrar: " + desc + " — tenta de novo."
+                     : "Não consegui entrar com o Google agora. Tenta de novo em instantes.");
   }
 
-  /* --- Uma porta, dois destinos, decididos PELO SISTEMA ------------------
-     Depois que o Google responde, quem sabe se a pessoa já tem conta é o
-     banco — não ela. Perguntar "você quer entrar ou criar conta?" antes do
-     login é jogar para o usuário uma decisão que é nossa; e pedir o número
-     "para achar sua conta" depois do login é pior ainda: é pedir que ela
-     faça o trabalho do sistema.
-
-       tem conta  -> vai para onde queria ir (painel)
-       não tem    -> CONTINUA o cadastro, já autenticada, só com o que falta
-
-     Nunca uma página dizendo "criar conta" para quem acabou de se autenticar. */
-  /* Aberto pelo app Android (?app=1): em vez de seguir para o painel web,
-     devolve a sessão para o app por deep link. O app não consegue ler o
-     login feito no navegador — os tokens precisam atravessar explicitamente. */
-  /* "Veio do app" precisa ATRAVESSAR a ida ao Google. Era exatamente isso que
-     faltava: o parametro se perdia na volta, esta pagina achava que era um
-     login web comum e mandava a pessoa pro painel do navegador em vez de
-     devolver a sessao pro aplicativo.
-
-     Guardo no sessionStorage, nao so na URL: o retorno cai na MESMA aba, entao
-     o dado sobrevive; e assim a correcao nao depende de a URL de retorno com
-     "&app=1" estar na lista de enderecos permitidos do Supabase — mexer nessa
-     lista quebraria o login de todo mundo se eu errasse. A URL leva o mesmo
-     recado como reforco, para o caso de a aba ser recriada. */
-  const CHAVE_APP = "assessor:veio_do_app";
-  const paraOApp = (() => {
-    if (new URLSearchParams(location.search).get("app") === "1") {
-      try { sessionStorage.setItem(CHAVE_APP, "1"); } catch (e) {}
-      return true;
-    }
-    try { return sessionStorage.getItem(CHAVE_APP) === "1"; } catch (e) { return false; }
-  })();
-
-  /* ---- ESTA FUNCAO SO PODE RODAR UMA VEZ ----
-     Ela tem dois gatilhos: o getSession() da carga e o onAuthStateChange, que
-     dispara "INITIAL_SESSION" logo em seguida. Ou seja, ela rodava DUAS vezes.
-
-     E as duas execucoes brigavam. A primeira comecava a ida ao servidor (a
-     navegacao para o Google). A segunda, achando que a ida ja tinha sido
-     tentada, caia direto no plano B: "location.replace('assessorfoco://…')".
-     Esse salto o navegador nao executa — mas ele CANCELA a navegacao que
-     estava em curso. Resultado: a ida ao Google morria no meio, a pagina
-     ficava parada e aparecia o botao.
-
-     Era isso. Nao era o Supabase, nao era o intent-filter, nao era a versao do
-     app: era o meu plano B matando o meu plano A, meio segundo depois.
-
-     Medido: com sessao injetada e ?app=1, a pagina ficava em entrar.html
-     depois de 4s; chamando o mesmo signInWithOAuth na mao, ela vai para o
-     Google na hora. A unica diferenca era a segunda chamada. */
-  let entregaEmCurso = false;
+  /* Uma porta, dois destinos, decididos pelo SISTEMA:
+       tem conta -> vai para onde queria ir (painel)
+       não tem   -> continua o cadastro, já autenticada
+     Roda uma vez só: getSession() e onAuthStateChange disparam os dois. */
+  let seguindo = false;
   async function seguirDepoisDoLogin(session) {
-    if (entregaEmCurso) return;
-    entregaEmCurso = true;
-    if (paraOApp && session) {
-      /* ---- AQUI ESTAVA O ERRO ----
-         Esta pagina abre no Chrome, e o Chrome GUARDA a sessao do site. Quem
-         ja tinha entrado uma vez pela web chegava aqui com sessao pronta: a
-         linha "if (session) seguirDepoisDoLogin(session)" la embaixo disparava
-         na hora e a pessoa NUNCA chegava a tocar no botao. Ou seja, o caminho
-         bom — o redirecionamento vindo do servidor — nunca era usado. Sobrava
-         justamente o salto por script, que o navegador descarta calado.
-         Era esse o "testei e ficou na web": nao era o Supabase, era isto.
-
-         Entao, com sessao ja pronta, a pagina refaz o login pelo caminho do
-         servidor. Nao ha nova tela de Google: a conta ja esta escolhida e o
-         acesso ja foi consentido, entao o Google so devolve — e a volta cai
-         no app, sem toque nenhum. */
-      mostrarDiag(voltaDiretaLiberada
-        ? "sessão pronta · indo pelo servidor"
-        : "sessão pronta · volta direta travada aqui");
-      if (voltaDiretaLiberada && !window.__jaTentouDireto) {
-        window.__jaTentouDireto = true;
-        try {
-          const supaApp = createClient(SUPA_URL, SUPA_CHAVE, {
-            auth: { flowType: "implicit", detectSessionInUrl: false, persistSession: false }
-          });
-          const { error: eDir } = await supaApp.auth.signInWithOAuth({
-            provider: "google",
-            options: { redirectTo: "assessorfoco://login" }
-          });
-          if (!eDir) return;                       // saiu: a volta cai no app
-          mostrarDiag("servidor recusou: " + (eDir.message || eDir.name));
-        } catch (e) {
-          mostrarDiag("falha ao pedir a volta: " + (e && e.message));
-        }
-      }
-
-      /* Sem o caminho do servidor, so resta o salto por script — que o
-         navegador so aceita com um toque. Por isso o botao aparece rapido:
-         ele nao e um erro, e a unica forma que o navegador permite. */
-      try { sessionStorage.removeItem(CHAVE_APP); } catch (e) {}
-      const link = "assessorfoco://login?at=" + encodeURIComponent(session.access_token) +
-        "&rt=" + encodeURIComponent(session.refresh_token || "");
-      location.replace(link);
-      /* Se em 1,2s ainda estamos aqui, o deep link não pegou (aba sem gesto
-         recente, app reinstalado, outro navegador). Em vez de deixar a pessoa
-         numa página branca sem saber o que fazer, dá o botão na mão — o mesmo
-         link, agora com um toque dela, que é o que o Android nunca recusa. */
-      setTimeout(() => {
-        btnTexto.textContent = "Abrir no app";
-        btn.disabled = false;
-        btn.onclick = () => { location.href = link; };
-        mostrarErro('Login feito. Toca em <b>Abrir no app</b> para continuar.');
-      }, 700);
-      return;
-    }
+    if (!session || seguindo) return;
+    seguindo = true;
     try {
-      const { data } = await supa
-        .from('users').select('user_id')
-        .eq('auth_uid', session.user.id).maybeSingle();
-      location.replace(data ? destino : 'cadastro-app.html');
+      const { data } = await supa.from("users").select("user_id").eq("auth_uid", session.user.id).maybeSingle();
+      location.replace(data ? destino : "cadastro-app.html");
     } catch (e) {
-      /* Se a consulta falhar, o cadastro é o destino seguro: ele também
-         reconhece quem já tem conta e oferece o painel. Ninguém fica preso. */
-      location.replace('cadastro-app.html');
+      /* se a consulta falhar, o cadastro é o destino seguro: ele também
+         reconhece quem já tem conta e oferece o painel */
+      location.replace("cadastro-app.html");
     }
   }
-
-  const { data: { session } } = await supa.auth.getSession();
-  if (session) seguirDepoisDoLogin(session);
-  else mostrarDiag(voltaDiretaLiberada ? "sem sessão · vai pelo servidor" : "sem sessão · volta direta travada aqui");
 
   btn.onclick = async () => {
     btn.disabled = true;
     btnTexto.textContent = "Abrindo o Google…";
-
-    /* ---- Quando quem abriu foi o app, o Google volta DIRETO para o app ----
-       Medido no Chrome: um "location.replace('assessorfoco://…')" feito por
-       script, sem toque da pessoa, e descartado em silencio — sem erro, sem
-       navegacao. Nao e bug do app nem do link: e a politica do navegador para
-       abrir outro aplicativo. Por isso o login terminava numa pagina web.
-
-       O jeito certo, que e o que toda biblioteca OAuth nativa faz, e nao
-       depender de script nenhum: o proprio servidor de login responde com um
-       redirecionamento para "assessorfoco://login". Redirecionamento de
-       servidor o navegador ENTREGA ao aplicativo, sem exigir toque.
-
-       Isso exige o fluxo "implicit" (o token vem na propria URL de volta); o
-       padrao PKCE devolveria um codigo que so o navegador saberia trocar.
-       Por isso um cliente separado so para este caminho.
-
-       Se o endereco "assessorfoco://login" ainda nao estiver liberado no
-       painel do Supabase, o pedido volta com erro e a pagina segue pelo
-       caminho antigo — que continua funcionando, com o botao "Voltar para o
-       app". Nada quebra enquanto isso nao for feito. */
-    if (paraOApp && voltaDiretaLiberada) {
-      try {
-        const supaApp = createClient(SUPA_URL, SUPA_CHAVE, {
-          auth: { flowType: "implicit", detectSessionInUrl: false, persistSession: false }
-        });
-        const { error: e1 } = await supaApp.auth.signInWithOAuth({
-          provider: "google",
-          options: { redirectTo: "assessorfoco://login" }
-        });
-        if (!e1) return;                 // saiu daqui: o Google devolve no app
-        console.warn("volta direta ao app indisponivel, seguindo pela web:", e1.message);
-      } catch (e) {
-        console.warn("volta direta ao app falhou, seguindo pela web:", e && e.message);
-      }
-      btnTexto.textContent = "Abrindo o Google…";
-    }
-
-    /* O "app=1" TEM que sobreviver à ida ao Google. Sem ele, a pessoa fazia
-       o login, o Google devolvia para cá, esta página não sabia mais que
-       quem tinha aberto era o app — e seguia para o painel WEB. Era isso o
-       "faço login e caio numa página, preciso voltar pro app". */
-    const volta = location.origin + location.pathname + "?next=" + encodeURIComponent(destino) +
-                  (paraOApp ? "&app=1" : "");
+    const volta = location.origin + location.pathname + "?next=" + encodeURIComponent(destino);
     const { error } = await supa.auth.signInWithOAuth({ provider: "google", options: { redirectTo: volta } });
     if (error) {
       btn.disabled = false;
-      btnTexto.textContent = "Entrar com Google";
+      btnTexto.textContent = "Continuar com Google";
       mostrarErro("Não consegui abrir o Google: " + error.message);
     }
   };
 
   supa.auth.onAuthStateChange((_ev, s) => { if (s) seguirDepoisDoLogin(s); });
+  const { data: { session } } = await supa.auth.getSession();
+  if (session) seguirDepoisDoLogin(session);
 </script>
 </body>
 </html>
