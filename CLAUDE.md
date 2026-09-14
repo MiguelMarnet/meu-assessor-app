@@ -58,3 +58,19 @@ de outra**. A comunicação passa por três lugares, e só:
   permanente na conta de quem logou.
 - **Todo texto de usuário é escapado** antes de ir para a tela. O XSS do
   financeiro, das notas e do simulador já foi fechado uma vez.
+
+## Trabalho em paralelo (várias abas ao mesmo tempo)
+
+Outras sessões podem estar editando este repositório agora mesmo.
+
+- **Nunca `git add -A` nem `git add .`** — isso varre para o seu commit o
+  arquivo que outra aba está editando pela metade. Adicione só os seus:
+  `git add caminho/do/arquivo`.
+- **`git pull` antes de começar** uma alteração, e **commit + push logo ao
+  terminar** cada pedaço que funciona. Mudança parada sem commit é como uma aba
+  sobrescreve a outra.
+- Se `git status` mostrar arquivo alterado **que não é seu**, não commite, não
+  reverta, não "arrume": é trabalho de outra sessão em andamento.
+- No `HANDOFF.md`, só **acrescente** uma linha no fim — nunca reescreva o que
+  outra sessão escreveu. Faça pull logo antes.
+- Banco e n8n só pela sessão de Infra, sempre, mesmo com pressa.
