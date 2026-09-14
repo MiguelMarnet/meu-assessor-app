@@ -52,6 +52,12 @@
   .seguranca b{color:var(--ink);font-weight:600}
   .rodape{margin-top:30px;font-size:11.5px;color:var(--muted);text-align:center}
   .rodape a{color:var(--muted)}
+  /* abas Entrar | Criar conta: as duas usam o Google; muda so o texto */
+  .abas{display:flex;gap:4px;padding:4px;border-radius:14px;border:1px solid var(--line);background:var(--card);margin-bottom:22px}
+  .aba{flex:1;min-height:44px;border:none;border-radius:11px;background:transparent;color:var(--muted);
+       font:inherit;font-size:14.5px;font-weight:600;cursor:pointer}
+  .aba.on{background:var(--bg);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.14)}
+  .aba:focus-visible{outline:3px solid var(--honey);outline-offset:2px}
   @media (min-height:760px){ .tela{gap:0} }
 </style>
 </head>
@@ -64,8 +70,13 @@
 
     <div class="brand"><b>🐝 Assessor.IA</b></div>
 
-    <h1>Entrar no Assessor</h1>
-    <p class="lead">Uma porta só: se você já tem conta, ela abre. Se ainda não tem, a gente cria na hora — sem preencher nada duas vezes.</p>
+    <div class="abas" role="tablist">
+      <button class="aba on" role="tab" aria-selected="true" data-modo="entrar">Entrar</button>
+      <button class="aba" role="tab" aria-selected="false" data-modo="criar">Criar conta</button>
+    </div>
+
+    <h1 id="titulo">Entrar no Assessor</h1>
+    <p class="lead" id="lead">Uma porta só: se você já tem conta, ela abre. Se ainda não tem, a gente cria na hora — sem preencher nada duas vezes.</p>
 
     <p class="erro" id="erro" role="alert"></p>
 
@@ -81,8 +92,8 @@
 
     <p class="nota">O Assessor vê só seu <b>nome e e-mail</b>. Nunca posta nada por você.</p>
 
-    <div class="ponte">
-      Primeira vez aqui? É o mesmo botão — o Assessor reconhece você.
+    <div class="ponte" id="ponte">
+      Primeira vez aqui? Toque em <b>Criar conta</b> acima.
     </div>
 
     <p class="seguranca">
@@ -114,6 +125,32 @@
   const destino = /^[a-z0-9._/-]+$/i.test(bruto) && !bruto.startsWith("//") ? bruto : "painel/";
 
   const btn = document.getElementById("btnEntrar");
+
+  /* Duas abas, UMA porta: quem decide se a pessoa ja tem conta e o banco
+     (sem linha em users -> cadastro). A aba existe porque ninguem adivinha que
+     "Continuar com Google" tambem cria conta. ?modo=criar abre direto nela. */
+  const TEXTOS = {
+    entrar: { titulo: "Entrar no Assessor", botao: "Continuar com Google",
+      lead: "Se você já tem conta, ela abre na hora.",
+      ponte: "Primeira vez aqui? Toque em <b>Criar conta</b> acima." },
+    criar: { titulo: "Criar sua conta", botao: "Criar conta com Google",
+      lead: "Use sua conta Google. Depois a gente pede só o que falta — nada de senha nova pra decorar.",
+      ponte: "Já tem conta? Sem problema: o mesmo botão só entra." }
+  };
+  function mudarModo(modo) {
+    const t = TEXTOS[modo] || TEXTOS.entrar;
+    document.getElementById("titulo").textContent = t.titulo;
+    document.getElementById("lead").textContent = t.lead;
+    document.getElementById("ponte").innerHTML = t.ponte;
+    document.getElementById("btnTexto").textContent = t.botao;
+    document.querySelectorAll(".aba").forEach(a => {
+      const on = a.dataset.modo === modo;
+      a.classList.toggle("on", on);
+      a.setAttribute("aria-selected", String(on));
+    });
+  }
+  document.querySelectorAll(".aba").forEach(a => { a.onclick = () => mudarModo(a.dataset.modo); });
+  mudarModo(new URLSearchParams(location.search).get("modo") === "criar" ? "criar" : "entrar");
   const btnTexto = document.getElementById("btnTexto");
   const erro = document.getElementById("erro");
   function mostrarErro(msg) { erro.textContent = msg; erro.style.display = "block"; }
@@ -152,7 +189,7 @@
     const { error } = await supa.auth.signInWithOAuth({ provider: "google", options: { redirectTo: volta } });
     if (error) {
       btn.disabled = false;
-      btnTexto.textContent = "Continuar com Google";
+      btnTexto.textContent = (document.querySelector(".aba.on") || {}).dataset?.modo === "criar" ? "Criar conta com Google" : "Continuar com Google";
       mostrarErro("Não consegui abrir o Google: " + error.message);
     }
   };

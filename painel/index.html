@@ -728,6 +728,14 @@
     box-shadow:0 1px 0 color-mix(in srgb,var(--gold-forte) 70%,#000)}
   #authGate button:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
   #authGate button.primary svg{width:17px;height:17px;flex:0 0 auto}
+  /* abas Entrar | Criar conta: segmento unico, alvo de toque >= 44px */
+  #authGate .ag-abas{display:flex;gap:4px;padding:4px;border-radius:13px;border:1px solid var(--line);
+    background:var(--panel);width:100%;margin-bottom:6px}
+  #authGate .ag-aba{flex:1;min-height:44px;padding:0 12px;border:none;border-radius:10px;background:transparent;
+    color:var(--ink-soft);font-weight:600;font-size:14px}
+  #authGate .ag-aba.on{background:var(--bg);color:var(--ink);box-shadow:0 1px 3px color-mix(in srgb,#000 18%,transparent)}
+  #authGate .ag-nota{font-size:12.5px;margin-top:-2px}
+  #authGate .ag-nota b{color:var(--ink);font-weight:600}
 
   #authGate input{font-family:var(--mono);font-size:15px;padding:13px 14px;border-radius:11px;
     border:1px solid var(--line);background:var(--panel);color:var(--ink);width:100%;
@@ -879,19 +887,35 @@
 
   const G_SVG = `<svg viewBox="0 0 48 48" aria-hidden="true"><path fill="#FFC107" d="M43.6 20.1H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34.05 6.05 29.3 4 24 4 12.95 4 4 12.95 4 24s8.95 20 20 20 20-8.95 20-20c0-1.3-.15-2.7-.4-3.9z"/><path fill="#FF3D00" d="m6.3 14.7 6.6 4.8C14.65 15.1 18.95 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34.05 6.05 29.3 4 24 4 16.3 4 9.65 8.35 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.85-1.95 13.4-5.2l-6.2-5.2C29.15 35.15 26.7 36 24 36c-5.15 0-9.65-3.3-11.25-7.9l-6.55 5.05C9.5 39.55 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.1H42V20H24v8h11.3c-.75 2.15-2.15 4-3.9 5.35l6.2 5.2C37.15 39.2 44 34 44 24c0-1.3-.15-2.7-.4-3.9z"/></svg>`;
 
-  function telaEntrar(){
-    inner.innerHTML = `<div class="eyebrow"><i></i>01 — Entrar</div>
-      <h1>O assessor que mora no seu bolso.</h1>
-      <p>Entra com sua conta Google e seus lançamentos, rotina e metas aparecem aqui — no celular, no computador, onde você abrir.</p>
-      <button class="primary" id="btnGoogleLogin">${G_SVG}Entrar com Google</button>
+  function telaEntrar(modo){
+    /* Duas abas, UMA porta. As duas usam o Google -- que e o unico jeito de ter
+       conta no Assessor -- e quem decide se a pessoa ja tem conta e o banco
+       (boot: sem linha em users -> cadastro-app.html). A aba existe porque
+       ninguem adivinha que "Entrar com Google" tambem cria conta: sem ver
+       "Criar conta" escrito, quem e novo acha que nao e pra ele. */
+    modo = modo === 'criar' ? 'criar' : 'entrar';
+    const criar = modo === 'criar';
+    inner.innerHTML = `<div class="ag-abas" role="tablist">
+        <button role="tab" class="ag-aba${criar ? '' : ' on'}" aria-selected="${!criar}" data-modo="entrar">Entrar</button>
+        <button role="tab" class="ag-aba${criar ? ' on' : ''}" aria-selected="${criar}" data-modo="criar">Criar conta</button>
+      </div>
+      <h1>${criar ? 'Crie sua conta em um toque.' : 'O assessor que mora no seu bolso.'}</h1>
+      <p>${criar
+        ? 'Use sua conta Google. Depois a gente pede só o que falta — nada de senha nova pra decorar.'
+        : 'Entra com sua conta Google e seus lançamentos, rotina e metas aparecem aqui — no celular, no computador, onde você abrir.'}</p>
+      <button class="primary" id="btnGoogleLogin">${G_SVG}${criar ? 'Criar conta com Google' : 'Entrar com Google'}</button>
+      <p class="ag-nota">${criar
+        ? 'Já tem conta? Sem problema: o mesmo botão só entra.'
+        : 'Primeira vez aqui? Toque em <b>Criar conta</b> acima.'}</p>
       <div class="rodape">Finanças · Rotina · Corpo · Mente</div>`;
+
+    inner.querySelectorAll('.ag-aba').forEach(b => {
+      b.onclick = () => { if (b.dataset.modo !== modo) telaEntrar(b.dataset.modo); };
+    });
+
     document.getElementById('btnGoogleLogin').onclick = () => {
-      /* Dentro do app o login NAO pode acontecer nesta WebView: o Google recusa
-         OAuth em WebView desde 2021, e com razao -- o dono da WebView leria
-         cada tecla. Aqui a gente so pede a pagina de login; o app reconhece o
-         endereco, ve que houve toque, e abre a aba do sistema. */
-      // sem expressao regular de proposito: escapar barra invertida atraves de
-      // tres camadas de ferramenta ja me deu regex quebrada duas vezes aqui.
+      /* Dentro do app o login NAO acontece nesta WebView (o Google recusa):
+         pedimos a pagina de login e o app, vendo o toque, abre o login nativo. */
       const marca = navigator.userAgent.split("AssessorApp/")[1];
       const dentroDoApp = marca ? (parseInt(marca, 10) || 0) : 0;
       if (dentroDoApp) { location.href = '../entrar.html?app=1&v=' + dentroDoApp; return; }
