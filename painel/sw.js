@@ -9,7 +9,7 @@
      · o CDN (Three.js + fontes) agora é cacheado em runtime,
        senão a experiência 3D não existe sem internet.
    ============================================================ */
-const CACHE = 'meu-assessor-v15-1';
+const CACHE = 'meu-assessor-v15-2';
 
 /* o casco e os nove módulos — tudo que é nosso, mesma origem */
 const CORE = [
@@ -27,7 +27,11 @@ self.addEventListener('install', e => {
      Cacheamos um a um pra que um arquivo ausente não quebre o resto. */
   e.waitUntil(
     caches.open(CACHE)
-      .then(c => Promise.all(CORE.map(u => c.add(u).catch(() => null))))
+      /* cache:'reload' pula o cache HTTP do navegador. Sem isso, o GitHub
+         Pages manda max-age=600 e a versão nova do SW guardava o .js ANTIGO —
+         medido em 15/09 com a correção do seguranca.js: o cache v15-1 nasceu
+         com o arquivo velho e a correção nunca chegaria em quem já usa. */
+      .then(c => Promise.all(CORE.map(u => c.add(new Request(u, { cache: 'reload' })).catch(() => null))))
       .then(() => self.skipWaiting())
   );
 });
