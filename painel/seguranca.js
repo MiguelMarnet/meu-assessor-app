@@ -145,13 +145,36 @@ window.Seguranca = (function () {
   /* ---------- Porteiro do login ----------
      Chamado no boot. Se a conta tem 2FA e a sessão ainda é aal1, exige o
      segundo fator ANTES de o app aparecer. Devolve true quando pode seguir. */
+  /* Falha FECHADA: se não dá pra saber o nível da sessão, ou se a conta tem
+     2FA e a lista de fatores não veio, o app não abre. Antes os dois erros
+     devolviam true e o porteiro sumia justamente quando algo dava errado
+     (auditoria 2026-09-15, A6). */
+  function naoConsegui() {
+    return new Promise(resolve => {
+      Modal.open('<h3>Não consegui confirmar sua conta</h3>' +
+        '<p class="msub">Pode ser a conexão. Por segurança, o painel só abre depois dessa conferência.</p>' +
+        '<div class="mactions"><button class="btn2 clickable" id="gt_sair">Sair</button>' +
+        '<button class="btn2 primary clickable" id="gt_denovo">Tentar de novo</button></div>');
+      document.getElementById('gt_denovo').onclick = () => location.reload();
+      document.getElementById('gt_sair').onclick = async () => { try { await S().auth.signOut(); } catch (e) {} location.reload(); };
+      resolve(false);
+    });
+  }
+
   async function exigirSegundoFator() {
     let nivel;
-    try { nivel = (await S().auth.mfa.getAuthenticatorAssuranceLevel()).data; } catch (e) { return true; }
-    if (!nivel || nivel.currentLevel === nivel.nextLevel) return true;   // sem 2FA, ou já passou
+    try {
+      const r = await S().auth.mfa.getAuthenticatorAssuranceLevel();
+      if (r.error) throw r.error;
+      nivel = r.data;
+    } catch (e) { return naoConsegui(); }
+    if (!nivel) return naoConsegui();
+    if (nivel.currentLevel === nivel.nextLevel) return true;   // sem 2FA, ou já passou
 
+    /* Aqui a sessão já diz que existe fator verificado. Lista vazia é erro de
+       leitura, não ausência de 2FA. */
     const fs = await fatores();
-    if (!fs.length) return true;
+    if (!fs.length) return naoConsegui();
 
     return await new Promise(resolve => {
       const passkey = fs.find(f => f.factor_type === 'webauthn');
