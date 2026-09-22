@@ -1,8 +1,8 @@
 {
-  "versionCode": 15,
-  "versionName": "1.15",
+  "versionCode": 17,
+  "versionName": "1.17",
   "apk": "https://miguelmarnet.github.io/meu-assessor-app/app/assessor-foco.apk",
-  "tamanho": "2455 KB",
-  "notas": "Remove o login antigo do app e publica a APK no site sozinho",
-  "publicado": "2026-09-11"
+  "tamanho": "2884 KB",
+  "notas": "Usa a API estavel do cofre (security-crypto 1.0.0)",
+  "publicado": "2026-09-22"
 }
