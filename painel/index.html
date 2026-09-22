@@ -876,9 +876,17 @@
 </script>
 <script type="module">
   import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+  /* Dentro do app, quem manda nos tokens e o lado NATIVO.
+     O Supabase troca o refresh token a cada renovacao e invalida o anterior.
+     Se o painel tambem renovasse, ele derrubaria a sessao que o despertador
+     usa as 7h -- e a pessoa acordaria com 'entre de novo' sem ter feito nada.
+     Entao aqui o painel nao renova sozinho: o app entrega a sessao ja fresca
+     a cada abertura, pelo endereco (#at=&rt=). No navegador, nada muda. */
+  const dentroDoApp = navigator.userAgent.indexOf('AssessorApp/') >= 0;
   const supa = createClient(
     'https://uyxowxpmzlfjqbumkeae.supabase.co',
-    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV5eG93eHBtemxmanFidW1rZWFlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUzNzMyNzUsImV4cCI6MjEwMDk0OTI3NX0.I5sNg70BHUG8XZVnaEvNjdygAR8-cQN93xibC4VhYfc'
+    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV5eG93eHBtemxmanFidW1rZWFlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUzNzMyNzUsImV4cCI6MjEwMDk0OTI3NX0.I5sNg70BHUG8XZVnaEvNjdygAR8-cQN93xibC4VhYfc',
+    { auth: { autoRefreshToken: !dentroDoApp } }
   );
   window.Supa = supa; // outras telas (fase 2) vao reusar essa mesma conexao
   const gate = document.getElementById('authGate');
