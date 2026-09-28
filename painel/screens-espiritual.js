@@ -31,6 +31,8 @@
 
   function seed() {
     if (S().get('es_praticas')) return;
+    /* quem tem conta nunca recebe dado de exemplo -- ver window.temConta em persona.js */
+    if (window.temConta && window.temConta()) return;
     const h = hojeISO(); const mk = arr => { const o = {}; arr.forEach(n => o[addDias(h, -n)] = 1); return o; };
     S().set('es_praticas', [
       { id: uid(), nome: 'Meditação', ic: '🧘', desc: '10 min de silêncio', hist: mk([1, 2, 3, 4, 5, 6, 8, 9]) },

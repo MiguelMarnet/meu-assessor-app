@@ -33,6 +33,8 @@
 
   function seed() {
     if (S().get('fo_apps')) return;
+    /* quem tem conta nunca recebe dado de exemplo -- ver window.temConta em persona.js */
+    if (window.temConta && window.temConta()) return;
     S().set('fo_apps', [
       { nome: 'Instagram', ic: '📸', min: 68, lim: 45, cat: 'social' },
       { nome: 'YouTube', ic: '▶️', min: 52, lim: 60, cat: 'social' },

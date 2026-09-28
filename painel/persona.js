@@ -4,6 +4,26 @@
    um ano inteiro sem falhar. Roda 1x (flag). Depende de window.Store.
    ============================================================ */
 'use strict';
+/* Exposta para as telas. Cada módulo tem a própria semeadura de exemplo, e
+   NENHUMA pode rodar para quem já tem conta: até 28/09 só o Financeiro
+   checava isso, então quem entrava com a própria conta e abria Saúde ganhava
+   refeições e treinos que nunca cadastrou. Pior nas chaves espelhadas
+   (mt_metas, nt_notas, fo_*): dado inventado viajava para o banco da pessoa.
+
+   Lê a sessão do Supabase direto do localStorage, como a persona já fazia --
+   é mais confiável que window.__uid, que depende da ordem de carga. */
+window.temConta = function () {
+  try {
+    const k = Object.keys(localStorage).find(x => x.startsWith('sb-') && x.endsWith('-auth-token'));
+    if (k) {
+      const s = JSON.parse(localStorage.getItem(k) || 'null');
+      const ate = s && (s.expires_at || (s.currentSession && s.currentSession.expires_at));
+      if (ate && ate * 1000 > Date.now()) return true;
+    }
+  } catch (e) { /* localStorage bloqueado: cai no __uid abaixo */ }
+  return !!window.__uid;
+};
+
 (function () {
   if (!window.Store) return;
   const S = window.Store;

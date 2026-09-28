@@ -36,6 +36,8 @@
 
   function seed() {
     if (S().get('tl_marcos')) return;
+    /* quem tem conta nunca recebe dado de exemplo -- ver window.temConta em persona.js */
+    if (window.temConta && window.temConta()) return;
     const y = new Date().getFullYear();
     S().set('tl_marcos', [
       { id: uid(), data: `${y}-01-08`, tt: 'Comecei a academia de novo', ar: 'Corpo', pq: 'Depois de 2 anos parado, decidi que a saúde vem antes de tudo. É a base de todo o resto.', auto: 0 },

@@ -120,6 +120,8 @@
   /* ---------- seeds (demo adaptada ao Miguel) ---------- */
   function seed() {
     if (S().get('r_tasks')) return;
+    /* quem tem conta nunca recebe dado de exemplo -- ver window.temConta em persona.js */
+    if (window.temConta && window.temConta()) return;
     const h = hojeISO();
     S().set('r_listas', ['Trabalho', 'Pessoal', 'Casa', 'Saúde']);
     S().set('r_tasks', [

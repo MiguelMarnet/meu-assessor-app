@@ -85,7 +85,7 @@
     // semeadura rodava para todo mundo, e a ultima transacao falsa subia
     // para o Supabase como se fosse lancamento de verdade -- dado fantasma
     // permanente na conta da pessoa, sem etiqueta nenhuma.
-    if (window.__uid) { S().set('fin_seed', 1); return; }
+    if (window.temConta && window.temConta()) { S().set('fin_seed', 1); return; }
     S().set('fin_seed', 1);
     const m = mesAtual();
     const T = [

@@ -68,6 +68,8 @@
 
   function seed() {
     if (S().get('mt_metas')) return;
+    /* quem tem conta nunca recebe dado de exemplo -- ver window.temConta em persona.js */
+    if (window.temConta && window.temConta()) return;
     const ano = hoje().getFullYear();
     S().set('mt_metas', [
       { id: uid(), nome: 'Aprender inglês fluente', desc: 'Estudar todo dia e destravar a conversação até o fim do ano.', tipo: 'Meta', medir: 'tarefas', emoji: '🗣️', cover: 'azul', prazo: `${ano}-12-24`, tarefas: [{ t: 'Assistir série legendada', ok: 1 }, { t: 'Aula de conversação', ok: 1 }, { t: 'Ler artigo técnico', ok: 1 }, { t: 'Gravar áudio de 2min', ok: 1 }, { t: 'Prova de nível', ok: 0 }], movs: ['+1 aula · hoje'] },

@@ -53,6 +53,8 @@
 
   function seed() {
     if (S().get('sa_meta')) return;
+    /* quem tem conta nunca recebe dado de exemplo -- ver window.temConta em persona.js */
+    if (window.temConta && window.temConta()) return;
     S().set('sa_meta', { kcal: 2400, prot: 160, carb: 260, gord: 70 });
     const h = hojeISO();
     S().set('sa_meals', [

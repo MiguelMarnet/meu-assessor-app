@@ -57,6 +57,8 @@
 
   function seed() {
     if (S().get('nt_notas')) return;
+    /* quem tem conta nunca recebe dado de exemplo -- ver window.temConta em persona.js */
+    if (window.temConta && window.temConta()) return;
     const h = hojeISO();
     S().set('nt_notas', [
       { id: uid(), titulo: 'Lista de livros 2026', pasta: 'Pessoal', data: h, link: 'Ler 10 livros', linhas: [
