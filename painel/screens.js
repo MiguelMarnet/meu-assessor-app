@@ -165,11 +165,13 @@
   }
 
   /* ---------- estado ---------- */
-  let tab = 'listas', filtro = 'hoje', lista = null, el = null, fecharFn = null;
+  let tab = 'hoje', subHoje = 'lista', subSem = 'dias', filtro = 'hoje', lista = null, el = null, fecharFn = null;
 
   const T = () => S().get('r_tasks', []);
   const setT = v => S().set('r_tasks', v);
   const H = () => S().get('r_habitos', []);
+  /* hábito arquivado some da tela mas não do dado -- regra de ouro nº 2 */
+  const HV = () => H().filter(hb => !hb.arq);
   const setH = v => S().set('r_habitos', v);
 
   function contadores() {
@@ -246,6 +248,8 @@
       <label class="f">Título</label><input type="text" id="et_t" value="${esc(x.t)}" placeholder="O que precisa ser feito?">
       <label class="f">Lista</label><select id="et_l">${listas.map(l => `<option value="${esc(l)}"${l === x.lista ? ' selected' : ''}>${esc(l)}</option>`).join('')}<option value="__nova">＋ Nova lista…</option></select>
       <input type="text" id="et_ln" placeholder="Nome da nova lista" maxlength="40" style="display:none;margin-top:6px">
+      ${nova ? '' : `<label class="f">Mover com um toque</label><div class="mactions" style="flex-wrap:wrap;margin-top:4px">${[['hoje', 'Hoje'], ['amanha', 'Amanhã'], ['seg', 'Segunda que vem'], ['inbox', 'Sem data']].map(([k, n]) => `<button class="btn2 clickable" data-mv="${k}">${n}</button>`).join('')}</div>
+      <label class="f">Situação</label><div class="mactions" style="flex-wrap:wrap;margin-top:4px">${[['afazer', 'A fazer'], ['andamento', 'Em andamento'], ['feito', 'Concluída']].map(([k, n]) => `<button class="btn2 clickable" data-stq="${k}" style="${(x.st || 'afazer') === k ? 'border-color:var(--gold);color:var(--gold)' : ''}">${n}</button>`).join('')}</div>`}
       <label class="f">Dia (vazio = inbox)</label><input type="date" id="et_d" value="${esc(x.dia || '')}">
       <label class="f">Hora</label><input type="text" id="et_h" value="${esc(x.hora)}" placeholder="06:30–07:45">
       <div class="mactions" style="flex-wrap:wrap">
@@ -259,6 +263,20 @@
     sel.onchange = () => { ln.style.display = sel.value === '__nova' ? 'block' : 'none'; if (sel.value === '__nova') ln.focus(); };
     document.getElementById('et_urg').onclick = e => { urg = urg ? 0 : 1; e.target.style.cssText = urg ? 'border-color:#A2402A;color:#A2402A' : ''; };
     document.getElementById('et_imp').onclick = e => { imp = imp ? 0 : 1; e.target.style.cssText = imp ? 'border-color:var(--gold);color:var(--gold)' : ''; };
+    /* toque substitui o arrastar, que não existe no celular: aplica e fecha */
+    document.querySelectorAll('[data-mv]').forEach(b => b.onclick = () => {
+      const h = hojeISO(), k = b.dataset.mv, dow = new Date(h + 'T12:00:00').getDay();
+      const dia = k === 'hoje' ? h : k === 'amanha' ? addDias(h, 1) : k === 'seg' ? addDias(h, ((8 - dow) % 7) || 7) : null;
+      const t = T(); const alvo = t.find(y => y.id === id); if (!alvo) return;
+      alvo.dia = dia; setT(t); window.Modal.close(); render();
+      window.toast(dia ? '✓ Movida para ' + (dia === h ? 'hoje' : dia.slice(8, 10) + '/' + dia.slice(5, 7)) : '✓ Movida para a inbox');
+    });
+    document.querySelectorAll('[data-stq]').forEach(b => b.onclick = () => {
+      const t = T(); const alvo = t.find(y => y.id === id); if (!alvo) return;
+      const era = alvo.feita; alvo.st = b.dataset.stq; alvo.feita = alvo.st === 'feito' ? 1 : 0;
+      setT(t); if (alvo.feita && !era) B().emit('task_done', { tarefa: alvo.t }, 1);
+      window.Modal.close(); render(); window.toast('✓ ' + b.textContent);
+    });
     const del = document.getElementById('et_del'); if (del) del.onclick = () => { window.Modal.close(); apagarTask(id); };
     document.getElementById('et_cancel').onclick = window.Modal.close;
     document.getElementById('et_save').onclick = () => {
@@ -278,6 +296,35 @@
       setT(t); window.Modal.close(); render(); window.toast(nova ? 'Tarefa criada ✔' : 'Tarefa salva ✔');
     };
     setTimeout(() => { const i = document.getElementById('et_t'); if (i && nova) i.focus(); }, 50);
+  }
+  /* hábito: nome, hora e dias editáveis; "arquivar" esconde sem apagar o histórico */
+  function editHabito(id) {
+    const hb = H().find(x => x.id === id); if (!hb) return;
+    const dias = hb.dias === 'todo' ? [0, 1, 2, 3, 4, 5, 6] : (Array.isArray(hb.dias) ? hb.dias.slice() : []);
+    const on = 'border-color:var(--gold);color:var(--gold)';
+    const chip = d => `<button class="btn2 clickable" data-dd="${d}" style="min-width:42px;${dias.includes(d) ? on : ''}">${DIAS_C[d]}</button>`;
+    window.Modal.open(`<h3>Editar hábito</h3>
+      <label class="f">Nome</label><input type="text" id="eh_n" value="${esc(hb.nome)}" maxlength="60">
+      <label class="f">Hora (opcional)</label><input type="time" id="eh_h" value="${esc(hb.hr)}">
+      <label class="f">Dias</label><div class="mactions" style="flex-wrap:wrap;margin-top:4px">${[1, 2, 3, 4, 5, 6, 0].map(chip).join('')}</div>
+      <div class="mactions"><button class="btn2 clickable" id="eh_arq">Arquivar</button></div>
+      <div class="mactions"><button class="btn2 clickable" id="eh_c">Cancelar</button><button class="btn2 primary clickable" id="eh_s">Salvar</button></div>`);
+    document.querySelectorAll('[data-dd]').forEach(b => b.onclick = () => {
+      const d = +b.dataset.dd, i = dias.indexOf(d); if (i < 0) dias.push(d); else dias.splice(i, 1);
+      b.style.cssText = 'min-width:42px;' + (i < 0 ? on : '');
+    });
+    document.getElementById('eh_c').onclick = window.Modal.close;
+    document.getElementById('eh_arq').onclick = () => {
+      const a = H(); const x = a.find(y => y.id === id); if (!x) return;
+      x.arq = 1; setH(a); window.Modal.close(); render(); window.toast('Hábito arquivado — o histórico fica guardado');
+    };
+    document.getElementById('eh_s').onclick = () => {
+      const nome = document.getElementById('eh_n').value.trim(); if (!nome) { window.toast('Dá um nome pro hábito 🙂'); return; }
+      if (!dias.length) { window.toast('Escolha pelo menos um dia'); return; }
+      const a = H(); const x = a.find(y => y.id === id); if (!x) return;
+      x.nome = nome; x.hr = document.getElementById('eh_h').value; x.dias = dias.length === 7 ? 'todo' : dias.sort();
+      setH(a); window.Modal.close(); render(); window.toast('Hábito salvo ✔');
+    };
   }
   function novaTask(dia) {
     editTask(null, { id: 'n' + Date.now(), t: '', lista: listasDisp()[0], dia: dia || hojeISO(), hora: '', urg: 0, imp: 0, per: '', st: 'afazer', feita: 0 });
@@ -334,7 +381,7 @@
     const feitas = ts.filter(x => x.feita);
     const contas = S().get('r_contas', []).filter(x => !x.pago);
     const totalC = contas.reduce((a, x) => a + x.v, 0);
-    const hs = H(); const hFeitos = hs.filter(hb => hb.hist[hojeISO()]).length;
+    const hs = HV(); const hFeitos = hs.filter(hb => hb.hist[hojeISO()]).length;
 
     return `<div class="sc-layout">
       <div class="sc-side">
@@ -358,7 +405,7 @@
         ${contas.map(x => `<div class="sc-conta${x.venc < hojeISO() ? ' venc' : ''}"><span>${esc(x.d)}<br><small style="font-family:var(--mono);font-size:9px">${x.venc < hojeISO() ? 'VENCEU' : 'vence'} ${x.venc.slice(8, 10)}/${x.venc.slice(5, 7)}</small></span><b>${window.brl(x.v)}</b></div>`).join('')}
         <div class="sc-h" style="display:flex;justify-content:space-between">Hábitos <b style="color:var(--ink)">${hFeitos} de ${hs.length}</b></div>
         ${hs.map(hb => { const done = hb.hist[hojeISO()]; return `<div class="sc-hab${done ? ' done' : ''}">
-          <div class="top"><button class="hcheck clickable" data-hb="${hb.id}">${done ? '✓' : ''}</button><span class="nm">${esc(hb.nome)}</span><span class="hr">${esc(hb.hr)}</span></div>
+          <div class="top"><button class="hcheck clickable" data-hb="${hb.id}">${done ? '✓' : ''}</button><span class="nm clickable" data-eh="${hb.id}" style="cursor:pointer">${esc(hb.nome)}</span><span class="hr">${esc(hb.hr)}</span></div>
           <div style="display:flex;justify-content:space-between;align-items:center"><span class="seq">🔥 ${streak(hb)} dias</span></div>
           ${barsSemana(hb)}</div>`; }).join('')}
       </div>
@@ -372,7 +419,7 @@
       const dia = addDias(h, n);
       const dt = new Date(dia + 'T12:00:00');
       const ts = T().filter(x => x.dia === dia);
-      const hs = H().filter(hb => hb.dias === 'todo' || hb.dias.includes(dt.getDay()));
+      const hs = HV().filter(hb => hb.dias === 'todo' || hb.dias.includes(dt.getDay()));
       const contas = S().get('r_contas', []).filter(x => !x.pago && (x.venc === dia || (n === 0 && x.venc < h)));
       const feitas = ts.filter(x => x.feita).length + hs.filter(hb => hb.hist[dia]).length;
       const restam = ts.length + hs.length - feitas;
@@ -419,7 +466,7 @@
     const h = hojeISO();
     const ano = +h.slice(0, 4), mes = +h.slice(5, 7);
     const nDias = new Date(ano, mes, 0).getDate();
-    const hs = H();
+    const hs = HV();
     /* % por semana (S1..S5) */
     const sems = [[1, 7], [8, 14], [15, 21], [22, 28], [29, nDias]];
     const wstats = sems.map(([a, b]) => {
@@ -441,7 +488,7 @@
         const iso = `${ano}-${pad(mes)}-${pad(d)}`;
         tds += `<td><button class="sc-dot clickable ${hb.hist[iso] ? 'ok' : ''} ${iso === h ? 'hoje' : ''}" data-hb="${hb.id}" data-dia="${iso}" ${iso > h ? 'disabled style="opacity:.25;cursor:default"' : ''}></button></td>`;
       }
-      return `<tr><td class="nome">● ${esc(hb.nome)} <small style="color:var(--ink-soft);font-family:var(--mono);font-size:9px">🔥${streak(hb)}d</small></td>${tds}</tr>`;
+      return `<tr><td class="nome"><button class="clickable" data-eh="${hb.id}" style="background:none;border:0;color:inherit;font:inherit;cursor:pointer;padding:0">● ${esc(hb.nome)}</button> <small style="color:var(--ink-soft);font-family:var(--mono);font-size:9px">🔥${streak(hb)}d</small></td>${tds}</tr>`;
     }).join('');
     return `<div class="sc-wsem">Semanas: ${wstats}</div>
       <div class="sc-habgrid"><table>
@@ -452,7 +499,6 @@
 
   /* ---------- render principal ---------- */
   /* ---------- AGENDA (calendário Semana/Mês, blocos arrastáveis) ---------- */
-  let agendaView = 'semana';
   const LISTA_COR = { Trabalho: '#6D8FA7', Pessoal: '#C07868', Casa: '#d07a3c', Saúde: '#607452' };
   function parseHora(h) { if (!h) return null; const m = h.match(/(\d{1,2}):(\d{2})/g); if (!m) return null; const [sh, sm] = m[0].split(':').map(Number); let start = sh + sm / 60, end = start + 1; if (m[1]) { const [eh, em] = m[1].split(':').map(Number); end = eh + em / 60; } return { start, end: Math.max(end, start + 0.5) }; }
   function blocosDoDia(dow) {
@@ -462,7 +508,6 @@
   }
   function vAgenda() {
     const h = hojeISO();
-    if (agendaView === 'mes') return vAgendaMes(h);
     const H0 = 5, H1 = 23, rowH = 42;
     const dias = [0, 1, 2, 3, 4, 5, 6].map(n => addDias(h, n));
     let horas = ''; for (let hr = H0; hr <= H1; hr++) horas += `<div class="ag-hr" style="height:${rowH}px">${pad(hr)}:00</div>`;
@@ -477,7 +522,7 @@
       }).join('');
       return `<div class="ag-col" data-dia="${dia}"><div class="ag-colh${dia === h ? ' on' : ''}">${DIAS_C[dt.getDay()]}<small>${dia.slice(8)}</small></div><div class="ag-slots" style="height:${(H1 - H0 + 1) * rowH}px">${blocos}</div></div>`;
     }).join('');
-    return `<div class="ag-sub">${['semana', 'mes'].map(v => `<button class="${agendaView === v ? 'on' : ''}" data-av="${v}">${v === 'semana' ? 'Semana' : 'Mês'}</button>`).join('')}<span style="margin-left:auto;font-family:var(--mono);font-size:10px;color:var(--ink-soft)">arraste os blocos entre os dias</span></div>
+    return `<div class="ag-sub"><span style="margin-left:auto;font-family:var(--mono);font-size:10px;color:var(--ink-soft)">toque num bloco pra editar ou mover</span></div>
       <div class="ag-grid"><div class="ag-hrs"><div class="ag-colh" style="visibility:hidden">.</div>${horas}</div>${cols}</div>`;
   }
   function vAgendaMes(h) {
@@ -490,15 +535,26 @@
       const ts = T().filter(x => x.dia === iso);
       cells += `<div class="ag-mcell${iso === h ? ' hoje' : ''}"><span class="dn">${d}</span>${ts.slice(0, 3).map(x => `<div class="ag-chip" style="--bc:${LISTA_COR[x.lista] || '#8a8'}">${esc(x.t)}</div>`).join('')}${ts.length > 3 ? `<div class="ag-more">+${ts.length - 3}</div>` : ''}</div>`;
     }
-    return `<div class="ag-sub">${['semana', 'mes'].map(v => `<button class="${agendaView === v ? 'on' : ''}" data-av="${v}">${v === 'semana' ? 'Semana' : 'Mês'}</button>`).join('')}<span style="margin-left:auto;font-family:var(--mono);font-size:11px;color:var(--ink-soft)">${['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'][mes - 1]} ${ano}</span></div>
+    return `<div class="ag-sub"><span style="margin-left:auto;font-family:var(--mono);font-size:11px;color:var(--ink-soft)">${['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'][mes - 1]} ${ano}</span></div>
       <div class="ag-month"><div class="ag-mhead">${DIAS_C.map(d => `<span>${d}</span>`).join('')}</div><div class="ag-mgrid">${cells}</div></div>`;
   }
 
-  const TABS = [['listas', 'Listas'], ['semana', 'Semana'], ['agenda', 'Agenda'], ['kanban', 'Kanban'], ['eis', 'Eisenhower'], ['habitos', 'Hábitos']];
+  /* 6 abas viraram 3 (anti-fadiga): Kanban e Eisenhower são jeitos de ver
+     o Hoje; colunas, horário e mês são jeitos de ver a Semana */
+  const TABS = [['hoje', 'Hoje'], ['semana', 'Semana'], ['habitos', 'Hábitos']];
+  const subbar = (nome, atual, ops) => `<div class="ag-sub">${ops.map(([k, n]) => `<button class="${atual === k ? 'on' : ''}" data-sub="${nome}" data-v="${k}">${n}</button>`).join('')}</div>`;
+  function vHoje() {
+    const sb = subbar('hoje', subHoje, [['lista', 'Lista'], ['quadro', 'Quadro'], ['prioridade', 'Prioridade']]);
+    return sb + (subHoje === 'quadro' ? vKanban() : subHoje === 'prioridade' ? vEis() : vListas());
+  }
+  function vSemanaTab() {
+    const sb = subbar('sem', subSem, [['dias', 'Próximos dias'], ['horario', 'Por horário'], ['mes', 'Mês']]);
+    return sb + (subSem === 'horario' ? vAgenda() : subSem === 'mes' ? vAgendaMes(hojeISO()) : vSemana());
+  }
   function render() {
     if (!el) return;
     const hoje = new Date();
-    const body = tab === 'listas' ? vListas() : tab === 'semana' ? vSemana() : tab === 'agenda' ? vAgenda() : tab === 'kanban' ? vKanban() : tab === 'eis' ? vEis() : vHabitos();
+    const body = tab === 'semana' ? vSemanaTab() : tab === 'habitos' ? vHabitos() : vHoje();
     el.innerHTML = `<div class="ms-wrap">
       <div class="ms-top"><span class="ms-num" style="color:#9A8A4A">◦ MÓDULO 01 · ROTINA</span>
         <button class="ms-close clickable" id="sc_close">✕ Voltar ao índice</button></div>
@@ -536,7 +592,8 @@
       });
     });
     // AGENDA: subtabs + blocos arrastáveis + clique p/ editar
-    el.querySelectorAll('[data-av]').forEach(b => b.onclick = () => { agendaView = b.dataset.av; render(); });
+    el.querySelectorAll('[data-sub]').forEach(b => b.onclick = () => { if (b.dataset.sub === 'hoje') subHoje = b.dataset.v; else subSem = b.dataset.v; render(); });
+    el.querySelectorAll('[data-eh]').forEach(b => b.onclick = e => { e.stopPropagation(); editHabito(b.dataset.eh); });
     el.querySelectorAll('.ag-block').forEach(b => {
       b.addEventListener('click', () => editTask(b.dataset.id));
       b.addEventListener('dragstart', e => { b.classList.add('drag'); e.dataTransfer.setData('text', b.dataset.id); });
@@ -582,7 +639,7 @@
   /* ---------- registro ---------- */
   window.Screens = window.Screens || {};
   window.Screens.rotina = {
-    render(container, closeFn) { seed(); el = container; fecharFn = closeFn; tab = 'listas'; filtro = 'hoje'; lista = null; render(); },
+    render(container, closeFn) { seed(); el = container; fecharFn = closeFn; tab = 'hoje'; subHoje = 'lista'; subSem = 'dias'; filtro = 'hoje'; lista = null; render(); },
     /* o mini-app de configuração chama ao concluir, pra tela já mostrar o que foi montado */
     refresh() { if (el && el.isConnected) render(); }
   };
