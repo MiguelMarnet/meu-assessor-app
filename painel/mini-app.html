@@ -84,6 +84,25 @@
   .feat .ft{font-size:15px;font-weight:500}
   .feat .fd{font-size:13px;color:var(--ink-soft);margin-top:3px;line-height:1.45}
 
+  .blks{margin-top:18px;display:flex;flex-direction:column;gap:6px}
+  .blk{display:flex;align-items:center;gap:6px;padding:7px 8px;border:1px solid var(--line);border-radius:10px;background:var(--panel)}
+  .blk .bt{font-family:var(--mono);font-size:11px;color:var(--mc);width:40px;flex-shrink:0}
+  .blk .be{width:20px;text-align:center;flex-shrink:0}
+  .blk .bl{flex:1;min-width:0;border:0;background:none;color:var(--ink);font-family:inherit;font-size:14px;outline:none;padding:4px 2px;border-bottom:1px dashed transparent}
+  .blk .bl:focus{border-bottom-color:var(--mc)}
+  .blk .bm{font-family:var(--mono);font-size:11px;width:40px;text-align:center;color:var(--ink-soft)}
+  .blk button{width:30px;height:30px;border-radius:8px;border:1px solid var(--line);background:none;color:var(--ink);cursor:pointer;flex-shrink:0;font-size:14px}
+  .blk .bx{border-color:transparent;color:var(--ink-soft)}
+  .badd{margin-top:10px;width:100%;padding:11px;border:1px dashed var(--line);border-radius:10px;background:none;color:var(--ink-soft);cursor:pointer;font-family:inherit}
+  .bfim{margin-top:12px;font-family:var(--mono);font-size:11px;color:var(--ink-soft)}
+  .bfim.over{color:#C0563A}
+  .chips{margin-top:20px;display:flex;flex-wrap:wrap;gap:8px}
+  .chip{padding:10px 14px;border:1px solid var(--line);border-radius:20px;background:var(--panel);color:var(--ink);font-family:inherit;font-size:14px;cursor:pointer;transition:.2s}
+  .chip.sel{border-color:var(--mc);background:color-mix(in srgb,var(--mc) 14%,var(--panel))}
+  .chip.sel::before{content:"✓ ";color:var(--mc)}
+  .chipadd{margin-top:14px;display:flex;gap:8px}
+  .chipadd input{flex:1;padding:11px 12px;border:1px solid var(--line);border-radius:10px;background:var(--panel);color:var(--ink);font-family:inherit;font-size:15px;outline:none}
+  .chipadd button{width:44px;border-radius:10px;border:1px solid var(--mc);background:none;color:var(--mc);font-size:18px;cursor:pointer}
   .opts{margin-top:22px;display:flex;flex-direction:column;gap:10px}
   .opt{display:flex;justify-content:space-between;align-items:center;gap:14px;text-align:left;padding:15px 16px;border:1px solid var(--line);border-radius:12px;background:var(--panel);cursor:pointer;transition:.2s;width:100%;color:var(--ink);font-family:inherit}
   .opt:hover{border-color:color-mix(in srgb,var(--mc) 50%,var(--line))}
@@ -167,7 +186,13 @@ const FLOWS = {
       opts:[['founder','Founder / Empreendedor','Acorda cedo, treino, deep work e operação.',1],['estudante','Estudante','Aulas em bloco, estudo profundo à tarde.'],['nine5','9–5 + projeto paralelo','Trabalho fixo com espaço protegido pro seu projeto.'],['saude','Foco em saúde','Treino em dobro, refeições marcadas, sono protegido.']] },
     { type:'sliders', title:'Suas duas âncoras', sub:'O app redistribui todos os blocos entre esses horários.',
       sliders:[['wake','Acordo às',240,600,15,360,'hhmm'],['sleep','Durmo às',1200,1500,15,1380,'hhmm']] },
-    { type:'done', title:'Semana montada.', sub:'Toque em qualquer bloco da grade pra editar. Ao conectar, vira eventos na sua Google Agenda.' }
+    { type:'blocks', id:'util', title:'Seu dia útil', sub:'Seg a sex, já montado pelo seu ritmo. Toque no nome pra trocar, no tempo pra ajustar.' },
+    { type:'blocks', id:'fds', title:'Seu fim de semana', sub:'Sáb e dom. Mais leve — ajuste se quiser.' },
+    { type:'chips', id:'habitos', title:'Hábitos pra acompanhar', sub:'Marque os que já fazem sentido. Dá pra criar o seu embaixo.',
+      opts:['Beber 2L de água','Meditar 10 minutos','Ler 20 páginas','Treinar','Dormir no horário','Sem celular na cama'], pre:['Beber 2L de água','Dormir no horário'] },
+    { type:'chips', id:'listas', title:'Suas listas de tarefas', sub:'Onde cada tarefa mora. Escolha ou crie.',
+      opts:['Trabalho','Pessoal','Casa','Saúde','Estudos','Compras'], pre:['Trabalho','Pessoal','Casa'] },
+    { type:'done', title:'Semana montada.', sub:'Seus blocos já aparecem na aba Agenda, e hábitos e listas na tela da Rotina. Nada que você já tinha foi apagado.' }
   ],
   financeiro:[
     { type:'hero', glyph:'💳', title:'Seu dinheiro, com clareza', sub:'Você registra em segundos; o Assessor transforma em análise.',
@@ -264,6 +289,28 @@ const GENERIC = [
   { type:'done', title:'Pronto.', sub:'Este módulo já está ativo com um ponto de partida.' }
 ];
 
+/* blocos da semana por ritmo — os mesmos do rotina-app.html (a versão
+   completa que existia fora do painel). [categoria, nome, minutos] */
+const R_PRESETS = {
+  founder:  { wake:360, sleep:1380, util:[['ritual','Ritual',30],['treino','Treino',60],['refeicao','Café',30],['deep','Deep Work',120],['operacional','Operacional',120],['refeicao','Almoço',60],['operacional','Operacional',120],['estudo','Estudo',120],['refeicao','Jantar',60],['pessoal','Pessoal',90]] },
+  estudante:{ wake:420, sleep:1380, util:[['ritual','Ritual',30],['refeicao','Café',30],['estudo','Aula/Estudo',180],['refeicao','Almoço',60],['deep','Deep Work',120],['treino','Treino',60],['refeicao','Jantar',60],['relax','Lazer',120]] },
+  nine5:    { wake:390, sleep:1380, util:[['ritual','Ritual',30],['deep','Projeto',60],['refeicao','Café',30],['operacional','Trabalho',240],['refeicao','Almoço',60],['operacional','Trabalho',180],['treino','Treino',60],['refeicao','Jantar',60],['deep','Projeto',60]] },
+  saude:    { wake:360, sleep:1350, util:[['ritual','Ritual',30],['treino','Treino',90],['refeicao','Café',45],['operacional','Trabalho',180],['refeicao','Almoço',60],['operacional','Trabalho',180],['treino','Treino leve',45],['refeicao','Jantar',60],['relax','Relax',90]] }
+};
+const R_FDS = [['ritual','Manhã leve',60],['treino','Treino',60],['refeicao','Brunch',60],['relax','Lazer',180],['pessoal','Família',150],['refeicao','Jantar',60],['relax','Relax',120]];
+const R_CAT_EM = { ritual:'☀️', treino:'🏋️', deep:'🧠', operacional:'⚙️', estudo:'🎓', refeicao:'🍽️', pessoal:'👨‍👩‍👧', relax:'🌙', sono:'😴' };
+const toBlk = a => a.map(x => ({ cat:x[0], label:x[1], dur:x[2] }));
+const escA = s => String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const hhmmR = m => { m = ((m % 1440) + 1440) % 1440; return String(Math.floor(m/60)).padStart(2,'0') + ':' + String(m%60).padStart(2,'0'); };
+/* troca de ritmo refaz os blocos e as âncoras; voltar sem trocar preserva o que a pessoa editou */
+function rotinaPreset(){
+  const p = R_PRESETS[answers.preset] || R_PRESETS.founder;
+  if(answers._preset === answers.preset) return;
+  answers._preset = answers.preset;
+  answers.util = toBlk(p.util); answers.fds = toBlk(R_FDS);
+  answers.wake = p.wake; answers.sleep = p.sleep;
+}
+
 /* ?fluxo=bemvindo abre as boas-vindas; senão, o mini-app do módulo (?mod=) */
 const FLUXO = qs.get('fluxo');
 const isWelcome = FLUXO === 'bemvindo';
@@ -295,6 +342,7 @@ function render(){
     h += s.opts.map(o=>`<button class="opt ${answers[s.id]===o[0]?'sel':''}" data-v="${o[0]}"><div><div class="ot">${o[1]}</div><div class="od">${o[2]}</div></div><div class="chk">✓</div></button>`).join('');
     h += `</div>`;
   } else if(s.type==='sliders'){
+    if(MOD==='rotina') rotinaPreset();
     h += `<h1>${s.title}</h1><div class="sub">${s.sub}</div><div class="slid">`;
     h += s.sliders.map(sl=>{ if(answers[sl[0]]===undefined) answers[sl[0]]=sl[5]; const f=fmt[sl[6]]||(v=>v);
       return `<div class="sl"><label><span>${sl[1]}</span><b id="v_${sl[0]}">${f(answers[sl[0]])}</b></label><input type="range" id="s_${sl[0]}" min="${sl[2]}" max="${sl[3]}" step="${sl[4]}" value="${answers[sl[0]]}" data-fmt="${sl[6]}"></div>`; }).join('');
@@ -303,6 +351,24 @@ function render(){
     h += `<h1>${s.title}</h1><div class="sub">${s.sub}</div><div class="fields">`;
     h += s.fields.map(f=>`<div class="fld"><label>${f[1]}</label><input id="f_${f[0]}" type="${f[2]}" placeholder="${f[3]}" value="${answers[f[0]]||''}"></div>`).join('');
     h += `</div>`;
+  } else if(s.type==='blocks'){
+    rotinaPreset();
+    const arr = answers[s.id]; let t = answers.wake;
+    h += `<h1>${s.title}</h1><div class="sub">${s.sub}</div><div class="blks">`;
+    h += arr.map((b,i)=>{ const ini=t; t+=b.dur;
+      return `<div class="blk"><span class="bt">${hhmmR(ini)}</span><span class="be">${R_CAT_EM[b.cat]||'•'}</span>
+        <input class="bl" data-i="${i}" value="${escA(b.label)}" aria-label="Nome do bloco">
+        <button class="bd" data-i="${i}" data-d="-15" aria-label="Menos 15 minutos">−</button><span class="bm">${b.dur>=60?Math.floor(b.dur/60)+'h'+(b.dur%60?String(b.dur%60).padStart(2,'0'):''):b.dur+'min'}</span><button class="bd" data-i="${i}" data-d="15" aria-label="Mais 15 minutos">+</button>
+        <button class="bx" data-i="${i}" aria-label="Tirar bloco">✕</button></div>`; }).join('');
+    const sobra = answers.sleep - t;
+    h += `</div><button class="badd">＋ Bloco</button>
+      <div class="bfim${sobra<0?' over':''}">${sobra<0 ? `Passa ${Math.round(-sobra)} min da hora de dormir (${hhmmR(answers.sleep)}). Encurte algum bloco.` : `Termina às ${hhmmR(t)} · ${Math.floor(sobra/60)}h${sobra%60?String(sobra%60).padStart(2,'0'):''} livres antes de dormir`}</div>`;
+  } else if(s.type==='chips'){
+    if(answers[s.id]===undefined) answers[s.id] = s.pre.slice();
+    const todos = s.opts.concat(answers[s.id].filter(x=>!s.opts.includes(x)));
+    h += `<h1>${s.title}</h1><div class="sub">${s.sub}</div><div class="chips">`;
+    h += todos.map(o=>`<button class="chip ${answers[s.id].includes(o)?'sel':''}" data-v="${escA(o)}">${escA(o)}</button>`).join('');
+    h += `</div><div class="chipadd"><input id="chipnew" placeholder="Criar o meu…" maxlength="40"><button id="chipok">＋</button></div>`;
   } else if(s.type==='hello'){
     h += `<div class="hello"><div class="ola" id="ola">Olá</div>
       <div class="ola-sub">Antes de começar, três perguntas rápidas. Nada aqui é definitivo — tudo se muda depois, em um toque.</div></div>`;
@@ -331,6 +397,21 @@ function render(){
 
   main.querySelectorAll('.opt').forEach(b=> b.addEventListener('click', ()=>{ answers[s.id]=b.dataset.v; main.querySelectorAll('.opt').forEach(x=>x.classList.toggle('sel', x===b)); }));
   main.querySelectorAll('input[type=range]').forEach(inp=> inp.addEventListener('input', ()=>{ const id=inp.id.slice(2); answers[id]=+inp.value; const f=fmt[inp.dataset.fmt]||(v=>v); document.getElementById('v_'+id).textContent=f(+inp.value); }));
+  if(s.type==='blocks'){
+    const arr = answers[s.id];
+    main.querySelectorAll('.bl').forEach(inp=> inp.addEventListener('input', ()=>{ arr[+inp.dataset.i].label = inp.value; }));
+    main.querySelectorAll('.bd').forEach(b=> b.addEventListener('click', ()=>{ const x=arr[+b.dataset.i]; x.dur=Math.min(480,Math.max(15,x.dur+(+b.dataset.d))); render(); }));
+    main.querySelectorAll('.bx').forEach(b=> b.addEventListener('click', ()=>{ arr.splice(+b.dataset.i,1); render(); }));
+    main.querySelector('.badd').addEventListener('click', ()=>{ arr.push({cat:'pessoal',label:'Novo bloco',dur:60}); render(); });
+  }
+  if(s.type==='chips'){
+    const sel = answers[s.id];
+    main.querySelectorAll('.chip').forEach(b=> b.addEventListener('click', ()=>{ const v=b.dataset.v, i=sel.indexOf(v); if(i<0) sel.push(v); else sel.splice(i,1); b.classList.toggle('sel', i<0); }));
+    const inp = document.getElementById('chipnew');
+    const add = ()=>{ const v=inp.value.trim(); if(!v) return; if(!sel.some(x=>x.toLowerCase()===v.toLowerCase())) sel.push(v); render(); };
+    document.getElementById('chipok').addEventListener('click', add);
+    inp.addEventListener('keydown', e=>{ if(e.key==='Enter') add(); });
+  }
   main.querySelectorAll('.fld input').forEach(inp=> inp.addEventListener('input', ()=>{ answers[inp.id.slice(2)]=inp.value; }));
 }
 
@@ -350,6 +431,28 @@ function finish(){
       if(answers.intensidade) P.intensidade = answers.intensidade;
       localStorage.setItem('ma1:profile', JSON.stringify(P));
     }catch(e){}
+  }
+  /* rotina: o que foi configurado aqui precisa CHEGAR na tela. Grava pelo
+     Store do painel (parent) para o espelho.js ver a escrita; fora do painel,
+     cai no localStorage. Tudo aditivo: listas e hábitos só somam, e a semana
+     anterior vira ponto de restauração em r_blocos_hist. */
+  if(MOD === 'rotina' && !isWelcome){
+    try{
+      const PS = (parent && parent !== window && parent.Store) || null;
+      const get = (k,d)=>{ if(PS) return PS.get(k,d); try{ const v=JSON.parse(localStorage.getItem('ma1:'+k)); return v==null?d:v; }catch(e){ return d; } };
+      const set = (k,v)=>{ if(PS) PS.set(k,v); else localStorage.setItem('ma1:'+k, JSON.stringify(v)); };
+      const L = get('r_listas', []) || [];
+      (answers.listas||[]).forEach(n=>{ if(!L.some(x=>x.toLowerCase()===n.toLowerCase())) L.push(n); });
+      set('r_listas', L);
+      const H = get('r_habitos', []) || [];
+      (answers.habitos||[]).forEach(n=>{ if(!H.some(x=>(x.nome||'').toLowerCase()===n.toLowerCase())) H.push({ id:'h'+Date.now()+Math.random().toString(36).slice(2,6), nome:n, hr:'', dias:'todo', hist:{} }); });
+      set('r_habitos', H);
+      const ant = get('r_blocos', null);
+      if(ant){ const hist = get('r_blocos_hist', []) || []; hist.unshift(ant); set('r_blocos_hist', hist.slice(0,5)); }
+      const limpa = a => (a||[]).filter(b=>b.label && b.label.trim()).map(b=>({ cat:b.cat, label:b.label.trim().slice(0,60), dur:b.dur }));
+      set('r_blocos', { at:Date.now(), preset:answers.preset, wake:answers.wake, sleep:answers.sleep, util:limpa(answers.util), fds:limpa(answers.fds) });
+      if(parent.Screens && parent.Screens.rotina && parent.Screens.rotina.refresh) parent.Screens.rotina.refresh();
+    }catch(e){ console.warn('rotina: não gravou a configuração', e); }
   }
   /* o limite de WIP tem UMA fonte de verdade: pj_career, que a camada de
      Roadmap lê. Sem isto o usuário configuraria aqui e o roadmap ignoraria. */

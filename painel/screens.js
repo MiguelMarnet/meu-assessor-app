@@ -98,6 +98,9 @@
   .ag-block b{font-weight:600;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .ag-block span{font-family:var(--mono);font-size:8px;color:var(--ink-soft)}
   .ag-block.drag{opacity:.4}
+  .ag-fixo{position:absolute;left:0;right:0;border-top:1px dashed color-mix(in srgb,var(--ink) 18%,transparent);background:color-mix(in srgb,var(--ink) 4%,transparent);padding:2px 5px;font-size:9px;font-family:var(--mono);color:var(--ink-soft);overflow:hidden;white-space:nowrap;text-overflow:ellipsis;pointer-events:none}
+  .sc-undo{position:sticky;bottom:12px;margin:14px auto 0;display:flex;gap:14px;align-items:center;justify-content:center;width:max-content;max-width:100%;padding:10px 16px;border-radius:22px;background:var(--ink);color:var(--bg);font-size:13px}
+  .sc-undo button{background:none;border:0;color:var(--gold);font-weight:600;cursor:pointer;font-size:13px;padding:4px}
   .ag-month{border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--panel)}
   .ag-mhead{display:grid;grid-template-columns:repeat(7,1fr)}.ag-mhead span{font-family:var(--mono);font-size:9px;text-transform:uppercase;color:var(--ink-soft);text-align:center;padding:8px 0;border-bottom:1px solid var(--line)}
   .ag-mgrid{display:grid;grid-template-columns:repeat(7,1fr)}
@@ -111,11 +114,24 @@
 
   /* ---------- helpers ---------- */
   const S = () => window.Store, B = () => window.Bus;
-  const hojeISO = () => new Date().toISOString().slice(0, 10);
   const pad = n => String(n).padStart(2, '0');
+  /* data no fuso do aparelho -- toISOString é UTC, e em Brasília virava
+     "amanhã" a partir das 21h */
+  const isoLocal = d => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+  const hojeISO = () => isoLocal(new Date());
   const DIAS_N = ['domingo','segunda','terça','quarta','quinta','sexta','sábado'];
   const DIAS_C = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
-  const addDias = (iso, n) => { const d = new Date(iso + 'T12:00:00'); d.setDate(d.getDate() + n); return d.toISOString().slice(0, 10); };
+  const addDias = (iso, n) => { const d = new Date(iso + 'T12:00:00'); d.setDate(d.getDate() + n); return isoLocal(d); };
+  /* todo texto do usuário passa por aqui antes de ir pro innerHTML --
+     r_tasks e r_habitos viajam entre aparelhos, então um título malicioso
+     rodaria em todos eles */
+  const esc = s => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  /* listas disponíveis: as salvas + as que alguma tarefa já usa; nunca vazio */
+  function listasDisp() {
+    const L = (S().get('r_listas', []) || []).slice();
+    T().forEach(x => { if (x.lista && !L.includes(x.lista)) L.push(x.lista); });
+    return L.length ? L : ['Pessoal'];
+  }
 
   /* ---------- seeds (demo adaptada ao Miguel) ---------- */
   function seed() {
@@ -180,7 +196,7 @@
   function parseNL(txt) {
     let t = txt.trim(); if (!t) return null;
     const h = hojeISO();
-    const tarefa = { id: 'n' + Date.now(), t: '', lista: 'Pessoal', dia: h, hora: '', urg: 0, imp: 0, per: '', st: 'afazer', feita: 0 };
+    const tarefa = { id: 'n' + Date.now(), t: '', lista: listasDisp()[0], dia: h, hora: '', urg: 0, imp: 0, per: '', st: 'afazer', feita: 0 };
     const dSem = { domingo: 0, segunda: 1, terca: 2, terça: 2, quarta: 3, quinta: 4, sexta: 5, sabado: 6, sábado: 6 };
     if (/\bamanh[ãa]\b/i.test(t)) { tarefa.dia = addDias(h, 1); t = t.replace(/\bamanh[ãa]\b/i, ''); }
     else if (/\bhoje\b/i.test(t)) { t = t.replace(/\bhoje\b/i, ''); }
@@ -218,38 +234,67 @@
     if (hb.hist[iso]) delete hb.hist[iso]; else { hb.hist[iso] = 1; B().emit('task_done', { habito: hb.nome }, 1); }
     setH(hs); render(); if (hb.hist[iso]) window.toast('✓ Hábito concluído');
   }
-  function editTask(id) {
-    const t = T(); const x = t.find(y => y.id === id); if (!x) return;
-    const listas = S().get('r_listas', []);
-    window.Modal.open(`<h3>${x.id ? 'Editar tarefa' : 'Nova tarefa'}</h3>
-      <label class="f">Título</label><input type="text" id="et_t" value="${x.t.replace(/"/g, '&quot;')}">
-      <label class="f">Lista</label><select id="et_l">${listas.map(l => `<option${l === x.lista ? ' selected' : ''}>${l}</option>`).join('')}</select>
-      <label class="f">Dia (vazio = inbox)</label><input type="date" id="et_d" value="${x.dia || ''}">
-      <label class="f">Hora</label><input type="text" id="et_h" value="${x.hora}" placeholder="06:30–07:45">
+  /* editTask(id) edita uma existente; editTask(null, rascunho) cria -- e só
+     grava ao Salvar. Antes, "Adicionar" gravava "Nova tarefa" e Cancelar
+     deixava o lixo salvo. */
+  function editTask(id, rascunho) {
+    const nova = !id;
+    const x = nova ? rascunho : T().find(y => y.id === id); if (!x) return;
+    const listas = listasDisp();
+    if (x.lista && !listas.includes(x.lista)) listas.push(x.lista);
+    window.Modal.open(`<h3>${nova ? 'Nova tarefa' : 'Editar tarefa'}</h3>
+      <label class="f">Título</label><input type="text" id="et_t" value="${esc(x.t)}" placeholder="O que precisa ser feito?">
+      <label class="f">Lista</label><select id="et_l">${listas.map(l => `<option value="${esc(l)}"${l === x.lista ? ' selected' : ''}>${esc(l)}</option>`).join('')}<option value="__nova">＋ Nova lista…</option></select>
+      <input type="text" id="et_ln" placeholder="Nome da nova lista" maxlength="40" style="display:none;margin-top:6px">
+      <label class="f">Dia (vazio = inbox)</label><input type="date" id="et_d" value="${esc(x.dia || '')}">
+      <label class="f">Hora</label><input type="text" id="et_h" value="${esc(x.hora)}" placeholder="06:30–07:45">
       <div class="mactions" style="flex-wrap:wrap">
         <button class="btn2 clickable" id="et_urg" style="${x.urg ? 'border-color:#A2402A;color:#A2402A' : ''}">🔥 Urgente</button>
         <button class="btn2 clickable" id="et_imp" style="${x.imp ? 'border-color:var(--gold);color:var(--gold)' : ''}">⭐ Importante</button>
-        <button class="btn2 clickable" id="et_del">🗑</button>
+        ${nova ? '' : '<button class="btn2 clickable" id="et_del">🗑 Apagar</button>'}
       </div>
       <div class="mactions"><button class="btn2 clickable" id="et_cancel">Cancelar</button><button class="btn2 primary clickable" id="et_save">Salvar</button></div>`);
     let urg = x.urg, imp = x.imp;
+    const sel = document.getElementById('et_l'), ln = document.getElementById('et_ln');
+    sel.onchange = () => { ln.style.display = sel.value === '__nova' ? 'block' : 'none'; if (sel.value === '__nova') ln.focus(); };
     document.getElementById('et_urg').onclick = e => { urg = urg ? 0 : 1; e.target.style.cssText = urg ? 'border-color:#A2402A;color:#A2402A' : ''; };
     document.getElementById('et_imp').onclick = e => { imp = imp ? 0 : 1; e.target.style.cssText = imp ? 'border-color:var(--gold);color:var(--gold)' : ''; };
-    document.getElementById('et_del').onclick = () => { setT(T().filter(y => y.id !== id)); window.Modal.close(); render(); window.toast('Tarefa removida'); };
+    const del = document.getElementById('et_del'); if (del) del.onclick = () => { window.Modal.close(); apagarTask(id); };
     document.getElementById('et_cancel').onclick = window.Modal.close;
     document.getElementById('et_save').onclick = () => {
-      x.t = document.getElementById('et_t').value || x.t;
-      x.lista = document.getElementById('et_l').value;
-      x.dia = document.getElementById('et_d').value || null;
-      x.hora = document.getElementById('et_h').value;
-      x.urg = urg; x.imp = imp;
-      setT(t); window.Modal.close(); render(); window.toast('Tarefa salva ✔');
+      const titulo = document.getElementById('et_t').value.trim();
+      if (!titulo) { window.toast('Dá um nome pra tarefa 🙂'); return; }
+      let lista = sel.value;
+      if (lista === '__nova') {
+        lista = ln.value.trim(); if (!lista) { window.toast('Dá um nome pra lista 🙂'); return; }
+        const L = S().get('r_listas', []) || []; if (!L.includes(lista)) { L.push(lista); S().set('r_listas', L); }
+      }
+      const t = T(); const alvo = nova ? x : t.find(y => y.id === id); if (!alvo) return;
+      alvo.t = titulo; alvo.lista = lista;
+      alvo.dia = document.getElementById('et_d').value || null;
+      alvo.hora = document.getElementById('et_h').value.trim();
+      alvo.urg = urg; alvo.imp = imp;
+      if (nova) t.push(alvo);
+      setT(t); window.Modal.close(); render(); window.toast(nova ? 'Tarefa criada ✔' : 'Tarefa salva ✔');
     };
+    setTimeout(() => { const i = document.getElementById('et_t'); if (i && nova) i.focus(); }, 50);
   }
   function novaTask(dia) {
-    const t = T();
-    const x = { id: 'n' + Date.now(), t: 'Nova tarefa', lista: 'Pessoal', dia: dia || hojeISO(), hora: '', urg: 0, imp: 0, per: '', st: 'afazer', feita: 0 };
-    t.push(x); setT(t); editTask(x.id);
+    editTask(null, { id: 'n' + Date.now(), t: '', lista: listasDisp()[0], dia: dia || hojeISO(), hora: '', urg: 0, imp: 0, per: '', st: 'afazer', feita: 0 });
+  }
+  /* apagar nunca é definitivo na hora: a tarefa fica guardada e um toque em
+     "Desfazer" (8s) devolve ela no mesmo lugar -- regra de ouro nº 2 */
+  let apagada = null, apagadaT = null;
+  function apagarTask(id) {
+    const t = T(); const i = t.findIndex(y => y.id === id); if (i < 0) return;
+    apagada = { x: t[i], i }; t.splice(i, 1); setT(t);
+    clearTimeout(apagadaT); apagadaT = setTimeout(() => { apagada = null; render(); }, 8000);
+    render();
+  }
+  function desfazerApagar() {
+    if (!apagada) return;
+    const t = T(); if (!t.some(y => y.id === apagada.x.id)) t.splice(Math.min(apagada.i, t.length), 0, apagada.x);
+    setT(t); apagada = null; clearTimeout(apagadaT); render(); window.toast('Tarefa de volta ✔');
   }
 
   /* ---------- componentes ---------- */
@@ -257,14 +302,14 @@
     return `<div class="sc-task${x.feita ? ' feita' : ''}" data-id="${x.id}" ${drag ? 'draggable="true"' : ''}>
       <button class="sc-check clickable" data-tg="${x.id}">${x.feita ? '✓' : ''}</button>
       <div style="flex:1;min-width:0">
-        <div class="t">${x.t}</div>
+        <div class="t">${esc(x.t)}</div>
         <div class="meta">
           ${x.urg ? '<span class="sc-tag urg">🔥 urgente</span>' : ''}
           ${x.imp ? '<span class="sc-tag imp">⭐ importante</span>' : ''}
-          <span class="sc-tag">${x.lista}</span>
+          <span class="sc-tag">${esc(x.lista)}</span>
         </div>
       </div>
-      ${x.hora ? `<span class="hora">🕐 ${x.hora}</span>` : ''}
+      ${x.hora ? `<span class="hora">🕐 ${esc(x.hora)}</span>` : ''}
     </div>`;
   }
   function barsSemana(hb) {
@@ -282,7 +327,7 @@
   /* ---------- vistas ---------- */
   function vListas() {
     const c = contadores();
-    const listas = S().get('r_listas', []);
+    const listas = listasDisp();
     const ts = filtrar();
     const grupos = {};
     ts.filter(x => !x.feita).forEach(x => { const g = x.per || (x.dia ? 'Dia' : 'Inbox'); (grupos[g] = grupos[g] || []).push(x); });
@@ -301,7 +346,7 @@
           <button class="sc-count wide clickable${filtro === 'todas' && !lista ? ' on' : ''}" data-f="todas"><span class="l">Todas</span><span class="n" style="font-size:14px">${c.todas}</span></button>
         </div>
         <div class="sc-h">Minhas listas</div>
-        ${listas.map((l, i) => `<button class="sc-lista clickable${lista === l ? ' on' : ''}" data-lista="${l}" style="--lc:${['#6D8FA7', '#C07868', '#d07a3c', '#607452'][i % 4]}"><i></i>${l}<span class="c">${T().filter(x => x.lista === l).length}</span></button>`).join('')}
+        ${listas.map((l, i) => `<button class="sc-lista clickable${lista === l ? ' on' : ''}" data-lista="${esc(l)}" style="--lc:${['#6D8FA7', '#C07868', '#d07a3c', '#607452'][i % 4]}"><i></i>${esc(l)}<span class="c">${T().filter(x => x.lista === l).length}</span></button>`).join('')}
       </div>
       <div>
         ${Object.keys(grupos).map(g => `<div class="sc-grupo">${g} · ${grupos[g].length}</div>` + grupos[g].map(x => taskHTML(x)).join('')).join('')}
@@ -310,10 +355,10 @@
       </div>
       <div>
         <div class="sc-h" style="margin-top:0;display:flex;justify-content:space-between">Contas a pagar <b style="color:var(--ink)">${window.brl(totalC)}</b></div>
-        ${contas.map(x => `<div class="sc-conta${x.venc < hojeISO() ? ' venc' : ''}"><span>${x.d}<br><small style="font-family:var(--mono);font-size:9px">${x.venc < hojeISO() ? 'VENCEU' : 'vence'} ${x.venc.slice(8, 10)}/${x.venc.slice(5, 7)}</small></span><b>${window.brl(x.v)}</b></div>`).join('')}
+        ${contas.map(x => `<div class="sc-conta${x.venc < hojeISO() ? ' venc' : ''}"><span>${esc(x.d)}<br><small style="font-family:var(--mono);font-size:9px">${x.venc < hojeISO() ? 'VENCEU' : 'vence'} ${x.venc.slice(8, 10)}/${x.venc.slice(5, 7)}</small></span><b>${window.brl(x.v)}</b></div>`).join('')}
         <div class="sc-h" style="display:flex;justify-content:space-between">Hábitos <b style="color:var(--ink)">${hFeitos} de ${hs.length}</b></div>
         ${hs.map(hb => { const done = hb.hist[hojeISO()]; return `<div class="sc-hab${done ? ' done' : ''}">
-          <div class="top"><button class="hcheck clickable" data-hb="${hb.id}">${done ? '✓' : ''}</button><span class="nm">${hb.nome}</span><span class="hr">${hb.hr}</span></div>
+          <div class="top"><button class="hcheck clickable" data-hb="${hb.id}">${done ? '✓' : ''}</button><span class="nm">${esc(hb.nome)}</span><span class="hr">${esc(hb.hr)}</span></div>
           <div style="display:flex;justify-content:space-between;align-items:center"><span class="seq">🔥 ${streak(hb)} dias</span></div>
           ${barsSemana(hb)}</div>`; }).join('')}
       </div>
@@ -333,10 +378,10 @@
       const restam = ts.length + hs.length - feitas;
       return `<div class="sc-col" data-dia="${dia}">
         <div class="ch"><span class="d">${DIAS_C[dt.getDay()]}<small>${n === 0 ? 'HOJE' : ''}</small></span><span class="n">${dia.slice(8, 10)}/${dia.slice(5, 7)}</span></div>
-        ${contas.map(x => `<div class="sc-conta${x.venc < h ? ' venc' : ''}" style="border:1px solid var(--line);border-radius:8px;padding:8px 10px;margin-bottom:8px"><span>${x.d}</span><b>${window.brl(x.v)}</b></div>`).join('')}
+        ${contas.map(x => `<div class="sc-conta${x.venc < h ? ' venc' : ''}" style="border:1px solid var(--line);border-radius:8px;padding:8px 10px;margin-bottom:8px"><span>${esc(x.d)}</span><b>${window.brl(x.v)}</b></div>`).join('')}
         ${ts.map(x => taskHTML(x, true)).join('')}
         ${hs.map(hb => { const done = hb.hist[dia]; return `<div class="sc-hab${done ? ' done' : ''}" style="border:1px solid var(--line);border-radius:8px;padding:8px 10px;margin-bottom:8px">
-          <div class="top"><button class="hcheck clickable" data-hb="${hb.id}" data-dia="${dia}">${done ? '✓' : ''}</button><span class="nm" style="font-size:12.5px">${hb.nome}</span><span class="hr">${hb.hr}</span></div></div>`; }).join('')}
+          <div class="top"><button class="hcheck clickable" data-hb="${hb.id}" data-dia="${dia}">${done ? '✓' : ''}</button><span class="nm" style="font-size:12.5px">${esc(hb.nome)}</span><span class="hr">${esc(hb.hr)}</span></div></div>`; }).join('')}
         <button class="sc-add clickable" data-add-dia="${dia}" style="padding:8px 10px;font-size:12px">＋ Adicionar</button>
         <div class="ft"><span>${feitas} feitas</span><span>${restam} restam</span></div>
       </div>`;
@@ -396,7 +441,7 @@
         const iso = `${ano}-${pad(mes)}-${pad(d)}`;
         tds += `<td><button class="sc-dot clickable ${hb.hist[iso] ? 'ok' : ''} ${iso === h ? 'hoje' : ''}" data-hb="${hb.id}" data-dia="${iso}" ${iso > h ? 'disabled style="opacity:.25;cursor:default"' : ''}></button></td>`;
       }
-      return `<tr><td class="nome">● ${hb.nome} <small style="color:var(--ink-soft);font-family:var(--mono);font-size:9px">🔥${streak(hb)}d</small></td>${tds}</tr>`;
+      return `<tr><td class="nome">● ${esc(hb.nome)} <small style="color:var(--ink-soft);font-family:var(--mono);font-size:9px">🔥${streak(hb)}d</small></td>${tds}</tr>`;
     }).join('');
     return `<div class="sc-wsem">Semanas: ${wstats}</div>
       <div class="sc-habgrid"><table>
@@ -410,6 +455,11 @@
   let agendaView = 'semana';
   const LISTA_COR = { Trabalho: '#6D8FA7', Pessoal: '#C07868', Casa: '#d07a3c', Saúde: '#607452' };
   function parseHora(h) { if (!h) return null; const m = h.match(/(\d{1,2}):(\d{2})/g); if (!m) return null; const [sh, sm] = m[0].split(':').map(Number); let start = sh + sm / 60, end = start + 1; if (m[1]) { const [eh, em] = m[1].split(':').map(Number); end = eh + em / 60; } return { start, end: Math.max(end, start + 0.5) }; }
+  function blocosDoDia(dow) {
+    const R = S().get('r_blocos', null); if (!R) return [];
+    const arr = (dow === 0 || dow === 6) ? R.fds : R.util; let t = +R.wake || 0;
+    return (arr || []).map(b => { const o = { label: b.label, ini: t, fim: t + (+b.dur || 0) }; t = o.fim; return o; });
+  }
   function vAgenda() {
     const h = hojeISO();
     if (agendaView === 'mes') return vAgendaMes(h);
@@ -418,9 +468,12 @@
     let horas = ''; for (let hr = H0; hr <= H1; hr++) horas += `<div class="ag-hr" style="height:${rowH}px">${pad(hr)}:00</div>`;
     const cols = dias.map(dia => {
       const dt = new Date(dia + 'T12:00:00');
-      const blocos = T().filter(x => x.dia === dia && parseHora(x.hora)).map(x => {
+      /* a semana montada no mini-app (r_blocos) fica de fundo; as tarefas por cima */
+      const fixos = blocosDoDia(dt.getDay()).map(b => { const ini = Math.max(b.ini / 60, H0), fim = Math.min(b.fim / 60, H1 + 1); if (fim <= ini) return '';
+        return `<div class="ag-fixo" style="top:${(ini - H0) * rowH}px;height:${(fim - ini) * rowH}px">${esc(b.label)}</div>`; }).join('');
+      const blocos = fixos + T().filter(x => x.dia === dia && parseHora(x.hora)).map(x => {
         const p = parseHora(x.hora), top = (p.start - H0) * rowH, hgt = Math.max((p.end - p.start) * rowH - 3, 22);
-        return `<div class="ag-block" draggable="true" data-id="${x.id}" style="top:${top}px;height:${hgt}px;--bc:${LISTA_COR[x.lista] || '#8a8'}"><b>${x.t}</b><span>${x.hora}</span></div>`;
+        return `<div class="ag-block" draggable="true" data-id="${x.id}" style="top:${top}px;height:${hgt}px;--bc:${LISTA_COR[x.lista] || '#8a8'}"><b>${esc(x.t)}</b><span>${esc(x.hora)}</span></div>`;
       }).join('');
       return `<div class="ag-col" data-dia="${dia}"><div class="ag-colh${dia === h ? ' on' : ''}">${DIAS_C[dt.getDay()]}<small>${dia.slice(8)}</small></div><div class="ag-slots" style="height:${(H1 - H0 + 1) * rowH}px">${blocos}</div></div>`;
     }).join('');
@@ -435,7 +488,7 @@
     for (let d = 1; d <= nDias; d++) {
       const iso = `${ano}-${pad(mes)}-${pad(d)}`;
       const ts = T().filter(x => x.dia === iso);
-      cells += `<div class="ag-mcell${iso === h ? ' hoje' : ''}"><span class="dn">${d}</span>${ts.slice(0, 3).map(x => `<div class="ag-chip" style="--bc:${LISTA_COR[x.lista] || '#8a8'}">${x.t}</div>`).join('')}${ts.length > 3 ? `<div class="ag-more">+${ts.length - 3}</div>` : ''}</div>`;
+      cells += `<div class="ag-mcell${iso === h ? ' hoje' : ''}"><span class="dn">${d}</span>${ts.slice(0, 3).map(x => `<div class="ag-chip" style="--bc:${LISTA_COR[x.lista] || '#8a8'}">${esc(x.t)}</div>`).join('')}${ts.length > 3 ? `<div class="ag-more">+${ts.length - 3}</div>` : ''}</div>`;
     }
     return `<div class="ag-sub">${['semana', 'mes'].map(v => `<button class="${agendaView === v ? 'on' : ''}" data-av="${v}">${v === 'semana' ? 'Semana' : 'Mês'}</button>`).join('')}<span style="margin-left:auto;font-family:var(--mono);font-size:11px;color:var(--ink-soft)">${['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'][mes - 1]} ${ano}</span></div>
       <div class="ag-month"><div class="ag-mhead">${DIAS_C.map(d => `<span>${d}</span>`).join('')}</div><div class="ag-mgrid">${cells}</div></div>`;
@@ -453,7 +506,8 @@
       <p class="ms-sub">${DIAS_N[hoje.getDay()][0].toUpperCase() + DIAS_N[hoje.getDay()].slice(1)}, ${hoje.getDate()} · o seu dia em blocos — registre aqui ou mande no WhatsApp.</p>
       ${window.__briefingHTML ? '<div class="bf bf-mod">' + window.__briefingHTML + '</div>' : ''}
       <div class="ms-tabs">${TABS.map(([k, n]) => `<button class="${tab === k ? 'on' : ''}" data-tab="${k}">${n}</button>`).join('')}</div>
-      ${body}</div>`;
+      ${body}
+      ${apagada ? `<div class="sc-undo" role="status">Tarefa apagada <button id="sc_undo">Desfazer</button></div>` : ''}</div>`;
     bind();
   }
 
@@ -497,6 +551,7 @@
         if (x && c.dataset.dia) { x.dia = c.dataset.dia; setT(t); window.toast('✓ Movida para ' + c.dataset.dia.slice(8, 10) + '/' + c.dataset.dia.slice(5, 7)); render(); }
       });
     });
+    const un = document.getElementById('sc_undo'); if (un) un.onclick = desfazerApagar;
     const add = document.getElementById('sc_add'); if (add) add.onclick = () => novaTask();
     el.querySelectorAll('[data-add-dia]').forEach(b => b.onclick = () => novaTask(b.dataset.addDia));
     const nh = document.getElementById('sc_novohab'); if (nh) nh.onclick = () => {
@@ -516,7 +571,7 @@
       const go = () => {
         const r = parseNL(nl.value); if (!r) return;
         if (r.habito) { window.toast('↻ entendi: hábito diário criado'); }
-        else { const t = T(); t.push(r.tarefa); setT(t); B().emit('task_done', {}, 0); window.toast(`✓ entendi: "${r.tarefa.t}" — ${r.tarefa.dia === hojeISO() ? 'hoje' : r.tarefa.dia.slice(8, 10) + '/' + r.tarefa.dia.slice(5, 7)}${r.tarefa.hora ? ' às ' + r.tarefa.hora : ''}`); }
+        else { const t = T(); t.push(r.tarefa); setT(t); window.toast(`✓ entendi: "${r.tarefa.t}" — ${r.tarefa.dia === hojeISO() ? 'hoje' : r.tarefa.dia.slice(8, 10) + '/' + r.tarefa.dia.slice(5, 7)}${r.tarefa.hora ? ' às ' + r.tarefa.hora : ''}`); }
         nl.value = ''; render();
       };
       document.getElementById('sc_nlgo').onclick = go;
@@ -527,6 +582,8 @@
   /* ---------- registro ---------- */
   window.Screens = window.Screens || {};
   window.Screens.rotina = {
-    render(container, closeFn) { seed(); el = container; fecharFn = closeFn; tab = 'listas'; filtro = 'hoje'; lista = null; render(); }
+    render(container, closeFn) { seed(); el = container; fecharFn = closeFn; tab = 'listas'; filtro = 'hoje'; lista = null; render(); },
+    /* o mini-app de configuração chama ao concluir, pra tela já mostrar o que foi montado */
+    refresh() { if (el && el.isConnected) render(); }
   };
 })();
