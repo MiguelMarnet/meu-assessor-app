@@ -384,7 +384,9 @@
     const feitas = ts.filter(x => x.feita);
     const contas = S().get('r_contas', []).filter(x => !x.pago);
     const totalC = contas.reduce((a, x) => a + x.v, 0);
-    const hs = HV(); const hFeitos = hs.filter(hb => hb.hist[hojeISO()]).length;
+    /* só os hábitos que caem hoje -- antes "3 de 4" contava hábito de outro dia */
+    const dowHoje = new Date().getDay();
+    const hs = HV().filter(hb => hb.dias === 'todo' || (Array.isArray(hb.dias) && hb.dias.includes(dowHoje))); const hFeitos = hs.filter(hb => hb.hist[hojeISO()]).length;
 
     return `<div class="sc-layout">
       <div class="sc-side">
@@ -404,9 +406,10 @@
         ${feitas.length ? `<div class="sc-grupo">Concluídas · ${feitas.length}</div>` + feitas.map(x => taskHTML(x)).join('') : ''}
       </div>
       <div>
-        <div class="sc-h" style="margin-top:0;display:flex;justify-content:space-between">Contas a pagar <b style="color:var(--ink)">${window.brl(totalC)}</b></div>
+        ${contas.length ? `<div class="sc-h" style="margin-top:0;display:flex;justify-content:space-between">Contas a pagar <b style="color:var(--ink)">${window.brl(totalC)}</b></div>` : ''}
         ${contas.map(x => `<div class="sc-conta${x.venc < hojeISO() ? ' venc' : ''}"><span>${esc(x.d)}<br><small style="font-family:var(--mono);font-size:9px">${x.venc < hojeISO() ? 'VENCEU' : 'vence'} ${x.venc.slice(8, 10)}/${x.venc.slice(5, 7)}</small></span><b>${window.brl(x.v)}</b></div>`).join('')}
-        <div class="sc-h" style="display:flex;justify-content:space-between">Hábitos <b style="color:var(--ink)">${hFeitos} de ${hs.length}</b></div>
+        <div class="sc-h" style="${contas.length ? '' : 'margin-top:0;'}display:flex;justify-content:space-between">Hábitos de hoje <b style="color:var(--ink)">${hFeitos} de ${hs.length}</b></div>
+        ${hs.length ? '' : `<div style="font-size:12.5px;color:var(--ink-soft);line-height:1.5">${HV().length ? 'Nenhum hábito marcado pra hoje.' : 'Nenhum hábito ainda.'}${window.openMini ? ' <button class="clickable" data-cfg style="background:none;border:0;color:var(--gold);cursor:pointer;padding:0;font:inherit">Configurar rotina</button>' : ''}</div>`}
         ${hs.map(hb => { const done = hb.hist[hojeISO()]; return `<div class="sc-hab${done ? ' done' : ''}">
           <div class="top"><button class="hcheck clickable" data-hb="${hb.id}">${done ? '✓' : ''}</button><span class="nm clickable" data-eh="${hb.id}" style="cursor:pointer">${esc(hb.nome)}</span><span class="hr">${esc(hb.hr)}</span></div>
           <div style="display:flex;justify-content:space-between;align-items:center"><span class="seq">🔥 ${streak(hb)} dias</span></div>
@@ -552,7 +555,33 @@
   }
   function vSemanaTab() {
     const sb = subbar('sem', subSem, [['dias', 'Próximos dias'], ['horario', 'Por horário'], ['mes', 'Mês']]);
-    return sb + (subSem === 'horario' ? vAgenda() : subSem === 'mes' ? vAgendaMes(hojeISO()) : vSemana());
+    return semanaBarra() + sb + (subSem === 'horario' ? vAgenda() : subSem === 'mes' ? vAgendaMes(hojeISO()) : vSemana());
+  }
+  /* a semana montada no mini-app: refazer ou voltar à anterior (r_blocos_hist).
+     Voltar troca as duas de lugar -- nada se perde, dá pra voltar de novo. */
+  const PRESET_N = { founder: 'Founder', estudante: 'Estudante', nine5: '9–5 + projeto', saude: 'Foco em saúde' };
+  function semanaBarra() {
+    const R = S().get('r_blocos', null), hist = S().get('r_blocos_hist', []) || [];
+    const bt = (attr, txt) => `<button class="clickable" ${attr} style="background:none;border:1px solid var(--line);border-radius:14px;padding:5px 11px;color:var(--ink);cursor:pointer;font-size:12px">${txt}</button>`;
+    const fmtH = m => pad(Math.floor(m / 60)) + ':' + pad(m % 60);
+    if (!R) return window.openMini ? `<div class="sc-wsem" style="align-items:center;gap:10px;flex-wrap:wrap">Sua semana ainda não foi montada. ${bt('data-cfg', 'Montar em 1 minuto')}</div>` : '';
+    return `<div class="sc-wsem" style="align-items:center;gap:10px;flex-wrap:wrap"><span class="w">Semana <b>${esc(PRESET_N[R.preset] || 'personalizada')}</b> · acorda ${fmtH(+R.wake || 0)} · dorme ${fmtH(+R.sleep || 0)}</span>
+      ${window.openMini ? bt('data-cfg', 'Refazer') : ''}${hist.length ? bt('data-volta', 'Voltar à anterior') : ''}</div>`;
+  }
+  function voltarSemana() {
+    const hist = S().get('r_blocos_hist', []) || []; if (!hist.length) return;
+    const ant = hist[0];
+    window.Modal.open(`<h3>Voltar à semana anterior?</h3>
+      <p style="font-size:13.5px;line-height:1.5;color:var(--ink-soft)">A semana <b>${esc(PRESET_N[ant.preset] || 'personalizada')}</b> volta a valer. A atual fica guardada — dá pra voltar pra ela do mesmo jeito.</p>
+      <div class="mactions"><button class="btn2 clickable" id="vs_c">Cancelar</button><button class="btn2 primary clickable" id="vs_s">Voltar</button></div>`);
+    document.getElementById('vs_c').onclick = window.Modal.close;
+    document.getElementById('vs_s').onclick = () => {
+      const h = S().get('r_blocos_hist', []) || [], atual = S().get('r_blocos', null), volta = h.shift();
+      if (!volta) return window.Modal.close();
+      if (atual) h.unshift(atual);
+      S().set('r_blocos_hist', h.slice(0, 5)); S().set('r_blocos', volta);
+      window.Modal.close(); render(); window.toast('✓ Semana anterior de volta');
+    };
   }
   function render() {
     if (!el) return;
@@ -596,6 +625,8 @@
     });
     // AGENDA: subtabs + blocos arrastáveis + clique p/ editar
     el.querySelectorAll('[data-sub]').forEach(b => b.onclick = () => { if (b.dataset.sub === 'hoje') subHoje = b.dataset.v; else subSem = b.dataset.v; render(); });
+    el.querySelectorAll('[data-cfg]').forEach(b => b.onclick = () => window.openMini && window.openMini('rotina'));
+    el.querySelectorAll('[data-volta]').forEach(b => b.onclick = voltarSemana);
     el.querySelectorAll('[data-eh]').forEach(b => b.onclick = e => { e.stopPropagation(); editHabito(b.dataset.eh); });
     el.querySelectorAll('.ag-block').forEach(b => {
       b.addEventListener('click', () => editTask(b.dataset.id));
