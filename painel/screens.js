@@ -127,6 +127,8 @@
      rodaria em todos eles */
   const esc = s => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
   /* listas disponíveis: as salvas + as que alguma tarefa já usa; nunca vazio */
+  /* captura rápida sempre caiu em "Pessoal"; mantém isso quando a lista existe */
+  const listaPadrao = () => { const L = listasDisp(); return L.includes('Pessoal') ? 'Pessoal' : L[0]; };
   function listasDisp() {
     const L = (S().get('r_listas', []) || []).slice();
     T().forEach(x => { if (x.lista && !L.includes(x.lista)) L.push(x.lista); });
@@ -198,9 +200,10 @@
   function parseNL(txt) {
     let t = txt.trim(); if (!t) return null;
     const h = hojeISO();
-    const tarefa = { id: 'n' + Date.now(), t: '', lista: listasDisp()[0], dia: h, hora: '', urg: 0, imp: 0, per: '', st: 'afazer', feita: 0 };
+    const tarefa = { id: 'n' + Date.now(), t: '', lista: listaPadrao(), dia: h, hora: '', urg: 0, imp: 0, per: '', st: 'afazer', feita: 0 };
     const dSem = { domingo: 0, segunda: 1, terca: 2, terça: 2, quarta: 3, quinta: 4, sexta: 5, sabado: 6, sábado: 6 };
-    if (/\bamanh[ãa]\b/i.test(t)) { tarefa.dia = addDias(h, 1); t = t.replace(/\bamanh[ãa]\b/i, ''); }
+    /* \b não funciona depois de "ã" (não é letra pro regex) -- "amanhã" nunca era reconhecido */
+    if (/(^|\s)amanh[ãa](?=\s|$)/i.test(t)) { tarefa.dia = addDias(h, 1); t = t.replace(/(^|\s)amanh[ãa](?=\s|$)/i, ' '); }
     else if (/\bhoje\b/i.test(t)) { t = t.replace(/\bhoje\b/i, ''); }
     else {
       for (const k in dSem) {
@@ -327,7 +330,7 @@
     };
   }
   function novaTask(dia) {
-    editTask(null, { id: 'n' + Date.now(), t: '', lista: listasDisp()[0], dia: dia || hojeISO(), hora: '', urg: 0, imp: 0, per: '', st: 'afazer', feita: 0 });
+    editTask(null, { id: 'n' + Date.now(), t: '', lista: listaPadrao(), dia: dia || hojeISO(), hora: '', urg: 0, imp: 0, per: '', st: 'afazer', feita: 0 });
   }
   /* apagar nunca é definitivo na hora: a tarefa fica guardada e um toque em
      "Desfazer" (8s) devolve ela no mesmo lugar -- regra de ouro nº 2 */
