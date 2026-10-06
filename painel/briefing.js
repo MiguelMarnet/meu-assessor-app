@@ -62,9 +62,19 @@ window.Briefing = (function () {
   /* Devolve os compromissos de hoje, ou null se não deu para saber.
      null e [] são coisas diferentes: "não consegui ler" não é "agenda livre". */
   async function agendaDoGoogle() {
+    /* Todo fetch daqui tem PRAZO. Em 02/10 o painel travou na porta esperando a
+       agenda do Google: sem timeout, um n8n fora do ar não devolve erro — ele
+       simplesmente nunca responde, e a tela fica em branco para sempre. Melhor
+       um briefing sem a agenda do que um briefing que não chega. */
+    const comPrazo = (ms, fn) => {
+      const corta = new AbortController();
+      const t = setTimeout(() => corta.abort(), ms);
+      return fn(corta.signal).finally(() => clearTimeout(t));
+    };
+
     let url = '';
     try {
-      const c = await (await fetch('../config.json', { cache: 'no-store' })).json();
+      const c = await comPrazo(4000, s => fetch('../config.json', { cache: 'no-store', signal: s }).then(r => r.json()));
       url = c.agendaWebhook || '';
     } catch (e) { return null; }
     if (!url) return null;
@@ -77,13 +87,20 @@ window.Briefing = (function () {
     if (!token) return null;
 
     try {
-      const r = await fetch(url, {
+      /* 8s: o n8n busca na API do Google, então é mais lento que um fetch
+         local — mas acima disso a pessoa já desistiu de olhar a tela. */
+      const r = await comPrazo(8000, s => fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'ngrok-skip-browser-warning': '1' },
-        body: JSON.stringify({ access_token: token })
-      });
+        body: JSON.stringify({ access_token: token }),
+        signal: s,
+      }));
       if (!r.ok) return null;
       const j = JSON.parse(await r.text());
+      /* `eventos` ausente é "não sei" (ex.: conta sem Google — o fluxo devolve
+         `{conectado:false}` de propósito, sem a chave). `[]` é "agenda livre".
+         Não confundir os dois: dizer "dia livre" para quem nem conectou é
+         mentira com cara de tudo certo. */
       return Array.isArray(j.eventos) ? j.eventos : null;
     } catch (e) { return null; }
   }
