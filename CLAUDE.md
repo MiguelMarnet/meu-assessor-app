@@ -28,8 +28,16 @@ perderam por causa disso. Se for editar uma tela, é aqui, em `painel/`.
 ## Depois de editar, prove
 
 ```
+node ../Meu-Assessor/provar.cjs            # antes de mexer, e de novo depois
 node ../Meu-Assessor/verificar-publicado.cjs
 ```
+
+`provar.cjs` guarda as invariantes que já nos custaram caro — entre elas duas
+deste repositório: **nenhuma `seed()` roda para quem tem conta** e **nenhum
+`fetch` do painel espera para sempre**. Invariante que foi de verde para
+vermelho é regressão sua: `git revert`, não remendo em cima. E antes de editar,
+`grep` em quem depende do que você vai mexer — o protocolo inteiro está no
+`CLAUDE.md` do repositório privado.
 
 Commit não é deploy. Uma correção de segurança do Financeiro já foi commitada,
 revisada e dada como pronta enquanto o bug seguia vivo para os usuários.
