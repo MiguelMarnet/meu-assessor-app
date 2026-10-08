@@ -189,6 +189,15 @@
   /* ---------------- envio ----------------
      confirmado:true é obrigatório. Publicar finanças sobrescreve
      faixas da planilha; nada aqui dispara sem o usuário mandar. */
+
+  /* Prazo para fetch: sem ele, um servidor que aceita a conexão e nunca
+     responde trava a espera para sempre (02/10, o painel na porta). */
+  const comPrazo = (ms, fn) => {
+    const corta = new AbortController();
+    const t = setTimeout(() => corta.abort(), ms);
+    return fn(corta.signal).finally(() => clearTimeout(t));
+  };
+
   async function enviar(tipo, { confirmado } = {}) {
     if (!confirmado) return { ok: false, erro: 'Falta confirmação explícita — publicar altera dados fora do aparelho.' };
     const c = config();
@@ -196,12 +205,15 @@
     if (!url) return { ok: false, erro: 'Webhook não configurado. Passe ?webhook= (ou ?webhookRotina=) na URL, ou use Publicar.setConfig().' };
     const { json } = tipo === 'rotina' ? payloadRotina() : payloadFinanceiro();
     try {
-      const r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(json) });
+      const r = await comPrazo(30000, s => fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(json), signal: s }));
       const txt = await r.text().catch(() => '');
       if (!r.ok) { enfileirar(tipo, json); return { ok: false, status: r.status, erro: txt.slice(0, 200) || ('HTTP ' + r.status) }; }
       S().set('n8n_ultimo_envio', { tipo, em: new Date().toISOString() });
       return { ok: true, status: r.status, resposta: txt.slice(0, 200) };
     } catch (e) {
+      if (e && e.name === 'AbortError') {
+        return { ok: false, erro: 'O n8n não respondeu em 30s. Pode ter aplicado mesmo assim — confira a Agenda antes de publicar de novo. Não guardei na fila para não duplicar.' };
+      }
       enfileirar(tipo, json);
       return { ok: false, erro: 'Sem resposta do n8n (offline ou túnel fora do ar). Guardei na fila.' };
     }

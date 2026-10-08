@@ -16,9 +16,18 @@ window.Conversa = (function () {
   const Rec = window.SpeechRecognition || window.webkitSpeechRecognition;
   let rec = null, ouvindo = false;
 
+
+  /* Prazo para fetch: sem ele, um servidor que aceita a conexão e nunca
+     responde trava a espera para sempre (02/10, o painel na porta). */
+  const comPrazo = (ms, fn) => {
+    const corta = new AbortController();
+    const t = setTimeout(() => corta.abort(), ms);
+    return fn(corta.signal).finally(() => clearTimeout(t));
+  };
+
   async function carregarConfig() {
     try {
-      const c = await (await fetch('../config.json', { cache: 'no-store' })).json();
+      const c = await comPrazo(4000, s => fetch('../config.json', { cache: 'no-store', signal: s }).then(r => r.json()));
       URL_CHAT = c.chatWebhook || '';
     } catch (e) { URL_CHAT = ''; }
   }
@@ -57,11 +66,16 @@ window.Conversa = (function () {
     document.getElementById('cvLog').appendChild(pensando);
 
     try {
-      const r = await fetch(URL_CHAT, {
+      /* 90s: medido em 08/10, o chat do painel levou até 27s e o cérebro por
+         trás dele até 70s (Gemini, às vezes Google). Cortar antes disso faria a
+         pessoa achar que falhou algo que ia dar certo. Abortar NÃO quer dizer que não foi feito: o pedido pode ter
+         chegado e o gasto ter sido gravado. Por isso o aviso abaixo é outro. */
+      const r = await comPrazo(90000, s => fetch(URL_CHAT, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'ngrok-skip-browser-warning': '1' },
-        body: JSON.stringify({ access_token: token, texto })
-      });
+        body: JSON.stringify({ access_token: token, texto }),
+        signal: s
+      }));
       pensando.remove();
       if (!r.ok) { bolha('Assessor', 'Não consegui responder agora (erro ' + r.status + ').', 'ela'); return; }
       const txt = await r.text();
@@ -69,7 +83,11 @@ window.Conversa = (function () {
       bolha('Assessor', (j && j.resposta) || 'Recebi, mas não veio resposta.', 'ela');
     } catch (e) {
       pensando.remove();
-      bolha('Assessor', 'Não consegui falar com o servidor agora.', 'ela');
+      /* Prazo estourado ≠ servidor fora. Mandar de novo um "gastei 50" que já
+         foi gravado duplicaria o gasto — a regra é nunca criar dado falso. */
+      bolha('Assessor', e && e.name === 'AbortError'
+        ? 'Demorei demais para responder. Se era um registro, confira antes de mandar de novo — pode já ter sido salvo.'
+        : 'Não consegui falar com o servidor agora.', 'ela');
     }
   }
 

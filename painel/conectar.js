@@ -38,6 +38,15 @@
 
   /* Sonda os dois webhooks. GET não dispara nada (eles são POST),
      e a resposta do n8n já diz se o workflow está ativo. */
+
+  /* Prazo para fetch: sem ele, um servidor que aceita a conexão e nunca
+     responde trava a espera para sempre (02/10, o painel na porta). */
+  const comPrazo = (ms, fn) => {
+    const corta = new AbortController();
+    const t = setTimeout(() => corta.abort(), ms);
+    return fn(corta.signal).finally(() => clearTimeout(t));
+  };
+
   async function sondar() {
     const c = P().config();
     const out = {};
@@ -49,14 +58,14 @@
        problema errado. */
     let servidorVivo = false;
     if (c.base) {
-      try { await fetch(c.base.replace(/\/+$/, '') + '/healthz', { mode: 'no-cors' }); servidorVivo = true; } catch (e) { }
+      try { await comPrazo(4000, s => fetch(c.base.replace(/\/+$/, '') + '/healthz', { mode: 'no-cors', signal: s })); servidorVivo = true; } catch (e) { }
     }
     out._servidor = servidorVivo;
 
     for (const [tipo, url] of [['financeiro', c.webhookFinanceiro], ['rotina', c.webhookRotina]]) {
       if (!url) { out[tipo] = { ok: false, msg: 'sem URL' }; continue; }
       try {
-        const r = await fetch(url, { method: 'GET' });
+        const r = await comPrazo(6000, s => fetch(url, { method: 'GET', signal: s }));
         const t = await r.text().catch(() => '');
         /* O n8n devolve "not registered" em DUAS mensagens diferentes:
            · workflow inativo: 'is not registered.'
