@@ -632,10 +632,13 @@
         <button class="cta" data-goto="1">▶ Explorar o índice</button>
       </div>
       <div class="col-meta">
-        <div class="mrow"><span>MÓDULOS</span><span class="gold" style="color:var(--gold)">9 / 9</span></div>
-        <div class="mrow"><span>FOCO HOJE</span><span>3h40</span></div>
-        <div class="mrow"><span>SEQUÊNCIA</span><span>21 dias</span></div>
-        <div class="mrow"><span>VOCÊ S.A.</span><span>7.4</span></div>
+        <!-- Os mesmos rotulos que o numeros.js escreve, e "—" ate o dado real
+             chegar. Antes eram "3h40", "21 dias", "7.4": inventados, e so nao
+             apareciam porque o gate cobria a tela ate o fim da carga. -->
+        <div class="mrow"><span>EVENTOS HOJE</span><span class="gold" style="color:var(--gold)">—</span></div>
+        <div class="mrow"><span>GASTO NO MÊS</span><span>—</span></div>
+        <div class="mrow"><span>TAREFAS ABERTAS</span><span>—</span></div>
+        <div class="mrow"><span>SEQUÊNCIA</span><span>—</span></div>
       </div>
     </div>
   </section>
@@ -946,16 +949,10 @@
     /* Traz notas e metas que vieram do WhatsApp, ANTES de as telas montarem. */
     try { if (window.Colecoes) await window.Colecoes.puxar(userId); } catch (e) {}
 
-    /* O dia e assunto do modulo de Rotina, nao da tela de entrada: a tela
-       principal e o nucleo e os indicadores. O briefing fica pronto aqui e o
-       modulo o consome quando a pessoa entra nele. */
-    try {
-      if (window.Briefing) {
-        window.__briefingHTML = await window.Briefing.montar(userId, window.__primeiroNome || "");
-      }
-    } catch (e) { /* segue sem briefing */ }
-
-    /* A conversa só existe com login: sem sessão não há a quem responder. */
+    /* A conversa ANTES de abrir a porta: o botao do canto le __chatReal na hora
+       do toque (screens-wa.js). Se a porta abrisse antes, um toque rapido
+       abriria o SIMULADOR da vitrine para quem tem conta. E barato: so le o
+       config.json (prazo de 4s) e amarra os botoes, nao consulta banco. */
     try {
       if (window.Conversa) {
         await window.Conversa.ligar();
@@ -963,10 +960,32 @@
       }
     } catch (e) { /* painel segue sem a conversa */ }
 
-    try { if (window.Numeros) await window.Numeros.atualizar(); } catch (e) {}
-    if (window.syncPuxarDoServidor) await window.syncPuxarDoServidor();
+    /* O sync tambem fica ANTES da porta: o Financeiro le `tx` ao montar, e
+       quem abrisse no primeiro segundo veria a lista sem as transacoes do
+       servidor (vazia, para quem limpou o aparelho). Sao duas consultas,
+       menos de 1s -- nao era isso que travava. */
+    try { if (window.syncPuxarDoServidor) await window.syncPuxarDoServidor(); } catch (e) {}
+
+    /* A PORTA ABRE AQUI. Ate 02/10 ela so abria depois de briefing, numeros e
+       sync, todos em fila e o briefing indo ate o Google pelo tunel: a pessoa
+       olhava a tela de carga travada. O que vem abaixo nao muda o que as telas
+       mostram ao montar -- so completa depois. */
     gate.classList.add('hidden');
     if (window.__pararGate) window.__pararGate();   // canvas escondido não anima
+
+    /* Em paralelo e sem prender ninguem. Cada um ja sabe falhar sozinho:
+       briefing devolve null, numeros mostra "—". */
+    if (window.Briefing) {
+      /* O dia e assunto do modulo de Rotina, nao da tela de entrada. A Rotina
+         le __briefingHTML ao desenhar (screens.js); se a pessoa abrir antes de
+         chegar, o bloco aparece no proximo desenho. NAO forcamos redesenho:
+         isso voltaria a aba e apagaria o que ela estivesse digitando. */
+      Promise.resolve()
+        .then(() => window.Briefing.montar(userId, window.__primeiroNome || ""))
+        .then(html => { window.__briefingHTML = html; })
+        .catch(() => { /* segue sem briefing */ });
+    }
+    if (window.Numeros) Promise.resolve().then(() => window.Numeros.atualizar()).catch(() => {});
   }
 
   /* Mostra o que houve EM VEZ de mandar para o navegador. Toda falha de
