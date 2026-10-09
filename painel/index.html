@@ -886,10 +886,24 @@
      Entao aqui o painel nao renova sozinho: o app entrega a sessao ja fresca
      a cada abertura, pelo endereco (#at=&rt=). No navegador, nada muda. */
   const dentroDoApp = navigator.userAgent.indexOf('AssessorApp/') >= 0;
+  /* PRAZO EM TODA CHAMADA AO SUPABASE, num lugar so. O espelho, as colecoes e
+     o sync rodam ANTES da porta abrir, e nenhum tinha prazo: com o Supabase
+     pendurado (aceita a conexao e nao responde), a porta nao abria nunca --
+     a mesma classe do travamento de 02/10, que o provar.cjs nao via porque
+     procura `fetch(`. Medido em 09/10: as RPCs mais lentas levam ~0,4s;
+     15s so corta o que ja morreu. Quem passa o proprio sinal (as tarefas do
+     colecoes.js, com 8s) continua valendo: os dois sinais se somam. */
+  const fetchComPrazo = (url, opts = {}) => {
+    const limite = AbortSignal.timeout ? AbortSignal.timeout(15000) : null;
+    const sinal = !limite ? opts.signal
+      : (opts.signal && AbortSignal.any) ? AbortSignal.any([opts.signal, limite])
+      : (opts.signal || limite);
+    return fetch(url, Object.assign({}, opts, sinal ? { signal: sinal } : {}));
+  };
   const supa = createClient(
     'https://uyxowxpmzlfjqbumkeae.supabase.co',
     'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV5eG93eHBtemxmanFidW1rZWFlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUzNzMyNzUsImV4cCI6MjEwMDk0OTI3NX0.I5sNg70BHUG8XZVnaEvNjdygAR8-cQN93xibC4VhYfc',
-    { auth: { autoRefreshToken: !dentroDoApp } }
+    { auth: { autoRefreshToken: !dentroDoApp }, global: { fetch: fetchComPrazo } }
   );
   window.Supa = supa; // outras telas (fase 2) vao reusar essa mesma conexao
   const gate = document.getElementById('authGate');
